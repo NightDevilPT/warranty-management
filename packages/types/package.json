@@ -1,0 +1,12 @@
+{
+	"name": "@workspace/types",
+	"version": "0.0.0",
+	"type": "common",
+	"private": true,
+	"description": "Shared TypeScript types for the workspace",
+	"types": "index.ts",
+	"main": "index.ts",
+	"files": [
+		"index.ts"
+	]
+}
