@@ -3,15 +3,9 @@ import { IUser } from '@workspace/types';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
-  }
-
-  getUser(): IUser {
+  getHello(): { message: string } {
     return {
-      id: 1,
-      name: 'John Doe',
-      age: 30,
+      message: 'Hello World!',
     };
   }
 }
