@@ -1,9 +1,11 @@
 "use client";
 import { Button } from "@workspace/ui/components/button.js";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu.js";
-import { ThemeColor, ThemeMode, useTheme } from "@workspace/ui/providers/theme-provider.js";
+import {
+	ThemeColor,
+	ThemeMode,
+	useTheme,
+} from "@workspace/ui/providers/theme-provider.js";
 import { Sun, Moon, Palette } from "lucide-react";
-
 
 export function ThemeSwitcher() {
 	const { mode, color, setMode, setColor } = useTheme();
@@ -31,24 +33,6 @@ export function ThemeSwitcher() {
 					<Sun className="h-4 w-4" />
 				)}
 			</Button>
-
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon">
-						<Palette className="h-4 w-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					{colors.map((t) => (
-						<DropdownMenuItem
-							key={t.value}
-							onClick={() => setColor(t.value)}
-						>
-							{t.name}
-						</DropdownMenuItem>
-					))}
-				</DropdownMenuContent>
-			</DropdownMenu>
 		</div>
 	);
 }

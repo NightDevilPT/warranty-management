@@ -3,23 +3,12 @@
 import { useState, useEffect } from "react";
 import { Check, ChevronDown, Globe } from "lucide-react";
 
-import { cn } from "../lib/utils.js";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "../components/popover.js";
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "../components/command.js";
 import { useTranslation } from "react-i18next";
-import { Button } from "../components/button.js";
-import { SUPPORTED_LANGUAGES, SupportedLanguage } from "../i18n/config.js";
+import { SUPPORTED_LANGUAGES, SupportedLanguage } from "@workspace/ui/i18n/config.js";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover.js";
+import { Button } from "@workspace/ui/components/button.js";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui/components/command.js";
+import { cn } from "@workspace/ui/lib/utils.js";
 
 interface LanguageSwitcherProps {
 	variant?: "default" | "outline" | "ghost";

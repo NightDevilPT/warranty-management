@@ -1,4 +1,10 @@
 {
-	"welcome": "Bienvenido a Warranty Manage",
-	"submit": "Enviar"
+	"admin": {},
+	"company": {},
+	"consumer": {},
+	"general": {
+		"welcome": "¡Bienvenido a nuestra aplicación!"
+	},
+	"messages": {},
+	"errors": {}
 }
