@@ -9,6 +9,8 @@ import { SidebarContainer } from "@workspace/ui/shared/molecules/sidebar-contain
 import { Home, Settings } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
+import HeaderLogo from "../shared/header-logo";
+import Footer from "../shared/footer";
 
 export function RootProvider({
 	children,
@@ -34,8 +36,8 @@ export function RootProvider({
 			>
 				<I18nProvider lng={locale}>
 					<SidebarContainer
-						header={<div></div>}
-						footer={<div>Footer Content</div>}
+						header={<HeaderLogo />}
+						footer={<Footer />}
 						navbarItems={ROUTES}
 						onLanguageChange={handleLanguageChange}
 					>

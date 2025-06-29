@@ -14,6 +14,7 @@
   "dependencies": {
     "@workspace/types": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "framer-motion": "^12.19.2",
     "lucide-react": "^0.475.0",
     "next": "^15.2.3",
     "next-themes": "^0.4.4",
