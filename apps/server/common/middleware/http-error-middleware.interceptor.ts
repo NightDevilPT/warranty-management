@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ErrorResponse } from 'interfaces/api-response.interface';
+import { ApiResponse } from 'interfaces/api-response.interface';
 import { LoggerService } from 'services/logger-service/index.service';
 
 @Catch()
@@ -29,6 +29,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
+        errorDetails = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
         message =
           (exceptionResponse as any).message ||
@@ -37,20 +38,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
         errorDetails =
           (exceptionResponse as any).error || (exceptionResponse as any);
       }
+    } else {
+      errorDetails = exception?.message || exception?.toString();
     }
 
-    // 🔥 Log the error
     this.logger.error(
       `${request.method} ${request.originalUrl} — ${message}`,
       stackTrace,
     );
 
-    const errorResponse: ErrorResponse = {
+    const errorResponse: ApiResponse<null> = {
       status: 'error',
       statusCode,
       message,
-      error: errorDetails,
       data: null,
+      error: errorDetails,
       meta: {
         timestamp: new Date().toISOString(),
         path: request.originalUrl,

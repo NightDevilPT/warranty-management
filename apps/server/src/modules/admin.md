@@ -5,7 +5,7 @@ Here's a professionally refined version of your document with improved structure
 # Warranty Management System Documentation
 
 ## Role Definitions
-```
+```ts
 enum ROLES {
   ADMIN
   COMPANY_ADMIN
@@ -16,10 +16,10 @@ enum ROLES {
 
 
 ## Field Definitions
-```
+```ts
 interface Field {
   fieldId: String        // Unique identifier (e.g., "warranty_months")
-  type: String           // enum: TEXT|NUMBER|SELECT|CHECKBOX|DATE|FILE
+  type: 'TEXT' | 'NUMBER' | 'SELECT' | 'CHECKBOX' | 'DATE' | 'FILE';
   label: String          // Display label
   placeholder?: String   // Optional hint text
   defaultValue?: Any     // Pre-filled value
@@ -41,8 +41,9 @@ interface Field {
   }
 }
 ```
+
 ## Section Definition
-```
+```ts
 interface Section {
   sectionId: String      // Unique identifier
   title: String          // Display header
@@ -104,7 +105,6 @@ erDiagram
   - Categories : Dynamic Form Schema
   - Brands : Dynamic Form Schema
   - Fault : Dynamic Form Schema
-  - ...
 
 #### Templates
 - Customizable Templates

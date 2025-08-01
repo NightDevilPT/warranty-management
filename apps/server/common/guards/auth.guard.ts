@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { GuardRequest, UserPayload } from 'interfaces/jwt-payload.interface';
+import { GuardRequest, UserPayload } from 'interfaces/jwt.interface';
 import { JwtTokenService } from 'services/jwt-token-service/index.service';
 
 @Injectable()

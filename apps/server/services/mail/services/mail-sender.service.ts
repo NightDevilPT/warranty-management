@@ -12,19 +12,6 @@ import { MailFactoryService } from './mail-factory.service';
 export class MailSenderService {
   constructor(private readonly mailFactoryService: MailFactoryService) {}
 
-  async send(
-    provider: MailProvider,
-    payload: any,
-  ): Promise<{ success: boolean; provider: MailProvider }> {
-    const mailer = this.mailFactoryService.getProvider(provider);
-    await mailer.sendMail(payload);
-
-    return {
-      success: true,
-      provider,
-    };
-  }
-
   // Generic-safe template mail sender
   async sendMailTemplate<T extends TemplateEnum>(options: {
     templateName: T;

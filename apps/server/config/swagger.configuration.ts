@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export const setupSwagger = (app: INestApplication) => {
   const config = new DocumentBuilder()
-    .setTitle('ChitChat')
+    .setTitle('Warranty Management System API')
     .setDescription('Chitchat Description')
     .setVersion('1.0')
     .addCookieAuth(

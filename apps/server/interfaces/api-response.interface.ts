@@ -1,21 +1,24 @@
-export interface ApiResponse<T> {
-  status: string;
+export interface ApiResponse<T = any> {
+  status: 'success' | 'error';
   statusCode: number;
   message: string;
   data: T | T[] | null;
-  meta?: Record<string, any>;
-}
-
-// Standardized error response
-export interface ErrorResponse {
-  status: 'error';
-  statusCode: number;
-  message: string;
-  error?: string | Record<string, any>;
-  data: null;
-  meta: {
+  error?: string | Record<string, any> | null;
+  meta?: {
     timestamp: string;
     path: string;
-    [key: string]: any; // Allow for additional meta fields
+    [key: string]: any; // Allow for more meta fields
   };
+}
+
+// error-types.enum.ts
+export enum ErrorTypes {
+  NotFound = 'Not Found',
+  Unauthorized = 'Unauthorized',
+  Forbidden = 'Forbidden',
+  BadRequest = 'Bad Request',
+  InternalServerError = 'Internal Server Error',
+  UnprocessableEntity = 'Unprocessable Entity',
+  Conflict = 'Conflict',
+  InvalidInput = 'Invalid Input',
 }

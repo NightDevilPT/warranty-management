@@ -1,7 +1,7 @@
 // http-error.service.ts
-import { ErrorTypes } from 'interfaces/error.interface';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ErrorTypes } from 'interfaces/api-response.interface';
 
 @Injectable()
 export class HttpErrorService {

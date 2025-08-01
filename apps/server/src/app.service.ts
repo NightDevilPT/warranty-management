@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { IUser } from '@workspace/types';
+import { ApiResponse } from 'interfaces/api-response.interface';
 
 @Injectable()
 export class AppService {
-  getHello(): { message: string } {
+  checkHealth(): ApiResponse<{message: string}> {
     return {
-      message: 'Hello World!',
+      status: 'success',
+      statusCode: 200,
+      message: 'Server is running',
+      data: { message: 'Server is running' },
     };
   }
 }
