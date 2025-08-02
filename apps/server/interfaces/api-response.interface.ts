@@ -22,3 +22,13 @@ export enum ErrorTypes {
   Conflict = 'Conflict',
   InvalidInput = 'Invalid Input',
 }
+
+export enum SuccessResponseMessages {
+  USER_CREATED_SUCCESSFULLY = 'USER_CREATED_SUCCESSFULLY',
+}
+
+export enum ErrorResponseMessages {
+  USER_ALREADY_EXISTS = 'USER_ALREADY_EXISTS',
+  FAILED_TO_SEND_MAIL = 'FAILED_TO_SEND_MAIL',
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
+}

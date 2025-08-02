@@ -19,7 +19,7 @@ export class LoggerService {
         format.errors({ stack: true }),
         format.printf(({ timestamp, level, message, stack }) => {
           const colors: Record<string, string> = {
-            info: '\x1b[34m', // blue
+            info: '\x1b[32m', // green
             warn: '\x1b[33m', // yellow
             error: '\x1b[31m', // red
             debug: '\x1b[35m', // magenta

@@ -1,5 +1,5 @@
 import { forgotPasswordTemplate } from '../templates/forget-password-email';
-import { verifyEmailTemplate } from '../templates/verify-email';
+import { verifyAdminEmailTemplate } from '../templates/verify-admin-email';
 
 // template.types.ts
 export enum TemplateEnum {
@@ -23,6 +23,6 @@ export interface TemplatePayloadMap {
 export const templateFunctionMap: {
   [K in TemplateEnum]: (payload: TemplatePayloadMap[K]) => string;
 } = {
-  [TemplateEnum.VERIFY_EMAIL]: verifyEmailTemplate,
+  [TemplateEnum.VERIFY_EMAIL]: verifyAdminEmailTemplate,
   [TemplateEnum.FORGET_PASSWORD]: forgotPasswordTemplate,
 };
