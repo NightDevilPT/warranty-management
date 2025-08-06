@@ -4,7 +4,7 @@ import {
 } from '../helpers/template-generator';
 
 export const verifyAdminEmailTemplate = (
-  payload: TemplatePayloadMap[TemplateEnum.VERIFY_EMAIL],
+  payload: TemplatePayloadMap[TemplateEnum.VERIFY_ADMIN_EMAIL],
 ): string => {
   const { username, url } = payload;
 

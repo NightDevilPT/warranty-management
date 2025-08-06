@@ -1,6 +1,20 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ROLES } from '../interface/user.interface';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+
+type OrganizationTypes = Types.ObjectId | 'global';
+
+@Schema({ _id: false })
+export class UserRoles {
+  @Prop({ type: String, enum: ROLES, required: true })
+  role: ROLES; // Changed from [ROLES] to ROLES since it's a single value
+
+  @Prop({ type: Types.ObjectId || String, required: true }) // Fixed the type definition
+  organizationId: OrganizationTypes;
+
+  @Prop({ type: Types.ObjectId || String, required: true }) // Fixed the type definition
+  rootOrganizationId: OrganizationTypes;
+}
 
 @Schema({ timestamps: true })
 export class User extends Document {
@@ -34,14 +48,6 @@ export class User extends Document {
   })
   contact: string;
 
-  @Prop({
-    required: true,
-    enum: ROLES,
-    index: true,
-    type: String,
-  })
-  role: ROLES;
-
   @Prop({ required: true, select: false })
   password: string;
 
@@ -50,6 +56,12 @@ export class User extends Document {
 
   @Prop({ type: Number, default: null, select: true })
   tokenExpire?: number | null;
+
+  @Prop({ type: [UserRoles], default: [] }) // Fixed the type from 'a' to UserRoles and default to empty array
+  roles?: UserRoles[];
+
+  @Prop({ type: Boolean, default: false, select: true })
+  verified?: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'Organization', index: true })
   organizationId?: Types.ObjectId;
@@ -66,4 +78,4 @@ export const UserSchema = SchemaFactory.createForClass(User);
 // Optional: Add indexes explicitly if you want (index decorators also work)
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ role: 1 });
-UserSchema.index({ tenantId: 1 });
+UserSchema.index({ organizationId: 1 }); // Fixed from tenantId to organizationId to match your schema

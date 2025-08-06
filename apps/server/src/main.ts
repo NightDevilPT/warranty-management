@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
 import { setupSwagger } from 'config/swagger.configuration';
 import { LoggerService } from 'services/logger-service/index.service';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from 'common/middleware/common-middleware.interceptor';
 import { HttpExceptionFilter } from 'common/middleware/http-error-middleware.interceptor';
 
@@ -12,8 +13,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // somewhere in your initialization file
 
+  // Add this line for validation:
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,                // Remove non-decorated properties
+    forbidNonWhitelisted: true,      // Throw error on extra properties
+    transform: true,                 // Automatically transform payloads to DTO instances
+    exceptionFactory: (errors) => new BadRequestException(errors), // Always return 400 for validation
+  }));
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
+  
   app.use(cookieParser());
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

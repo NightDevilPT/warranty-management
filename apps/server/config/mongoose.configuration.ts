@@ -9,4 +9,7 @@ export default () => ({
     password: process.env.MONGODB_PASSWORD,
     authSource: process.env.MONGODB_AUTHSOURCE || 'admin',
   },
+  ADMIN_URL: process.env.ADMIN_ORIGIN,
+  COMPANY_URL: process.env.COMPANY_ORIGIN,
+  CONSUMER_URL: process.env.CONSUMER_ORIGIN,
 });

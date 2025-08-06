@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { UsersService } from './users.service';
+import { ConfigModule } from '@nestjs/config';
 import { UsersController } from './users.controller';
 import { UserCommandHandlers } from './commands';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -15,6 +16,7 @@ import { HttpErrorService } from 'services/http-error-service/index.service';
   imports: [
     CqrsModule,
     MailModule,
+    ConfigModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   controllers: [UsersController],

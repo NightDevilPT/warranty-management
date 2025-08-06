@@ -6,8 +6,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ApiResponse } from 'interfaces/api-response.interface';
 import { LoggerService } from 'services/logger-service/index.service';
+import { ApiResponse, ErrorResponseMessages } from 'interfaces/api-response.interface';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -26,17 +26,31 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const exceptionResponse = exception.getResponse();
+      console.log('exceptionResponse', exceptionResponse);
 
-      if (typeof exceptionResponse === 'string') {
+      let validationDetails: any = null;
+
+      // Detect class-validator errors
+      if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null &&
+        Array.isArray((exceptionResponse as any)['message'])
+      ) {
+        // message is an array => validation error (class-validator)
+        // Attach all validation error objects to errorDetails
+        validationDetails = (exceptionResponse as any)['message'];
+        message = ErrorResponseMessages.VALIDATION_FAILEd; // Always just one string in message
+        errorDetails = validationDetails; // Show all details in error
+      } else if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
         errorDetails = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object') {
-        message =
-          (exceptionResponse as any).message ||
-          (exceptionResponse as any).error ||
-          message;
-        errorDetails =
-          (exceptionResponse as any).error || (exceptionResponse as any);
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
+        const resp = exceptionResponse as any;
+        message = resp.message || resp.error || message;
+        errorDetails = resp.error || resp;
       }
     } else {
       errorDetails = exception?.message || exception?.toString();
