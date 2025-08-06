@@ -4,6 +4,8 @@ import { VerifyUserDto } from './dto/verify-email.dto';
 import { Controller, Post, Body } from '@nestjs/common';
 import { UserResponseDto } from './dto/response-user.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { LoginUserDto } from './dto/login-user.dto';
+import { IApiResponse } from 'interfaces/api-response.interface';
 
 @ApiTags('Users')
 @Controller('users')
@@ -49,5 +51,33 @@ export class UsersController {
   ): Promise<UserResponseDto> {
     const { token, email } = verifyUserDto;
     return await this.usersService.verifyUser(token, email);
+  }
+
+  @Post('login')
+  @ApiOperation({
+    summary: 'Login user',
+    description: 'Login with email & password, returns JWT access token and user info',
+  })
+  @ApiBody({ type: LoginUserDto })
+  @ApiResponse({
+    status: 200, description: 'Login successful',
+    schema: {
+      example: {
+        status: "success",
+        message: "Login successful",
+        statusCode: 200,
+        data: {
+          user: {/* user fields */},
+          accessToken: "jwt.token.string"
+        },
+        error: null
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async loginUser(
+    @Body() loginUserDto: LoginUserDto,
+  ): Promise<UserResponseDto> {
+    return this.usersService.loginUser(loginUserDto);
   }
 }

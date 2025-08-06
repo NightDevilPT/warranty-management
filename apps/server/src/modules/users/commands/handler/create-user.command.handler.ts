@@ -1,6 +1,6 @@
 // handlers/create-user.handler.ts
 import {
-  ApiResponse,
+  IApiResponse,
   ErrorResponseMessages,
   ErrorTypes,
   SuccessResponseMessages,
@@ -58,7 +58,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
 
   async execute(
     command: CreateUserCommand,
-  ): Promise<ApiResponse<UserResponseDto>> {
+  ): Promise<IApiResponse<UserResponseDto>> {
     const { firstName, lastName, email, contact, role, password } =
       command.createUserDto;
 

@@ -7,14 +7,14 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Response, Request } from 'express';
-import { ApiResponse } from 'interfaces/api-response.interface';
+import { IApiResponse } from 'interfaces/api-response.interface';
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
-  ): Observable<ApiResponse<T>> {
+  ): Observable<IApiResponse<T>> {
     const ctx = context.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
@@ -29,19 +29,25 @@ export class ResponseInterceptor<T> implements NestInterceptor {
         const timeTakenMs = endTime - startTime;
 
         const statusCode = resData?.statusCode || response.statusCode || 200;
-
-        const { accessToken, refreshToken, ...data } = {
+        const { ...data } = {
           ...(resData?.data ?? resData ?? {}),
         };
 
+        const accessToken = resData?.accessToken || null;
+        const refreshToken = resData?.refreshToken || null;
+
         if (accessToken) {
           response.cookie('accessToken', accessToken, {
-            /* ... */
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: ACCESS_TOKEN_AGE,
           });
         }
         if (refreshToken) {
           response.cookie('refreshToken', refreshToken, {
-            /* ... */
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: REFRESH_TOKEN_AGE,
           });
         }
 
@@ -60,7 +66,7 @@ export class ResponseInterceptor<T> implements NestInterceptor {
           data,
           error: null,
           meta,
-        } as ApiResponse<T>;
+        } as IApiResponse<T>;
       }),
     );
   }

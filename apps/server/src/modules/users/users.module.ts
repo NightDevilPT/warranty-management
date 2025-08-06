@@ -11,12 +11,15 @@ import { UserRepository } from './repository/user.repository';
 import { HashService } from 'services/hash-service/index.service';
 import { LoggerService } from 'services/logger-service/index.service';
 import { HttpErrorService } from 'services/http-error-service/index.service';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtTokenService } from 'services/jwt-token-service/index.service';
 
 @Module({
   imports: [
     CqrsModule,
     MailModule,
     ConfigModule,
+    JwtModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   controllers: [UsersController],
@@ -26,6 +29,7 @@ import { HttpErrorService } from 'services/http-error-service/index.service';
     HashService,
     HttpErrorService,
     LoggerService,
+    JwtTokenService,
     ...UserCommandHandlers,
   ],
 })

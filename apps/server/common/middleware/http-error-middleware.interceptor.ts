@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { LoggerService } from 'services/logger-service/index.service';
-import { ApiResponse, ErrorResponseMessages } from 'interfaces/api-response.interface';
+import { IApiResponse, ErrorResponseMessages } from 'interfaces/api-response.interface';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -61,7 +61,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       stackTrace,
     );
 
-    const errorResponse: ApiResponse<null> = {
+    const errorResponse: IApiResponse<null> = {
       status: 'error',
       statusCode,
       message,

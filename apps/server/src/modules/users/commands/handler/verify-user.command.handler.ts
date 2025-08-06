@@ -2,7 +2,7 @@
 import {
   ErrorTypes,
   ErrorResponseMessages,
-  ApiResponse,
+  IApiResponse,
   SuccessResponseMessages,
 } from 'interfaces/api-response.interface';
 import { Injectable } from '@nestjs/common';
@@ -27,7 +27,7 @@ export class VerifyUserHandler implements ICommandHandler<VerifyUserCommand> {
 
   async execute(
     command: VerifyUserCommand,
-  ): Promise<ApiResponse<UserResponseDto>> {
+  ): Promise<IApiResponse<UserResponseDto>> {
     const { token, email } = command;
 
     try {

@@ -1,9 +1,11 @@
-export interface ApiResponse<T = any> {
+export interface IApiResponse<T = any> {
   status: 'success' | 'error';
   statusCode: number;
   message: string;
   data: T | T[] | null;
   error?: string | Record<string, any> | null;
+  accessToken?: string; // Optional, for authenticated responses
+  refreshToken?: string; // Optional, for authenticated responses
   meta?: {
     timestamp: string;
     path: string;
@@ -27,6 +29,7 @@ export enum SuccessResponseMessages {
   USER_CREATED_SUCCESSFULLY = 'USER_CREATED_SUCCESSFULLY',
   USER_ROLE_UPDATED_SUCCESSFULLY = 'USER_ROLE_UPDATED_SUCCESSFULLY',
   USER_VERIFIED_SUCCESSFULLY = 'USER_VERIFIED_SUCCESSFULLY',
+  LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL',
 }
 
 export enum ErrorResponseMessages {
@@ -39,4 +42,6 @@ export enum ErrorResponseMessages {
   USER_IS_NOT_ADMIN = 'USER_IS_NOT_ADMIN',
   INVALID_VERIFICATION_TOKEN = 'INVALID_VERIFICATION_TOKEN',
   VERIFICATION_TOKEN_EXPIRED = 'VERIFICATION_TOKEN_EXPIRED',
+  USER_NOT_VERIFIED = 'USER_NOT_VERIFIED',
+  INVALID_EMAIL_OR_PASSWORD = 'INVALID_EMAIL_OR_PASSWORD',
 }
