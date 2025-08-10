@@ -1,11 +1,19 @@
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { Request } from 'express';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { VerifyUserDto } from './dto/verify-email.dto';
-import { Controller, Post, Body } from '@nestjs/common';
-import { UserResponseDto } from './dto/response-user.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { LoginUserDto } from './dto/login-user.dto';
-import { IApiResponse } from 'interfaces/api-response.interface';
+import { VerifyUserDto } from './dto/verify-email.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from 'common/guards/auth.guard';
+import { UserResponseDto } from './dto/response-user.dto';
+import { Controller, Post, Body, Put, Req, UseGuards } from '@nestjs/common';
 
 @ApiTags('Users')
 @Controller('users')
@@ -56,28 +64,57 @@ export class UsersController {
   @Post('login')
   @ApiOperation({
     summary: 'Login user',
-    description: 'Login with email & password, returns JWT access token and user info',
+    description:
+      'Login with email & password, returns JWT access token and user info',
   })
   @ApiBody({ type: LoginUserDto })
   @ApiResponse({
-    status: 200, description: 'Login successful',
+    status: 200,
+    description: 'Login successful',
     schema: {
       example: {
-        status: "success",
-        message: "Login successful",
+        status: 'success',
+        message: 'Login successful',
         statusCode: 200,
         data: {
-          user: {/* user fields */},
-          accessToken: "jwt.token.string"
+          user: {
+            /* user fields */
+          },
+          accessToken: 'jwt.token.string',
         },
-        error: null
-      }
-    }
+        error: null,
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async loginUser(
     @Body() loginUserDto: LoginUserDto,
   ): Promise<UserResponseDto> {
     return this.usersService.loginUser(loginUserDto);
+  }
+
+  @Put('update-profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update an existing user',
+    description: 'Updates user details',
+  })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateUser(
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() req: Request,
+  ): Promise<UserResponseDto> {
+    if (!req.user || !req.user.sub) {
+      throw new Error('Unauthorized: User ID not found in request');
+    }
+    return await this.usersService.updateUser(req.user?.sub, updateUserDto);
   }
 }

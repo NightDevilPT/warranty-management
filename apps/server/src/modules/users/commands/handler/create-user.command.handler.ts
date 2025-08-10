@@ -91,12 +91,12 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       const expireIn = 7 * 24 * 60 * 60 * 1000; // 7 days * 24 hours * 60 minutes * 60 seconds * 1000 ms
 
       let userRoles: UserRoles[] = [];
-      if(role == ROLES.ADMIN) {
+      if (role == ROLES.ADMIN) {
         userRoles.push({
-          organizationId: "global",
-          rootOrganizationId: "global",
+          organizationId: 'global',
+          rootOrganizationId: 'global',
           role: ROLES.ADMIN,
-        })
+        });
       }
 
       // Create and save new user
@@ -151,7 +151,6 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
         error: null,
       };
     } catch (error: any) {
-      console.log(error.message,'CONSOLING ERROR')
       this.loggerService.error(
         'Error during user creation',
         error.stack || error.message,

@@ -1,11 +1,13 @@
 import { CommandBus } from '@nestjs/cqrs';
 import { Injectable } from '@nestjs/common';
+import { LoginUserDto } from './dto/login-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/response-user.dto';
 import { CreateUserCommand } from './commands/impl/create-user.command';
 import { VerifyUserCommand } from './commands/impl/verify-user.command';
-import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserCommand } from './commands/impl/login-user.command';
+import { UpdateUserCommand } from './commands/impl/update-user.command';
 
 @Injectable()
 export class UsersService {
@@ -21,5 +23,14 @@ export class UsersService {
 
   async loginUser(loginUserDto: LoginUserDto): Promise<any> {
     return this.commandBus.execute(new LoginUserCommand(loginUserDto));
+  }
+
+  async updateUser(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    return this.commandBus.execute(
+      new UpdateUserCommand(userId, updateUserDto),
+    );
   }
 }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AppController } from './app.controller';
 import { MongooseModule } from '@nestjs/mongoose';
+import { RolesGuard } from 'common/guards/roles.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import mongooseConfiguration from 'config/mongoose.configuration';
 import { LoggerService } from 'services/logger-service/index.service';
@@ -37,9 +38,9 @@ import { AllModules } from './modules';
         },
       }),
     }),
-    ...AllModules
+    ...AllModules,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, RolesGuard],
 })
 export class AppModule {}

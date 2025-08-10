@@ -1,21 +1,20 @@
 // src/modules/users/commands/handler/login-user.command.handler.ts
 
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   IApiResponse,
   ErrorTypes,
   ErrorResponseMessages,
   SuccessResponseMessages,
 } from 'interfaces/api-response.interface';
+import { HttpException, Injectable } from '@nestjs/common';
+import { UserResponseDto } from '../../dto/response-user.dto';
+import { LoginUserCommand } from '../impl/login-user.command';
 import { UserRepository } from '../../repository/user.repository';
 import { HashService } from 'services/hash-service/index.service';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { LoggerService } from 'services/logger-service/index.service';
-import { HttpErrorService } from 'services/http-error-service/index.service';
-import { LoginUserCommand } from '../impl/login-user.command';
-import { UserResponseDto } from '../../dto/response-user.dto';
-// If using JWT:
-import { Injectable } from '@nestjs/common';
 import { JwtTokenService } from 'services/jwt-token-service/index.service';
+import { HttpErrorService } from 'services/http-error-service/index.service';
 
 @CommandHandler(LoginUserCommand)
 @Injectable()
@@ -30,7 +29,9 @@ export class LoginUserHandler implements ICommandHandler<LoginUserCommand> {
     this.loggerService.setContext('LoginUserHandler');
   }
 
-  async execute(command: LoginUserCommand): Promise<IApiResponse<UserResponseDto>> {
+  async execute(
+    command: LoginUserCommand,
+  ): Promise<IApiResponse<UserResponseDto>> {
     const { email, password } = command.loginUserDto;
 
     try {
@@ -38,7 +39,7 @@ export class LoginUserHandler implements ICommandHandler<LoginUserCommand> {
 
       // Find user by email
       const user = await this.userRepository.findUserByEmailWithPassword(email); // Select only necessary fields
-	  console.log(user,'user');
+      console.log(user, 'user');
       if (!user) {
         throw this.httpErrorService.throwError(
           ErrorTypes.Unauthorized,
@@ -69,20 +70,29 @@ export class LoginUserHandler implements ICommandHandler<LoginUserCommand> {
       // Generate JWT (or session token) and return profile + token
       const payload = { sub: user._id, email: user.email, roles: user.roles }; // tweak as needed
       const accessToken = this.jwtService.generateAccessToken(payload);
-	  const refreshToken = this.jwtService.generateRefreshToken(payload);
+      const refreshToken = this.jwtService.generateRefreshToken(payload);
 
       return {
         status: 'success',
         message: SuccessResponseMessages.LOGIN_SUCCESSFUL || 'Login successful',
         statusCode: 200,
-        data:  new UserResponseDto(user),
-		accessToken,
-		refreshToken,
+        data: new UserResponseDto(user),
+        accessToken,
+        refreshToken,
         error: null,
       };
     } catch (error) {
-      this.loggerService.error(`Login error`, error.stack || error.message);
-      if (error.response) throw error;
+      this.loggerService.error(
+        'Error during login attempt',
+        error.stack || error.message,
+      );
+
+      // Rethrow known HTTP exceptions to be handled by NestJS
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Wrap any unexpected errors as InternalServerError
       throw this.httpErrorService.throwError(
         ErrorTypes.InternalServerError,
         error.message || ErrorResponseMessages.INTERNAL_SERVER_ERROR,

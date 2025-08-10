@@ -12,6 +12,16 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   async findUserByEmailWithPassword(email: string): Promise<User | null> {
-    return this.model.findOne({ email: email.toLowerCase() }).select('email password roles verified firstName lastName').exec();
+    return this.model
+      .findOne({ email: email.toLowerCase() })
+      .select('email password roles verified firstName lastName')
+      .exec();
+  }
+
+  async findUserByIdWithPassword(userId: string): Promise<User | null> {
+    return this.model
+      .findById(userId)
+      .select('email password roles verified firstName lastName')
+      .exec();
   }
 }

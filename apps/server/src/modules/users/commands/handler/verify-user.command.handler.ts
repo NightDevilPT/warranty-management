@@ -5,7 +5,7 @@ import {
   IApiResponse,
   SuccessResponseMessages,
 } from 'interfaces/api-response.interface';
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { UserResponseDto } from '../../dto/response-user.dto';
 import { UserRepository } from '../../repository/user.repository';
 import { VerifyUserCommand } from '../impl/verify-user.command';
@@ -87,15 +87,16 @@ export class VerifyUserHandler implements ICommandHandler<VerifyUserCommand> {
       };
     } catch (error) {
       this.loggerService.error(
-        `Failed to verify user for email: ${email}`,
+        'Error during user verification',
         error.stack || error.message,
       );
 
-      // Rethrow known HTTP exceptions handled by NestJS
-      if (error.response) {
+      // Rethrow known HTTP exceptions to be handled by NestJS
+      if (error instanceof HttpException) {
         throw error;
       }
 
+      // Wrap any unexpected errors as InternalServerError
       throw this.httpErrorService.throwError(
         ErrorTypes.InternalServerError,
         error.message || ErrorResponseMessages.INTERNAL_SERVER_ERROR,
