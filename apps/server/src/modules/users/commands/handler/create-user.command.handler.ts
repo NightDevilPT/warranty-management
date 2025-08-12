@@ -1,5 +1,11 @@
 // handlers/create-user.handler.ts
 import {
+  ColorEnum,
+  LanguageEnum,
+  ThemeEnum,
+  ViewEnum,
+} from 'interfaces/setting.interface';
+import {
   IApiResponse,
   ErrorResponseMessages,
   ErrorTypes,
@@ -13,12 +19,13 @@ import { ROLES } from '../../interface/user.interface';
 import { UserResponseDto } from '../../dto/response-user.dto';
 import { UserRepository } from '../../repository/user.repository';
 import { HashService } from 'services/hash-service/index.service';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateUserCommand } from '../impl/create-user.command';
 import { LoggerService } from 'services/logger-service/index.service';
 import { TemplateEnum } from 'services/mail/helpers/template-generator';
 import { HttpErrorService } from 'services/http-error-service/index.service';
 import { MailSenderService } from 'services/mail/services/mail-sender.service';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CreateSettingsCommand } from 'src/modules/settings/commands/impl/create-settings.command';
 
 interface RoleConfig {
   urlKey: string;
@@ -52,6 +59,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     private readonly loggerService: LoggerService,
     private readonly mailService: MailSenderService,
     private readonly configService: ConfigService,
+    private readonly commandBus: CommandBus,
   ) {
     this.loggerService.setContext('CreateUserHandler');
   }
@@ -115,6 +123,16 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       const userDto = new UserResponseDto(user);
       this.loggerService.log(
         `User successfully created with username: ${username} and email: ${email}`,
+      );
+
+      // Creating default settings for the user
+      const defaultSettings = await this.commandBus.execute(
+        new CreateSettingsCommand(user.id, {
+          language: LanguageEnum.EN,
+          theme: ThemeEnum.LIGHT,
+          color: ColorEnum.BLUE,
+          view: ViewEnum.GRID,
+        }),
       );
 
       // Send verification email
