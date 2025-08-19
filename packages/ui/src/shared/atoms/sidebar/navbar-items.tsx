@@ -9,13 +9,13 @@ import {
 	SidebarMenuSub,
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
-} from "@workspace/ui/components/sidebar.js";
+} from "@workspace/ui/components/sidebar.tsx";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
-} from "@workspace/ui/components/collapsible.js";
-import { SidebarNavbarItemsProps } from "@workspace/ui/types/sidebar.interface.js";
+} from "@workspace/ui/components/collapsible.tsx";
+import { SidebarNavbarItemsProps } from "@workspace/ui/types/sidebar.interface.ts";
 
 interface NavbarItemsProps {
 	items: SidebarNavbarItemsProps[];

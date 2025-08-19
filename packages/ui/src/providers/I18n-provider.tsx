@@ -1,9 +1,9 @@
 "use client";
 
-import i18n from "../i18n/i18n.js";
+import i18n from "../i18n/i18n.ts";
 import { useEffect, useState } from "react";
 import { I18nextProvider } from "react-i18next";
-import { SUPPORTED_LANGUAGES, SupportedLanguage } from "../i18n/config.js";
+import { SUPPORTED_LANGUAGES, SupportedLanguage } from "../i18n/config.ts";
 
 interface I18nProviderProps {
 	children: React.ReactNode;

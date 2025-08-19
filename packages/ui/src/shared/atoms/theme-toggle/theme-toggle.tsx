@@ -1,11 +1,11 @@
 "use client";
-import { Button } from "@workspace/ui/components/button.js";
 import {
 	ThemeColor,
 	ThemeMode,
 	useTheme,
-} from "@workspace/ui/providers/theme-provider.js";
+} from "@workspace/ui/providers/theme-provider.tsx";
 import { Sun, Moon, Palette } from "lucide-react";
+import { Button } from "@workspace/ui/components/button.tsx";
 
 export function ThemeSwitcher() {
 	const { mode, color, setMode, setColor } = useTheme();

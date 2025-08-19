@@ -4,9 +4,9 @@ import React from "react";
 import {
 	SidebarGroup,
 	SidebarGroupLabel,
-} from "@workspace/ui/components/sidebar.js";
-import { SidebarNavbarItemsProps } from "@workspace/ui/types/sidebar.interface.js";
-import { NavbarItems } from "./navbar-items.js";
+} from "@workspace/ui/components/sidebar.tsx";
+import { SidebarNavbarItemsProps } from "@workspace/ui/types/sidebar.interface.tsx";
+import { NavbarItems } from "./navbar-items.tsx";
 
 interface NavigationGroupProps {
 	items: SidebarNavbarItemsProps[];

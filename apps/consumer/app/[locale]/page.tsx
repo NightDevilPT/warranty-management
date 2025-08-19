@@ -3,8 +3,8 @@
 import { useTranslation } from "react-i18next";
 import { useRouter, usePathname } from "next/navigation";
 import { SupportedLanguage } from "@workspace/ui/i18n/config";
-import { ThemeSwitcher } from "@workspace/ui/shared/theme-toggle";
-import { LanguageSwitcher } from "@workspace/ui/shared/language-switcher";
+import { ThemeSwitcher } from "@workspace/ui/shared/atoms/color-change";
+import { LanguageSwitcher } from "@workspace/ui/shared/atoms/theme-toggle/language-switcher";
 
 export default function Home() {
 	const { t } = useTranslation();

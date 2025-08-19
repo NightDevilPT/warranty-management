@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Separator } from "@workspace/ui/components/separator.js";
-import { LanguageSwitcher } from "../theme-toggle/language-switcher.js";
-import { ThemeSwitcher } from "../theme-toggle/theme-toggle.js";
-import { SidebarTrigger } from "@workspace/ui/components/sidebar.js";
+import { Separator } from "@workspace/ui/components/separator.tsx";
+import { LanguageSwitcher } from "../theme-toggle/language-switcher.tsx";
+import { ThemeSwitcher } from "../theme-toggle/theme-toggle.tsx";
+import { SidebarTrigger } from "@workspace/ui/components/sidebar.tsx";
 
 interface HeaderSectionProps {
 	onLanguageChange?: (languageCode: string) => void;

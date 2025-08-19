@@ -18,6 +18,6 @@
 		"ui": "@workspace/ui/components",
 		"pages": "@workspace/ui/pages",
 		"providers": "@workspace/ui/providers",
-		"shared": "@workspace/ui/shared"
+		"shared": "@workspace/ui/src/shared"
 	}
 }

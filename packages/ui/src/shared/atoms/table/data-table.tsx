@@ -1,12 +1,12 @@
 import * as XLSX from "xlsx";
 import React, { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Download, Eye } from "lucide-react";
-import { Button } from "@workspace/ui/components/button.js";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover.js";
-import { CardContent } from "@workspace/ui/components/card.js";
-import { Checkbox } from "@workspace/ui/components/checkbox.js";
-import { Label } from "@workspace/ui/components/label.js";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table.js";
+import { Button } from "@workspace/ui/components/button.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover.tsx";
+import { CardContent } from "@workspace/ui/components/card.tsx";
+import { Checkbox } from "@workspace/ui/components/checkbox.tsx";
+import { Label } from "@workspace/ui/components/label.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table.tsx";
 
 // Column Configuration Interface
 export interface DataColumnConfig<T> {

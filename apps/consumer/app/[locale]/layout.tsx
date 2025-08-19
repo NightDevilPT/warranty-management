@@ -2,7 +2,7 @@ import {
 	SUPPORTED_LANGUAGES,
 	SupportedLanguage,
 } from "@workspace/ui/i18n/config";
-import { ClickSpark } from "@workspace/ui/shared/click-spark";
+import { ClickSpark } from "@workspace/ui/shared/atoms/click-spark";
 import { I18nProvider } from "@workspace/ui/providers/I18n-provider";
 import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
 

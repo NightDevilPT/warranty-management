@@ -1,8 +1,18 @@
 "use client";
+
+import {
+	ThemeColor,
+	ThemeMode,
+	useTheme,
+} from "@workspace/ui/providers/theme-provider.tsx";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu.tsx";
 import { Sun, Moon, Palette } from "lucide-react";
-import { Button } from "./button.js";
-import { ThemeColor, ThemeMode, useTheme } from "../providers/theme-provider.js";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu.js";
+import { Button } from "@workspace/ui/components/button.tsx";
 
 export function ThemeSwitcher() {
 	const { mode, color, setMode, setColor } = useTheme();

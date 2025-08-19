@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { Check, ChevronDown, Globe } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
-import { SUPPORTED_LANGUAGES, SupportedLanguage } from "@workspace/ui/i18n/config.js";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover.js";
-import { Button } from "@workspace/ui/components/button.js";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui/components/command.js";
-import { cn } from "@workspace/ui/lib/utils.js";
+import { SUPPORTED_LANGUAGES, SupportedLanguage } from "@workspace/ui/i18n/config.ts";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover.tsx";
+import { Button } from "@workspace/ui/components/button.tsx";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui/components/command.tsx";
+import { cn } from "@workspace/ui/lib/utils.ts";
 
 interface LanguageSwitcherProps {
 	variant?: "default" | "outline" | "ghost";

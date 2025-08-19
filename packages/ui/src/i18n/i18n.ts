@@ -1,8 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import en from "./locales/en.json" assert { type: "json" };
-import es from "./locales/es.json" assert { type: "json" };
-import { defaultLocale } from "./config.js";
+import en from "./locales/en.json" with { type: "json" };
+import es from "./locales/es.json" with { type: "json" };
+import { defaultLocale } from "./config.ts";
 //   import fr from './locales/fr.json' assert { type: "json" };
 //   import de from './locales/de.json' assert { type: "json" };
 //   import hi from './locales/hi.json' assert { type: "json" };

@@ -2,9 +2,9 @@ import {
 	SUPPORTED_LANGUAGES,
 	SupportedLanguage,
 } from "@workspace/ui/i18n/config";
-import { ClickSpark } from "@workspace/ui/shared/click-spark";
 import { I18nProvider } from "@workspace/ui/providers/I18n-provider";
 import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
+import { ClickSpark } from "@workspace/ui/shared/atoms/click-spark";
 
 export async function generateStaticParams() {
 	return Object.keys(SUPPORTED_LANGUAGES).map((locale) => ({ locale }));

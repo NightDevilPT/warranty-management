@@ -7,11 +7,11 @@ import {
 	SidebarHeader,
 	SidebarInset,
 	SidebarProvider,
-} from "@workspace/ui/components/sidebar.js";
-import { HeaderSection } from "../atoms/sidebar/header-section.js";
-import { NavigationGroup } from "../atoms/sidebar/navigation-group.js";
-import { SidebarContainerProps } from "@workspace/ui/types/sidebar.interface.js";
-import { Separator } from "@workspace/ui/components/separator.js";
+} from "@workspace/ui/components/sidebar.tsx";
+import { HeaderSection } from "../atoms/sidebar/header-section.tsx";
+import { NavigationGroup } from "../atoms/sidebar/navigation-group.tsx";
+import { SidebarContainerProps } from "@workspace/ui/types/sidebar.interface.tsx";
+import { Separator } from "@workspace/ui/components/separator.tsx";
 
 export function SidebarContainer({
 	children,
