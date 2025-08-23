@@ -73,7 +73,6 @@ export class SettingsController {
     @Req() req: Request,
   ): Promise<SettingsResponseDto> {
     const userId = req?.user?.sub; // Assuming user is attached to request by JwtAuthGuard
-    console.log('User ID:', userId); // Debugging line to check userId
     if (!userId) {
       throw new HttpException(
         'User not authenticated',

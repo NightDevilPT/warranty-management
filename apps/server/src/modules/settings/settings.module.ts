@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { SettingsService } from './settings.service';
 import { MongooseModule } from '@nestjs/mongoose';
+import { SettingCommandHandlers } from './commands';
 import { SettingsController } from './settings.controller';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { Settings, SettingsSchema } from './entities/setting.entity';
@@ -12,10 +13,6 @@ import { UserRepository } from '../users/repository/user.repository';
 import { LoggerService } from 'services/logger-service/index.service';
 import { JwtTokenService } from 'services/jwt-token-service/index.service';
 import { HttpErrorService } from 'services/http-error-service/index.service';
-import { CreateSettingsHandler } from './commands/handler/create-settings.command.handler';
-import { UpdateSettingsHandler } from './commands/handler/update-settings.command.handler';
-
-const CommandHandlers = [CreateSettingsHandler, UpdateSettingsHandler];
 
 @Module({
   imports: [
@@ -34,7 +31,7 @@ const CommandHandlers = [CreateSettingsHandler, UpdateSettingsHandler];
     LoggerService,
     HttpErrorService,
     JwtTokenService,
-    ...CommandHandlers,
+    ...SettingCommandHandlers,
   ],
   exports: [SettingsRepository],
 })
