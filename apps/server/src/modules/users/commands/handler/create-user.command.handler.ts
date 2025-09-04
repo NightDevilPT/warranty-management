@@ -26,32 +26,10 @@ import { HttpErrorService } from 'services/http-error-service/index.service';
 import { MailSenderService } from 'services/mail/services/mail-sender.service';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateSettingsCommand } from 'src/modules/settings/commands/impl/create-settings.command';
-
-interface RoleConfig {
-  urlKey: string;
-  template: TemplateEnum;
-}
+import { RoleConfigUrlMap } from 'interfaces/url.interface';
 
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
-  private readonly roleConfigMap: Record<string, RoleConfig> = {
-    [ROLES.ADMIN]: {
-      urlKey: 'ADMIN_URL',
-      template: TemplateEnum.VERIFY_ADMIN_EMAIL,
-    },
-    [ROLES.COMPANY_ADMIN]: {
-      urlKey: 'COMPANY_URL',
-      template: TemplateEnum.VERIFY_COMPANY_EMAIL,
-    },
-    [ROLES.PARTNER]: {
-      urlKey: 'COMPANY_URL',
-      template: TemplateEnum.VERIFY_COMPANY_EMAIL,
-    },
-    default: {
-      urlKey: 'CONSUMER_URL',
-      template: TemplateEnum.VERIFY_CONSUMER_EMAIL,
-    },
-  };
   constructor(
     private readonly userRepository: UserRepository,
     private readonly httpErrorService: HttpErrorService,
@@ -136,7 +114,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       );
 
       // Send verification email
-      const config = this.roleConfigMap[role] || this.roleConfigMap.default;
+      const config = RoleConfigUrlMap[role] || RoleConfigUrlMap.default;
       const url = `${this.configService.get<string>(config.urlKey)}/auth/verify?token=${hashedToken}&email=${email}`;
       const templateName = config.template;
 

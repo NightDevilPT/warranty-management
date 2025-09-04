@@ -4,6 +4,9 @@ import {
   ApiResponse,
   ApiBody,
   ApiBearerAuth,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { UsersService } from './users.service';
@@ -14,6 +17,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from 'common/guards/auth.guard';
 import { UserResponseDto } from './dto/response-user.dto';
 import { Controller, Post, Body, Put, Req, UseGuards } from '@nestjs/common';
+import { ForgetPasswordDto } from './dto/forget-password.dto';
+import { IApiResponse } from 'interfaces/api-response.interface';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -116,5 +122,37 @@ export class UsersController {
       throw new Error('Unauthorized: User ID not found in request');
     }
     return await this.usersService.updateUser(req.user?.sub, updateUserDto);
+  }
+
+  @Post('forget-password')
+  @ApiOperation({
+    summary: 'Request password reset',
+    description: 'Generates reset token and sends email to user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset email sent successfully',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid email format',
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found with this email',
+  })
+  async forgetPassword(
+    @Body() forgetPasswordDto: ForgetPasswordDto,
+  ): Promise<UserResponseDto> {
+    return this.usersService.forgetPassword(forgetPasswordDto);
+  }
+
+
+  @Post('update-password')
+  @ApiOperation({ summary: 'Update password using reset token' })
+  @ApiResponse({ status: 200, description: 'Password updated successfully' })
+  @ApiBadRequestResponse({ description: 'Invalid input data' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired token' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  async updatePassword(@Body() dto: UpdatePasswordDto): Promise<IApiResponse<null>> {
+    return this.usersService.updatePassword(dto);
   }
 }

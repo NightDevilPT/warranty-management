@@ -8,6 +8,10 @@ import { CreateUserCommand } from './commands/impl/create-user.command';
 import { VerifyUserCommand } from './commands/impl/verify-user.command';
 import { LoginUserCommand } from './commands/impl/login-user.command';
 import { UpdateUserCommand } from './commands/impl/update-user.command';
+import { ForgetPasswordCommand } from './commands/impl/forget-password.command';
+import { ForgetPasswordDto } from './dto/forget-password.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdatePasswordCommand } from './commands/impl/update-password.command';
 
 @Injectable()
 export class UsersService {
@@ -32,5 +36,15 @@ export class UsersService {
     return this.commandBus.execute(
       new UpdateUserCommand(userId, updateUserDto),
     );
+  }
+
+  async forgetPassword(forgetPasswordDto: ForgetPasswordDto) {
+    return this.commandBus.execute(
+      new ForgetPasswordCommand(forgetPasswordDto),
+    );
+  }
+
+  async updatePassword(updatePasswordDto: UpdatePasswordDto) {
+    return this.commandBus.execute(new UpdatePasswordCommand(updatePasswordDto));
   }
 }

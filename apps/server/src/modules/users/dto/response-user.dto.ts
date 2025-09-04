@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger'; // optional, remove if not using swagger
 import { ROLES } from '../interface/user.interface';
+import { UserRoles } from '../entities/user.entity';
 
 export class UserResponseDto {
   @ApiProperty()
@@ -21,8 +22,8 @@ export class UserResponseDto {
   @ApiProperty()
   readonly contact: string;
 
-  @ApiProperty({ enum: ROLES })
-  readonly role: ROLES;
+  @ApiProperty()
+  readonly roles: UserRoles[];
 
   @ApiProperty()
   readonly createdAt: Date;
@@ -37,7 +38,7 @@ export class UserResponseDto {
     this.email = user.email;
     this.avatar = user.avatar ?? null;
     this.contact = user.contact;
-    this.role = user.role;
+    this.roles = user.roles;
 
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;

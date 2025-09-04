@@ -39,7 +39,6 @@ export class LoginUserHandler implements ICommandHandler<LoginUserCommand> {
 
       // Find user by email
       const user = await this.userRepository.findUserByEmailWithPassword(email); // Select only necessary fields
-      console.log(user, 'user');
       if (!user) {
         throw this.httpErrorService.throwError(
           ErrorTypes.Unauthorized,

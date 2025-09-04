@@ -39,6 +39,10 @@ export enum SuccessResponseMessages {
 }
 
 export enum ErrorResponseMessages {
+  // General Error
+  INVALID_INPUT = 'INVALID_INPUT',
+
+  EMAIL_REQUIRED = 'EMAIL_REQUIRED',
   USER_ALREADY_EXISTS = 'USER_ALREADY_EXISTS',
   USER_NOT_FOUND = 'USER_NOT_FOUND',
   USER_CREATION_FAILED = 'USER_CREATION_FAILED',
