@@ -1,6 +1,6 @@
 {
 	"copy-file": {
-		"folderPath": "C:\\Users\\Pawan\\Desktop\\FullStackProject\\warranty-management\\apps\\server\\src\\modules\\users",
-		"outputPath": "C:\\Users\\Pawan\\Desktop\\FullStackProject\\warranty-management\\apps\\server\\src\\modules\\users\\scripts"
+		"folderPath": "C:\\Users\\Pawan\\Desktop\\FullStackProject\\warranty-management\\apps\\server\\src\\modules\\settings",
+		"outputPath": "C:\\Users\\Pawan\\Desktop\\FullStackProject\\warranty-management\\apps\\server\\src\\modules\\settings\\scripts"
 	}
 }
