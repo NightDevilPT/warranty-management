@@ -11,10 +11,12 @@ import {
   ErrorTypes,
   SuccessResponseMessages,
 } from 'interfaces/api-response.interface';
+import { ConfigService } from '@nestjs/config';
 import { HttpException } from '@nestjs/common';
 import { UserRoles } from '../../entities/user.entity';
 import { ROLES } from '../../interface/user.interface';
 import { UserResponseDto } from '../../dto/response-user.dto';
+import { CONFIG_ENUM } from 'config/mongoose.configuration';
 import { UserRepository } from '../../repository/user.repository';
 import { HashService } from 'services/hash-service/index.service';
 import { CreateUserCommand } from '../impl/create-user.command';
@@ -25,12 +27,15 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateSettingsCommand } from 'src/modules/settings/commands/impl/create-settings.command';
 
 @CommandHandler(CreateAdminCommand)
-export class CreateAdminUserHandler implements ICommandHandler<CreateUserCommand> {
+export class CreateAdminUserHandler
+  implements ICommandHandler<CreateUserCommand>
+{
   constructor(
     private readonly userRepository: UserRepository,
     private readonly httpErrorService: HttpErrorService,
     private readonly hashService: HashService,
     private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
     private readonly commandBus: CommandBus,
   ) {
     this.loggerService.setContext('CreateUserHandler');
@@ -41,8 +46,12 @@ export class CreateAdminUserHandler implements ICommandHandler<CreateUserCommand
   ): Promise<IApiResponse<UserResponseDto>> {
     try {
       this.loggerService.log(`Start creating admin user`);
-      const adminEmail = 'pawankumartadagsingh@gmail.com';
-      const password = 'Test@123';
+      const adminEmail = this.configService.get<string>(
+        CONFIG_ENUM.ADMIN_EMAIL,
+      ) as string;
+      const password = this.configService.get<string>(
+        CONFIG_ENUM.ADMIN_PASSWORD,
+      ) as string;
       const username = 'PawanKumar';
 
       // Check for existing user with the same email
