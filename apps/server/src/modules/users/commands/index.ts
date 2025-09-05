@@ -5,6 +5,7 @@ import { CreateUserHandler } from './handler/create-user.command.handler';
 import { UpdateUserHandler } from './handler/update-user.command.handler';
 import { ForgetPasswordHandler } from './handler/forget-password.command.handler';
 import { UpdatePasswordHandler } from './handler/update-password.command.handler';
+import { CreateAdminUserHandler } from './handler/create-admin.command.handler';
 
 export const UserCommandHandlers = [
   CreateUserHandler,
@@ -13,4 +14,5 @@ export const UserCommandHandlers = [
   UpdateUserHandler,
   ForgetPasswordHandler,
   UpdatePasswordHandler,
+  CreateAdminUserHandler
 ];

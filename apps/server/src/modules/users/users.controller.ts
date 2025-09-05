@@ -145,14 +145,29 @@ export class UsersController {
     return this.usersService.forgetPassword(forgetPasswordDto);
   }
 
-
   @Post('update-password')
   @ApiOperation({ summary: 'Update password using reset token' })
   @ApiResponse({ status: 200, description: 'Password updated successfully' })
   @ApiBadRequestResponse({ description: 'Invalid input data' })
   @ApiUnauthorizedResponse({ description: 'Invalid or expired token' })
   @ApiNotFoundResponse({ description: 'User not found' })
-  async updatePassword(@Body() dto: UpdatePasswordDto): Promise<IApiResponse<null>> {
+  async updatePassword(
+    @Body() dto: UpdatePasswordDto,
+  ): Promise<IApiResponse<null>> {
     return this.usersService.updatePassword(dto);
+  }
+
+  @Post('/create-admin')
+  @ApiOperation({
+    summary: 'Create a admin user',
+    description: 'Creates a admin user with the provided details',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin user created successfully',
+    type: UserResponseDto,
+  })
+  async createAdminUser(): Promise<UserResponseDto> {
+    return await this.usersService.createAdminUser();
   }
 }

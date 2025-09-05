@@ -11,11 +11,11 @@ export const RoleConfigUrlMap: Record<string, RoleConfig> = {
     urlKey: 'ADMIN_URL',
     template: TemplateEnum.VERIFY_ADMIN_EMAIL,
   },
-  [ROLES.COMPANY_ADMIN]: {
+  [ROLES.COMPANY_SUPER_ADMIN]: {
     urlKey: 'COMPANY_URL',
     template: TemplateEnum.VERIFY_COMPANY_EMAIL,
   },
-  [ROLES.PARTNER]: {
+  [ROLES.COMPANY_PARTNER]: {
     urlKey: 'COMPANY_URL',
     template: TemplateEnum.VERIFY_COMPANY_EMAIL,
   },

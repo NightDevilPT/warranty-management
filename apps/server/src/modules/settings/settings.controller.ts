@@ -41,8 +41,7 @@ export class SettingsController {
   @Roles(
     ROLES.ADMIN,
     ROLES.COMPANY_SUPER_ADMIN,
-    ROLES.COMPANY_ADMIN,
-    ROLES.PARTNER,
+    ROLES.COMPANY_PARTNER,
     ROLES.CONSUMER,
   )
   @HttpCode(HttpStatus.CREATED)
@@ -89,9 +88,8 @@ export class SettingsController {
   @Roles(
     ROLES.ADMIN,
     ROLES.COMPANY_SUPER_ADMIN,
-    ROLES.COMPANY_ADMIN,
     ROLES.CONSUMER,
-    ROLES.PARTNER,
+    ROLES.COMPANY_PARTNER,
   )
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

@@ -12,6 +12,7 @@ import { ForgetPasswordCommand } from './commands/impl/forget-password.command';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdatePasswordCommand } from './commands/impl/update-password.command';
+import { CreateAdminCommand } from './commands/impl/create-admin.command';
 
 @Injectable()
 export class UsersService {
@@ -46,5 +47,9 @@ export class UsersService {
 
   async updatePassword(updatePasswordDto: UpdatePasswordDto) {
     return this.commandBus.execute(new UpdatePasswordCommand(updatePasswordDto));
+  }
+
+  async createAdminUser(): Promise<UserResponseDto> {
+    return this.commandBus.execute(new CreateAdminCommand());
   }
 }
