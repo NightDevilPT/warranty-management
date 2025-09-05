@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { ChevronRight } from "lucide-react";
 import {
 	SidebarMenu,
@@ -16,6 +15,7 @@ import {
 	CollapsibleTrigger,
 } from "@workspace/ui/components/collapsible.tsx";
 import { SidebarNavbarItemsProps } from "@workspace/ui/types/sidebar.interface.ts";
+
 
 interface NavbarItemsProps {
 	items: SidebarNavbarItemsProps[];

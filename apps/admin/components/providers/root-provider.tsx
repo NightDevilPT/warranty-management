@@ -38,7 +38,7 @@ export function RootProvider({
 					<SidebarContainer
 						header={<HeaderLogo />}
 						footer={<Footer />}
-						navbarItems={ROUTES}
+						navbarItems={ROUTES(locale)}
 						onLanguageChange={handleLanguageChange}
 					>
 						{children}

@@ -1,21 +1,15 @@
+import { SupportedLanguage } from "@workspace/ui/i18n/config";
 import { Home, Settings } from "lucide-react";
 
-export const ROUTES = [
+export const ROUTES = (language: SupportedLanguage) => [
 	{
 		title: "Dashboard",
-		url: "/dashboard",
+		url: `/${language}/dashboard`,
 		icon: Home,
-		items: [
-			{
-				title: "Overview",
-				url: "/dashboard/overview",
-			},
-			{ title: "Stats", url: "/dashboard-stats" },
-		],
 	},
 	{
 		title: "Settings",
-		url: "/settings",
+		url: `/${language}/settings`,
 		icon: Settings,
 	},
 ];
