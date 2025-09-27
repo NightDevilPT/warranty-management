@@ -1,0 +1,45 @@
+
+model Organization {
+  id        String        @id @default(cuid())
+  orgName   String
+  email     String
+  password  String
+  phone     String
+  isActive  Boolean       @default(true)
+  
+  // Flexible info object
+  info      Json?         // Structure: { logo: String, currency: String, ... }
+  
+  // Relations
+  userId    String        // Reference to User who owns/administers this org
+  owner     User          @relation("OrganizationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  memberships Membership[]            // All memberships for this organization
+  settings  Setting?                  // Organization settings
+  
+  // Metadata
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("organizations")
+}
+
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  orgId     String
+  rootOrgId String   // Reference to root organization
+  roles     ROLES[]  // Array of roles for this user in this organization
+  permissions Json // Object of Permission which will helps to assign a permission to the user to do a specific actions
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, orgId])
+  @@map("memberships")
+}

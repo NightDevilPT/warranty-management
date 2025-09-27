@@ -1,0 +1,21 @@
+model User {
+  id           String       @id @default(cuid())
+  firstname    String
+  lastname     String
+  username     String       @unique
+  email        String       @unique
+  password     String
+  otp          Int?
+  otpExpired   Int?         // Unix timestamp
+  isVerified   Boolean      @default(false)
+  
+  // Relations
+  memberships  Membership[]
+  ownedOrgs    Organization[] @relation("OrganizationOwner")
+  
+  // Metadata
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("users")
+}

@@ -1,0 +1,19 @@
+
+model Setting {
+  id        String   @id @default(cuid())
+  orgId     String   @unique // Scoped to organization (one-to-one)
+  
+  // Preferences
+  theme     THEME    @default(LIGHT)
+  language  LANGUAGE @default(EN)
+  color     COLOR    @default(DEFAULT)
+  
+  // Relations
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
