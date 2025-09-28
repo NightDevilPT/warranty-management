@@ -6,6 +6,8 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { swaggerConfig, swaggerCustomOptions } from 'config/swagger.config';
 import { ResponseInterceptor } from 'middleware/interceptors/response.interceptor';
+import { ExceptionInterceptor } from 'middleware/interceptors/exception.interceptor';
+import { LoggerService } from 'services/logger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,9 +29,11 @@ async function bootstrap() {
 
   // Cookie parser middleware
   app.use(cookieParser());
+  const loggerService = app.get(LoggerService);
 
   // Middleware, Interceptors, and Filters can be applied here
   app.useGlobalInterceptors(new ResponseInterceptor()); // Add your interceptors here
+  app.useGlobalFilters(new ExceptionInterceptor(loggerService));
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({ transform: true }));

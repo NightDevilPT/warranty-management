@@ -60,7 +60,7 @@ export const swaggerCustomOptions: SwaggerCustomOptions = {
     showExtensions: true,
     showCommonExtensions: true,
   },
-  customSiteTitle: 'File System API Docs',
+  customSiteTitle: 'Warranty Management System',
   customfavIcon:
     'https://firebasestorage.googleapis.com/v0/b/file-system-e3b65.appspot.com/o/file-storage-avtar%2Flogo.png?alt=media&token=021e454f-f2fb-4885-9762-90844a76d349',
   customJs: [

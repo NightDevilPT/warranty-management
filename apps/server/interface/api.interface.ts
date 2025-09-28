@@ -14,12 +14,12 @@ export interface IApiRequestMeta {
 }
 
 export interface IApiPaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+  hasPrev?: boolean;
   timings?: IApiTimingMeta;
   request?: IApiRequestMeta;
 }

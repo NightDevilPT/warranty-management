@@ -1,4 +1,3 @@
-
 model Setting {
   id        String   @id @default(cuid())
   orgId     String   @unique // Scoped to organization (one-to-one)

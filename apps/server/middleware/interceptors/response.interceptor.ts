@@ -83,8 +83,8 @@ export class ResponseInterceptor<T>
       timings: {
         processingTime: `${Math.round(processingTimeMs)} ms`,
         serverTime: timestamp,
-        requestReceived: new Date(startTimestamp).toISOString(),
-        responseSent: new Date().toISOString(),
+        requestReceived: new Date(startTimestamp).toLocaleString(),
+        responseSent: new Date().toLocaleString(),
       },
       request: {
         path: request.url,
