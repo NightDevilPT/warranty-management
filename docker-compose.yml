@@ -1,0 +1,55 @@
+version: "3.8"
+services:
+    # server:
+    #     container_name: server
+    #     build:
+    #         context: .
+    #         dockerfile: apps/server/Dockerfile
+    #     ports:
+    #         - "3000:3000"
+    #     volumes:
+    #         - ./apps/server:/app/apps/server
+    #         - ./packages:/app/packages
+    #         - ./package.json:/app/package.json
+    #         - ./pnpm-lock.yaml:/app/pnpm-lock.yaml
+    #         - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+    #         - ./turbo.json:/app/turbo.json
+    #         - /app/apps/server/node_modules
+    #         - /app/node_modules
+    #     env_file:
+    #         - ./apps/server/.env
+    #     environment:
+    #         - NODE_ENV=development
+    #         # - DATABASE_URL=postgresql://postgres:postgres@postgres:5433/warranty_system
+    #         - CHOKIDAR_USEPOLLING=true
+    #         - WATCHPACK_POLLING=true
+    #         - WDS_SOCKET_PORT=0
+    #     depends_on:
+    #         - postgres
+    #     restart: unless-stopped
+    #     networks:
+    #         - app-network
+
+    postgres:
+        container_name: postgreSQL
+        image: postgres:15-alpine
+        ports:
+            - "5433:5433"
+        environment:
+            - POSTGRES_DB=warranty_system
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_PORT=5433
+        command: postgres -p 5433
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        restart: unless-stopped
+        networks:
+            - app-network
+
+volumes:
+    postgres_data:
+
+networks:
+    app-network:
+        driver: bridge

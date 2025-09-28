@@ -6,7 +6,9 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+
+    "docker:dev": "docker-compose up --build -d"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",

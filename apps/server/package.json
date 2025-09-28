@@ -20,7 +20,6 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
 
     "prisma:generate": "npx prisma generate",
-    "prisma:dev:migrate": "npx prisma migrate dev",
     "prisma:db:push": "npx prisma db push",
     "prisma:db:seed": "npx prisma db seed",
     "prisma:migrate:deploy": "npx prisma migrate deploy",
@@ -29,7 +28,7 @@
     "prisma:dev:init": "npx prisma init",
     "prisma:format": "npx prisma format",
     "prisma:validate": "npx prisma validate",
-    "prisma:dev:migration:add": "npx prisma migrate dev --name"
+    "prisma:dev:migration:add": "npx prisma migrate dev"
   },
   "prisma": {
     "schema": "./prisma",
