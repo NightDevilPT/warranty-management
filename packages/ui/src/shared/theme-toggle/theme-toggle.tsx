@@ -1,13 +1,13 @@
 "use client";
-
-import { Moon, Sun, Monitor } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+
+import { Moon, Sun, Monitor } from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
 import { IThemeMode, useTheme } from "@workspace/ui/context/theme-context";
 
 function ThemeToggle() {

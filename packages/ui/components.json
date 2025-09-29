@@ -17,6 +17,7 @@
     "lib": "@workspace/ui/lib",
     "context": "@workspace/ui/context",
     "shared": "@workspace/ui/shared",
+    "i18n": "@workspace/ui/i18n",
     "ui": "@workspace/ui/components"
   }
 }

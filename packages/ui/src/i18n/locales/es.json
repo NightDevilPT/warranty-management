@@ -1,0 +1,365 @@
+{
+	"general": {
+		"letsTalk": "Hablemos",
+		"letsWorkTogether": "¡Trabajemos juntos!",
+		"pawanKumar": "Pawan Kumar",
+		"softwareEngineer": "Ingeniero de Software",
+		"specialization": {
+			"title": "Especialización",
+			"description": "Ingeniero de Software || MERN Stack || Desarrollador Full Stack"
+		},
+		"basedIn": {
+			"title": "Ubicado en",
+			"description": "Delhi, India"
+		},
+		"letsMeet": "Conozcámonos",
+		"loading": "Cargando..."
+	},
+	"home": {
+		"title": "Soy Pawan Kumar",
+		"shortDescription": "Ingeniero de Software y creando soluciones web innovadoras como un apasionado desarrollador MERN Stack y Full Stack.",
+		"myWork": "Mi Trabajo",
+		"downloadCV": "Descargar CV"
+	},
+	"portfolio": {
+		"portfolio": "Portafolio",
+		"title": "Echa un vistazo a mis proyectos",
+		"project": [
+			{
+				"title": "Nodge - Plataforma de Automatización de Flujos de Trabajo Visual",
+				"description": "Una plataforma sofisticada de automatización de flujos de trabajo visual que permite a los usuarios crear flujos de trabajo personalizados mediante programación basada en nodos con gestión segura de credenciales.",
+				"detailedDescription": "Desarrollé una solución integral de automatización de flujos de trabajo full-stack utilizando Next.js con capacidades avanzadas de programación visual. Implementé una interfaz basada en nodos usando React Flow, permitiendo a los usuarios arrastrar y soltar nodos y crear flujos de trabajo complejos mediante conexiones visuales. Construí un sistema seguro de gestión de credenciales con Prisma ORM para operaciones de base de datos, permitiendo a los usuarios almacenar y reutilizar datos sensibles en los flujos de trabajo. Creé un sistema de autenticación con registro/inicio de sesión de usuarios y paneles de control personalizados.",
+				"features": [
+					"Editor de flujos de trabajo basado en nodos visuales",
+					"Interfaz de arrastrar y soltar con React Flow",
+					"Almacenamiento y gestión segura de credenciales",
+					"Sistema de autenticación de usuarios",
+					"Visualización de flujos de trabajo en tiempo real",
+					"Creación y configuración de nodos personalizados",
+					"Ejecución y depuración de flujos de trabajo",
+					"Diseño responsivo del panel de control",
+					"Integración de base de datos con Prisma",
+					"Capacidades de exportación/importación de flujos de trabajo"
+				],
+				"role": "Desarrollador Full Stack y Arquitecto de Sistemas"
+			},
+			{
+				"title": "Plataforma de Entrevistas AI Simuladas - Full Stack",
+				"description": "Una plataforma de simulación de entrevistas basada en texto impulsada por IA que genera preguntas adaptativas y proporciona evaluaciones inteligentes utilizando modelos de lenguaje avanzados.",
+				"detailedDescription": "Diseñé una plataforma integral de entrevistas con IA utilizando Next.js, LangChain y Gemini AI para revolucionar la preparación de entrevistas. El sistema reduce el tiempo de preparación de entrevistas en un 75% y permite a los reclutadores evaluar al doble de candidatos semanalmente. Implementé integración de aprendizaje automático para escalar la dificultad de las preguntas de manera adaptativa y evaluación personalizada de candidatos basada en la experiencia del dominio. Soporta múltiples tipos de preguntas, incluyendo técnicas, conductuales y basadas en escenarios, con retroalimentación y sistemas de puntuación impulsados por IA en tiempo real.",
+				"features": [
+					"Preguntas de entrevista generadas por IA adaptativas",
+					"Escalado de dificultad personalizado",
+					"Múltiples tipos de preguntas (técnicas/conductuales/escenarios)",
+					"Evaluación y puntuación en tiempo real",
+					"Evaluación de experiencia específica del dominio",
+					"Informes detallados de retroalimentación para candidatos",
+					"Panel de control para la gestión de candidatos",
+					"Autenticación y gestión de sesiones seguras"
+				],
+				"role": "Desarrollador Full Stack y Especialista en Integración de IA"
+			},
+			{
+				"title": "Vitrina de Paquetes NPM - Next.js",
+				"description": "Una plataforma de demostración que muestra mis paquetes NPM publicados con ejemplos en vivo, documentación de uso y vistas previas interactivas de implementación.",
+				"detailedDescription": "Desarrollé una plataforma limpia y profesional utilizando Next.js para demostrar la funcionalidad y aplicaciones del mundo real de mis paquetes NPM publicados. La plataforma presenta ejemplos de implementación en vivo, documentación de uso completa y vistas previas interactivas de componentes. Implementé técnicas de optimización de rendimiento, incluyendo carga diferida y gestión eficiente de paquetes, logrando una reducción del 35% en los tiempos de carga de página y un 20% de mejora en la participación del usuario. Cada paquete incluye guías de instalación, documentación de API y casos de uso prácticos para ayudar a los desarrolladores a comprender e implementar las soluciones de manera efectiva.",
+				"features": [
+					"Demostraciones en vivo de paquetes NPM",
+					"Vistas previas interactivas de componentes",
+					"Documentación completa y ejemplos de uso",
+					"Guías de instalación y fragmentos de código",
+					"Carga optimizada para el rendimiento",
+					"Diseño responsivo para desarrolladores",
+					"Funcionalidad de búsqueda y filtrado",
+					"Estadísticas y métricas de descarga de paquetes"
+				],
+				"role": "Desarrollador Frontend y Autor de Paquetes"
+			},
+			{
+				"title": "Cloudify Storage Provider - Plataforma Next.js",
+				"description": "Una solución moderna de almacenamiento en la nube construida con Next.js, que ofrece gestión de archivos sin problemas, capacidades de intercambio y funciones de colaboración en tiempo real.",
+				"detailedDescription": "Desarrollé una plataforma frontend de almacenamiento en la nube utilizando Next.js con capacidades avanzadas de gestión de archivos. Implementé una interfaz de usuario responsiva e intuitiva con Tailwind CSS y componentes NextUI. Utilicé Redux para una gestión eficiente del estado global en operaciones complejas de archivos e interacciones del usuario. Desplegado en Vercel para un rendimiento y escalabilidad óptimos, con funcionalidad de arrastrar y soltar, vistas previas de archivos y mecanismos de intercambio seguros.",
+				"features": [
+					"Sincronización de archivos en tiempo real",
+					"Intercambio de archivos con controles de permisos",
+					"Sistema avanzado de búsqueda y filtrado",
+					"Diseño responsivo para todos los dispositivos",
+					"Almacenamiento y gestión de archivos seguros",
+					"Autenticación y autorización de usuarios"
+				],
+				"role": "Desarrollador Full Stack y Diseñador UI/UX"
+			},
+			{
+				"title": "Gamies Gaming World - Frontend Next.js",
+				"description": "Una plataforma frontend de juegos moderna construida con Next.js, que presenta descubrimiento de juegos, perfiles de usuarios y componentes UI interactivos con una gestión de estado fluida.",
+				"detailedDescription": "Desarrollé una aplicación frontend de juegos integral desplegada en Vercel utilizando Next.js. Implementé un diseño responsivo con TailwindCSS y una biblioteca de componentes dinámicos con NextUI. Gestioné el estado complejo de la aplicación utilizando Redux e integré con la API de RAWG.io para la obtención y filtrado de datos de juegos en tiempo real.",
+				"features": [
+					"Catálogo de juegos responsivo con búsqueda y filtros",
+					"Autenticación de usuarios y gestión de perfiles",
+					"Detalles de juegos con calificaciones y reseñas",
+					"Colección de juegos favoritos",
+					"Rendimiento optimizado con SSR e ISR"
+				],
+				"role": "Desarrollador Frontend"
+			},
+			{
+				"title": "MovieHUB Plataforma de Entretenimiento - Full Stack",
+				"description": "Una plataforma integral de descubrimiento de entretenimiento que presenta películas, programas de TV e información sobre celebridades con una experiencia de usuario personalizada y opciones de personalización avanzadas.",
+				"detailedDescription": "Desarrollé una aplicación de entretenimiento full-stack utilizando tecnologías web modernas con integración fluida de la API de TMDB. Construí una interfaz de usuario responsiva e inmersiva con amplias capacidades de personalización, incluyendo cambio de temas, selección de familias de fuentes y preferencias de contenido personalizadas. Implementé una funcionalidad de búsqueda avanzada, páginas detalladas de información de medios y funciones de lista de seguimiento de usuarios con almacenamiento de datos persistente.",
+				"features": [
+					"Base de datos completa de películas y programas de TV",
+					"Búsqueda avanzada con filtros y categorías",
+					"Temas personalizables (modo claro/oscuro)",
+					"Múltiples opciones de familias de fuentes",
+					"Perfiles de celebridades y filmografía",
+					"Sistema de lista de seguimiento y favoritos para usuarios",
+					"Diseño responsivo en todos los dispositivos",
+					"Obtención de datos en tiempo real desde la API de TMDB"
+				],
+				"role": "Desarrollador Full Stack y Diseñador UI"
+			},
+			{
+				"title": "Job Desktop Dashboard - Interfaz React",
+				"description": "Una interfaz de panel de control de escritorio moderna para la gestión de trabajos con componentes de carrusel personalizados y un diseño de experiencia de usuario intuitivo.",
+				"detailedDescription": "Diseñé y desarrollé una interfaz de panel de control de escritorio sofisticada utilizando ReactJS con un enfoque en el rendimiento y la implementación de componentes personalizados. Creé un sistema de carrusel personalizado desde cero sin depender de bibliotecas externas como Swiper.JS, demostrando un profundo conocimiento de los hooks de React y la manipulación del DOM. Construí un panel de control integral de gestión de trabajos con visualización de estadísticas, seguimiento de tareas y un sistema de navegación amigable para el usuario.",
+				"features": [
+					"Componente de carrusel personalizado sin bibliotecas externas",
+					"Enfoque de diseño primero para escritorio responsivo",
+					"Panel de control interactivo con estadísticas en tiempo real",
+					"Sistema de seguimiento y gestión de trabajos",
+					"Animaciones y transiciones fluidas",
+					"Arquitectura de componentes modular",
+					"Renderizado optimizado para el rendimiento",
+					"Compatibilidad entre navegadores"
+				],
+				"role": "Desarrollador Frontend y Diseñador UI"
+			}
+		]
+	},
+	"about": {
+		"about": "Acerca de",
+		"title": "Transformando ideas en soluciones digitales escalables",
+		"items": [
+			{
+				"title": "Clientes Satisfechos"
+			},
+			{
+				"title": "Años de Experiencia"
+			},
+			{
+				"title": "Proyectos Completados"
+			}
+		],
+		"descriptions": [
+			"Soy un desarrollador full-stack apasionado especializado en tecnologías web modernas. Con experiencia en desarrollo frontend y backend, creo aplicaciones escalables y sin fisuras que ofrecen experiencias de usuario excepcionales mientras mantengo una arquitectura robusta del lado del servidor.",
+			"Mi enfoque combina código limpio y mantenible con tecnologías de vanguardia como Next.js, NestJS y TypeScript. Creo en construir soluciones que no solo cumplen con los requisitos actuales, sino que también están preparadas para el futuro y son fácilmente escalables."
+		],
+		"personalDetails": [
+			{ "title": "Nombre" },
+			{ "title": "Teléfono" },
+			{ "title": "Correo Electrónico" },
+			{ "title": "Ubicación" }
+		],
+		"services": [
+			{
+				"title": "Desarrollo Frontend",
+				"description": "Construcción de aplicaciones web responsivas e interactivas utilizando Next.js con TypeScript, estilizadas con TailwindCSS y mejoradas con componentes ShadCN UI. Experto en gestión de estado con Redux Toolkit y Context API, además de bibliotecas especializadas como ReactFlow para visualizaciones complejas."
+			},
+			{
+				"title": "Desarrollo Backend",
+				"description": "Desarrollo de APIs robustas y aplicaciones del lado del servidor utilizando NestJS con TypeScript. Experiencia en diseño de bases de datos, sistemas de autenticación, arquitectura de microservicios e implementación de soluciones backend escalables con manejo adecuado de errores y medidas de seguridad."
+			},
+			{
+				"title": "Soluciones Full Stack",
+				"description": "Desarrollo de aplicaciones de extremo a extremo combinando frameworks frontend modernos con sistemas backend potentes. Especializado en crear integraciones sin fisuras, rendimiento optimizado y bases de código mantenibles con estrategias adecuadas de prueba y despliegue."
+			},
+			{
+				"title": "Implementación de UI/UX",
+				"description": "Conversión de maquetas de diseño en interfaces responsivas y precisas con animaciones fluidas y una experiencia de usuario óptima. Enfoque en accesibilidad, optimización de rendimiento y compatibilidad entre navegadores utilizando técnicas CSS modernas y bibliotecas de componentes."
+			}
+		],
+		"highlights": [
+			"Más de 3 años de experiencia profesional en desarrollo",
+			"Experiencia en desarrollo orientado a TypeScript",
+			"Fuerte enfoque en arquitectura limpia y soluciones escalables",
+			"Experiencia con bases de datos SQL y NoSQL",
+			"Competente en prácticas modernas de despliegue y DevOps",
+			"Apasionado por el aprendizaje continuo y mantenerse actualizado con las últimas tecnologías"
+		]
+	},
+	"resume": {
+		"resume": "Currículum",
+		"title": "Educación y Trayectoria Profesional",
+		"description": "Una base académica sólida combinada con una experiencia profesional diversa me ha permitido crecer como un desarrollador de software versátil, comprometido con el aprendizaje continuo, la innovación y la entrega de soluciones impactantes.",
+		"courseBy": "Institución:",
+		"myEducation": "Educación",
+		"educationDescription": "Un resumen de mis calificaciones académicas y áreas de enfoque a lo largo de mi trayectoria de aprendizaje.",
+		"educations": [
+			{
+				"title": "Licenciatura en Vocación de Desarrollo de Software",
+				"courseBy": "Universidad Guru Gobind Singh Indraprastha",
+				"description": "Especializado en desarrollo de software con énfasis en tecnologías web, arquitectura de sistemas y estructuras de datos y algoritmos."
+			},
+			{
+				"title": "Secundaria Superior (12º) - Rama de Artes",
+				"courseBy": "Instituto Nacional de Escolarización Abierta (NIOS)",
+				"description": "Enfocado en Economía, Hindi, Geografía, Inglés, Historia y Ciencias Políticas, desarrollando fuertes perspectivas analíticas y de ciencias sociales."
+			},
+			{
+				"title": "Secundaria (10º)",
+				"courseBy": "Junta Central de Educación Secundaria (CBSE)",
+				"description": "Completé la educación básica con un enfoque en asignaturas fundamentales, fomentando el desarrollo académico y personal general."
+			}
+		],
+		"myExperience": "Experiencia Profesional",
+		"experienceDescription": "Un resumen de mis contribuciones profesionales, destacando proyectos impactantes, experiencia técnica y colaboración en entornos diversos.",
+		"experiences": [
+			{
+				"title": "Desarrollador de Software",
+				"description": "Contribuí al desarrollo de un sistema de gestión de garantías escalable, mejorando los flujos de trabajo empresariales con acceso basado en roles e integraciones con socios.",
+				"responsibilities": [
+					"Diseñé una plataforma SaaS multiinquilino para más de 10 clientes empresariales, mejorando la escalabilidad y modularidad.",
+					"Diseñé e implementé un sistema de control de acceso basado en roles (RBAC), reduciendo los incidentes de seguridad en un 85% y soportando más de 50 configuraciones de roles.",
+					"Mejoré el panel de administración y los flujos de trabajo de incorporación, reduciendo el tiempo de configuración en un 40%.",
+					"Optimizé los procesos de incorporación de socios y distribuidores, reduciendo el tiempo de configuración en un 50% y permitiendo a más de 100 socios gestionar flujos de trabajo de manera independiente."
+				]
+			},
+			{
+				"title": "Desarrollador de Software",
+				"description": "Lideré el desarrollo de un sistema de gestión de seguimiento, entregando análisis en tiempo real, geovallas y APIs backend escalables.",
+				"responsibilities": [
+					"Desarrollé una aplicación web responsiva utilizando Angular, mejorando los tiempos de carga en un 40% para más de 2,000 usuarios diarios.",
+					"Diseñé y optimicé APIs REST con FastAPI, manejando eficientemente más de 5,000 solicitudes diarias.",
+					"Integré OpenSearch para análisis en tiempo real, mejorando el rendimiento de las consultas y la capacidad de respuesta del sistema en un 30%.",
+					"Implementé geovallas con Leaflet.js y Elasticsearch, habilitando el seguimiento GPS en tiempo real con una recuperación de datos un 25% más rápida."
+				]
+			}
+		],
+		"myFavouriteToolsAndLibs": "Mis herramientas y bibliotecas favoritas",
+		"toolsAndLibs": [
+			{
+				"title": "HTML5",
+				"description": "Competente en la creación de páginas web estructuradas."
+			},
+			{
+				"title": "CSS",
+				"description": "Hábil en diseño responsivo con TailwindCSS."
+			},
+			{
+				"title": "JavaScript",
+				"description": "Experimentado en aplicaciones web dinámicas."
+			},
+			{
+				"title": "React.js",
+				"description": "Experto en construir interfaces de usuario interactivas."
+			},
+			{
+				"title": "Next.js",
+				"description": "Especializado en aplicaciones SSR y SSG."
+			},
+			{
+				"title": "NestJS",
+				"description": "Competente en soluciones backend escalables."
+			},
+			{
+				"title": "Angular",
+				"description": "Hábil en frameworks frontend robustos."
+			},
+			{
+				"title": "TypeScript",
+				"description": "Experto en tipado estático para JavaScript."
+			},
+			{
+				"title": "Prisma",
+				"description": "Competente en ORM seguro para tipos."
+			},
+			{
+				"title": "MongoDB",
+				"description": "Experimentado con bases de datos NoSQL."
+			},
+			{
+				"title": "PostgreSQL",
+				"description": "Hábil en bases de datos relacionales."
+			},
+			{
+				"title": "Strapi",
+				"description": "Competente en CMS sin cabeza."
+			},
+			{
+				"title": "FastAPI",
+				"description": "Experimentado en APIs de alto rendimiento."
+			},
+			{
+				"title": "Docker",
+				"description": "Hábil en contenedores."
+			},
+			{
+				"title": "Stripe",
+				"description": "Experimentado en integraciones de pagos."
+			},
+			{
+				"title": "Herramientas de IA",
+				"description": "Utilizo IDEs de IA para mejorar la codificación."
+			}
+		]
+	},
+	"contact": {
+		"contact": "Contacto",
+		"title": "¡Hagamos algo increíble juntos!",
+		"description": "¿Quieres saber más sobre mí, contarme sobre tu proyecto o simplemente saludar? Escríbeme y te responderé lo antes posible.",
+		"form": {
+			"yourName": "Tu Nombre*",
+			"emailAddress": "Dirección de Correo Electrónico*",
+			"companyName": "Nombre de la Empresa*",
+			"phoneNumber": "Número de Teléfono*",
+			"description": "Descripción",
+			"sendMessage": "Enviar Mensaje"
+		},
+		"footer": [
+			{
+				"title": "Ubicación"
+			},
+			{
+				"title": "Teléfono"
+			},
+			{
+				"title": "Correo Electrónico"
+			}
+		]
+	},
+	"setting": {
+		"title": "Configuración",
+		"theme": "Tema",
+		"themeMode": "Modo de Tema",
+		"colorScheme": "Esquema de Color",
+		"currentTheme": "Tema Actual",
+		"language": "Idioma",
+		"selectLanguage": "Seleccionar Idioma",
+		"preferences": "Preferencias",
+		"animations": "Animaciones",
+		"fontSize": "Tamaño de Fuente",
+		"reset": "Restablecer a Valores Predeterminados",
+		"apply": "Aplicar Cambios",
+		"languageNote": "Más idiomas estarán disponibles en futuras actualizaciones.",
+		"light": "Claro",
+		"dark": "Oscuro",
+		"system": "Sistema",
+		"default": "Predeterminado",
+		"blue": "Azul",
+		"green": "Verde",
+		"violet": "Violeta",
+		"orange": "Naranja",
+		"red": "Rojo",
+		"rose": "Rosa",
+		"yellow": "Amarillo",
+		"english": "Inglés",
+		"french": "Francés",
+		"spanish": "Español",
+		"german": "Alemán",
+		"enabled": "Habilitado",
+		"disabled": "Deshabilitado",
+		"small": "Pequeño",
+		"medium": "Mediano",
+		"large": "Grande"
+	}
+}
