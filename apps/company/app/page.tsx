@@ -1,5 +1,5 @@
 import { Button } from "@workspace/ui/components/button";
-import { ThemeToggle } from "@workspace/ui/shared/theme-toggle";
+import { ThemeToggle } from "@workspace/ui/shared/theme-toggle/theme-toggle";
 
 export default function Page() {
 	return (

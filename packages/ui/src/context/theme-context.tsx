@@ -66,6 +66,8 @@ interface IThemeContextType {
 	setViewMode: (view: IViewMode) => void;
 	sidebarCollapsible: ISidebarCollapsible;
 	setSidebarCollapsible: (collapsible: ISidebarCollapsible) => void;
+	sidebarState: "collapsed" | "expanded";
+	setSidebarState: (state: "collapsed" | "expanded") => void;
 	sidebarVariant: ISidebarVariant;
 	setSidebarVariant: (variant: ISidebarVariant) => void;
 	sidebarView: ISidebarView;
@@ -87,6 +89,7 @@ interface IThemeProviderProps {
 	defaultColorScheme?: IColorScheme;
 	defaultViewMode?: IViewMode;
 	defaultSidebarCollapsible?: ISidebarCollapsible;
+	defaultSidebarState?: "collapsed" | "expanded";
 	defaultSidebarVariant?: ISidebarVariant;
 	defaultSidebarView?: ISidebarView;
 	defaultLanguage?: ILanguage;
@@ -94,6 +97,7 @@ interface IThemeProviderProps {
 	colorStorageKey?: string;
 	viewStorageKey?: string;
 	sidebarCollapsibleStorageKey?: string;
+	sidebarStateStorageKey?: string;
 	sidebarVariantStorageKey?: string;
 	sidebarViewStorageKey?: string;
 	languageStorageKey?: string;
@@ -105,13 +109,15 @@ function ThemeProvider({
 	defaultColorScheme = IColorScheme.DEFAULT,
 	defaultViewMode = IViewMode.GRID,
 	defaultSidebarCollapsible = ISidebarCollapsible.ICON,
-	defaultSidebarVariant = ISidebarVariant.FLOATING,
+	defaultSidebarState = "expanded",
+	defaultSidebarVariant = ISidebarVariant.INSET,
 	defaultSidebarView = ISidebarView.LEFT,
 	defaultLanguage = ILanguage.EN,
 	storageKey = "ui-theme",
 	colorStorageKey = "ui-color-scheme",
 	viewStorageKey = "ui-view-mode",
 	sidebarCollapsibleStorageKey = "ui-sidebar-collapsible",
+	sidebarStateStorageKey = "ui-sidebar-state",
 	sidebarVariantStorageKey = "ui-sidebar-variant",
 	sidebarViewStorageKey = "ui-sidebar-view",
 	languageStorageKey = "ui-language",
@@ -123,6 +129,9 @@ function ThemeProvider({
 		React.useState<IViewMode>(defaultViewMode);
 	const [sidebarCollapsible, setSidebarCollapsibleState] =
 		React.useState<ISidebarCollapsible>(defaultSidebarCollapsible);
+	const [sidebarState, setSidebarStateInternal] = React.useState<
+		"collapsed" | "expanded"
+	>(defaultSidebarState);
 	const [sidebarVariant, setSidebarVariantState] =
 		React.useState<ISidebarVariant>(defaultSidebarVariant);
 	const [sidebarView, setSidebarViewState] =
@@ -191,6 +200,19 @@ function ThemeProvider({
 			);
 		}
 
+		// Get sidebar state from localStorage
+		const storedSidebarState = localStorage.getItem(sidebarStateStorageKey);
+		if (
+			storedSidebarState &&
+			["collapsed", "expanded"].includes(storedSidebarState)
+		) {
+			setSidebarStateInternal(
+				storedSidebarState as "collapsed" | "expanded"
+			);
+		} else {
+			localStorage.setItem(sidebarStateStorageKey, defaultSidebarState);
+		}
+
 		// Get sidebar variant from localStorage
 		const storedSidebarVariant = localStorage.getItem(
 			sidebarVariantStorageKey
@@ -239,6 +261,7 @@ function ThemeProvider({
 		colorStorageKey,
 		viewStorageKey,
 		sidebarCollapsibleStorageKey,
+		sidebarStateStorageKey,
 		sidebarVariantStorageKey,
 		sidebarViewStorageKey,
 		languageStorageKey,
@@ -247,6 +270,7 @@ function ThemeProvider({
 		defaultColorScheme,
 		defaultViewMode,
 		defaultSidebarCollapsible,
+		defaultSidebarState,
 		defaultSidebarVariant,
 		defaultSidebarView,
 		defaultLanguage,
@@ -276,7 +300,7 @@ function ThemeProvider({
 		loadDictionary();
 	}, [language, languageStorageKey]);
 
-	// Update document class based on theme and color scheme
+	// Update document class based on theme, color scheme, and sidebar state
 	React.useEffect(() => {
 		if (!isInitialized) return;
 
@@ -292,6 +316,9 @@ function ThemeProvider({
 		// Remove theme classes
 		root.classList.remove(IThemeMode.LIGHT, IThemeMode.DARK);
 
+		// Remove sidebar state classes
+		root.classList.remove("sidebar-collapsed", "sidebar-expanded");
+
 		// Add current color scheme class
 		if (colorScheme !== IColorScheme.DEFAULT) {
 			root.classList.add(colorScheme);
@@ -303,7 +330,10 @@ function ThemeProvider({
 		} else if (theme && theme !== IThemeMode.SYSTEM) {
 			root.classList.add(theme);
 		}
-	}, [colorScheme, resolvedTheme, theme, isInitialized]);
+
+		// Add sidebar state class
+		root.classList.add(`sidebar-${sidebarState}`);
+	}, [colorScheme, resolvedTheme, theme, sidebarState, isInitialized]);
 
 	// Set theme mode and persist to localStorage
 	const setThemeMode = React.useCallback(
@@ -339,6 +369,15 @@ function ThemeProvider({
 			localStorage.setItem(sidebarCollapsibleStorageKey, collapsible);
 		},
 		[sidebarCollapsibleStorageKey]
+	);
+
+	// Set sidebar state and persist to localStorage
+	const setSidebarState = React.useCallback(
+		(state: "collapsed" | "expanded") => {
+			setSidebarStateInternal(state);
+			localStorage.setItem(sidebarStateStorageKey, state);
+		},
+		[sidebarStateStorageKey]
 	);
 
 	// Set sidebar variant and persist to localStorage
@@ -386,6 +425,8 @@ function ThemeProvider({
 		setViewMode,
 		sidebarCollapsible,
 		setSidebarCollapsible,
+		sidebarState,
+		setSidebarState,
 		sidebarVariant,
 		setSidebarVariant,
 		sidebarView,

@@ -21,28 +21,28 @@ export interface ISidebarRoutes {
 	icon: React.ElementType;
 	href?: string;
 	child?: ISidebarRoutes[];
-  }
-  
-  interface ILayoutProviderProps {
+}
+
+interface ILayoutProviderProps {
 	children: React.ReactNode;
 	header: React.ReactNode;
 	footer: React.ReactNode;
 	sidebarRoute: ISidebarRoutes[];
 	groupLabel: string;
-  }
-  
-  export function LayoutProvider({
+}
+
+export function LayoutProvider({
 	footer,
 	header,
 	children,
 	sidebarRoute,
 	groupLabel,
-  }: ILayoutProviderProps) {
+}: ILayoutProviderProps) {
 	const { sidebarVariant, sidebarCollapsible } = useTheme();
 	return (
 		<SidebarProvider>
 			<Sidebar variant={sidebarVariant} collapsible={sidebarCollapsible}>
-				<SidebarHeader>{header}</SidebarHeader>
+				<SidebarHeader className="h-[60px]">{header}</SidebarHeader>
 				<Separator />
 				<SidebarContent>
 					<NavMain items={sidebarRoute} groupLabel={groupLabel} />
