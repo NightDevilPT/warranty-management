@@ -8,8 +8,7 @@ model Setting {
   color     COLOR    @default(DEFAULT)
   
   // Relations
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  
+//  ... need to add or manage relations
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

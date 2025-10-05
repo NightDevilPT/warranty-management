@@ -7,36 +7,3 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
-// ------------------[ Core ENUM Start ]------------------- //
-enum ROLES {
-  ADMIN
-  COMPANY_ADMIN
-  COMPANY_PARTNER
-  CONSUMER
-}
-
-enum THEME {
-  DARK
-  LIGHT
-}
-
-enum LANGUAGE {
-  EN
-  ES
-  FR
-  DE
-  // Add more as needed
-}
-
-enum COLOR {
-  RED
-  ROSE
-  DEFAULT
-  VIOLET
-  BLUE
-  YELLOW
-  GREEN
-}
-// ------------------[ Core ENUM End ]------------------- //
-

@@ -11,6 +11,11 @@
 4.  [System Admin Flow](#system-admin-flow)
     *   [Company Onboarding Process](#company-onboarding-process)
 5.  [User & Partner Invitation Flow](#user--partner-invitation-flow)
+6.  [User Roles & Permission Logic](#user-roles--permission-logic)
+    * [Database Schema Diagram](#database-schema-diagram)
+    * [User & Organization Flow Diagram](#user--organization-flow-diagram)
+    * [Permission Inheritance Flow](#permission-inheritance-flow)
+    * [Organization Hierarchy Flow](#organization-hierarchy-flow)
 
 ---
 
@@ -19,34 +24,6 @@
 The Warranty Management System is a platform that enables companies to manage their warranty processes through a fully customizable portal. Companies can define their specific requirements for product registration, claims, user roles, and dynamic forms.
 
 The onboarding process begins with our Admin team gathering the company's requirements. Using the admin portal, we then configure the company's organization, settings, and initial user accounts. Once setup is complete, the company's designated Super Admin gains full control to further customize and manage their portal, partners, and consumers.
-
-## Core Concepts: Roles vs. Permissions
-
-*   **Roles** define a user's **type and position** within the organization. A role identifies **who the user is**.
-    *Example:*
-    ```typescript
-    enum ROLES {
-        ADMIN,
-        COMPANY_ADMIN,
-        COMPANY_PARTNER,
-        CONSUMER
-    }
-    ```
-
-*   **Permissions** define the specific **actions a user can perform** within the system. Permissions control **what the user can do**.
-    *Example:*
-    ```json
-    {
-        "MANAGE": {
-            "CAN_ADD_PRODUCT": true,
-            "CAN_ADD_CATEGORY": true,
-            "CAN_ADD_CUSTOMER": true,
-            "CAN_ADD_PARTNER": false
-        },
-        "CAN_DO_REGISTRATION": false,
-        "CAN_INITIATE_CLAIMS": true
-    }
-    ```
 
 ## Key Features
 
@@ -128,3 +105,42 @@ The process for adding new users (both Super Admins and Partners) is streamlined
 4.  **Permission Granting:** The user is automatically assigned the permissions associated with the role and persona they were invited under.
 
 **NOTE:** When we add a user, we create one organization for this user and connect the two to each other. The same user can have multiple organizations, allowing the user to maintain relationships with multiple organizations. For example: `user -> {rootOrgId, orgId, role: ROLE[]}[]`
+
+Here's the corrected document with proper internal/external clarification:
+
+## User Roles & Permission Logic
+
+The platform operates with four distinct user roles:
+
+- **SUPER_ADMIN**
+  - Access: `Admin Portal`, `Company Portal`, `Consumer Portal`
+  - Full administrative control over the platform, including company onboarding, warranty templates, form schemas, and claims workflows.
+  - Manages all onboarded companies and their configurations.
+  - **Access Scope**: Global access to all companies and system data.
+
+- **COMPANY_SUPER_ADMIN**
+  - Access: `Company Portal`
+  - Acts as the primary administrator for a company upon onboarding.
+  - Creates and manages custom personas (e.g., Warranty Manager, Dealer, Support Agent) and assigns granular permissions.
+  - Can designate additional company admin roles via custom personas.
+  - **Access Scope**: Full access within their company organization.
+  - **Note**: Each company is limited to one primary COMPANY_SUPER_ADMIN.
+
+- **COMPANY_PARTNER**
+  - Access: `Company Portal` (restricted view)
+  - Represents both:
+    - **Internal Staff**: Employees working directly for the company (e.g., Warranty Managers, Support Agents, Quality Auditors), linked to the main company organization.
+    - **External Partners**: Separate businesses collaborating with the company (e.g., Dealers, Retailers, Installers, Service Centers), each with their own organization linked to the parent company.
+  - Operates with permissions assigned by the COMPANY_SUPER_ADMIN via custom personas.
+  - **Internal Staff Access**: Operates within the main company organization, accessing company-wide data as permitted.
+  - **External Partner Access**: Operates within their own organization, with access limited to their organization’s data.
+  - **Key Clarification**: Both internal staff and external partners use the **COMPANY_PARTNER** role but differ in their organizational relationships:
+    - **Internal Staff**: Directly linked to the main company organization (`orgId` matches the company’s `orgId`).
+    - **External Partners**: Linked to a separate child organization with a unique `orgId` and connected to the parent via `rootOrgId`.
+  - **Access Scope**: Permission-based access within their respective organization.
+
+- **CONSUMER**
+  - Access: `Consumer Portal`
+  - End-customer interacting with the consumer portal for product registration, claim initiation, and other customer-facing tasks.
+  - **Access Scope**: Limited to their own registered products and claims.
+

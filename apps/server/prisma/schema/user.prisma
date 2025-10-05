@@ -10,8 +10,7 @@ model User {
   isVerified   Boolean      @default(false)
   
   // Relations
-  memberships  Membership[]
-  ownedOrgs    Organization[] @relation("OrganizationOwner")
+  // ... need to add or manage relations
   
   // Metadata
   createdAt    DateTime     @default(now())

@@ -1,0 +1,42 @@
+// Core Enums for the Warranty Management System
+
+enum ROLE_TYPE {
+  SUPER_ADMIN        // Platform-level super user with full system access
+  COMPANY_SUPER_ADMIN // Company-level administrator with full company control
+  COMPANY_PARTNER    // Business partners with persona-based permissions
+  CONSUMER          // End customers with limited product/claim access
+}
+
+enum THEME {
+  DARK
+  LIGHT
+}
+
+enum LANGUAGE {
+  EN
+  ES
+  FR
+  DE
+}
+
+enum COLOR {
+  RED
+  ROSE
+  DEFAULT
+  VIOLET
+  BLUE
+  YELLOW
+  GREEN
+}
+
+// Permission codes for granular access control
+enum PERMISSION_CODE {
+  CAN_DO_REGISTRATION    // Can register warranty products
+  CAN_DO_CLAIMS          // Can submit and manage claims
+  CAN_INVITE_PARTNER     // Can invite new partners
+  CAN_VIEW_REPORTS       // Can access analytics and reports
+  CAN_MANAGE_PRODUCTS    // Can manage product catalog
+  CAN_APPROVE_CLAIMS     // Can approve/reject warranty claims
+  CAN_VIEW_ALL_DATA      // Can access all company data
+  CAN_MANAGE_SETTINGS    // Can modify company settings
+}
