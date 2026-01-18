@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { WelcomeTemplate } from './welcome-mail/welcome.template';
 import { EmailTemplate, EmailTemplatesEnum } from 'interface/email.interface';
 
 @Injectable()
@@ -12,7 +11,7 @@ export class TemplateFactory {
   }
 
   private registerTemplates(): void {
-    this.templates.set(EmailTemplatesEnum.WELCOME, new WelcomeTemplate());
+    // this.templates.set(EmailTemplatesEnum.WELCOME, new WelcomeTemplate());
   }
 
   private getTemplate(template: EmailTemplatesEnum): EmailTemplate {

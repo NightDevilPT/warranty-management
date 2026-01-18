@@ -7,8 +7,9 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-
-    "docker:dev": "docker-compose up --build -d"
+    "docker:dev": "docker-compose up --build -d",
+    
+    "prisma:generate": "pnpm --filter server prisma generate"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",

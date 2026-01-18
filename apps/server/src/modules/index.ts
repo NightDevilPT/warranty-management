@@ -1,3 +1,5 @@
-import { UserModule } from './users/users.module';
+import { MailModule } from "services/mail/mail.module";
 
-export const AllModules = [UserModule];
+export const AllModules = [
+	MailModule
+];
