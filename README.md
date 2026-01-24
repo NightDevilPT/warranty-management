@@ -9,7 +9,7 @@ This document defines the portals, roles, permissions model, and onboarding flow
    - [Company Portal (Company Users)](#company-portal-company-users)
    - [Consumer Portal (End Customers)](#consumer-portal-end-customers)
 3. [Core Concepts](#core-concepts)
-   - [User Ownership Rules](#user-ownership-rules)
+   - [User Data Model](#user-data-model)
    - [Organizations & Hierarchy](#organizations--hierarchy)
    - [Partner Creation: Internal vs External](#partner-creation-internal-vs-external)
    - [DealerType (Company-Defined Partner Categories)](#dealertype-company-defined-partner-categories)
@@ -17,7 +17,7 @@ This document defines the portals, roles, permissions model, and onboarding flow
    - [Partner Creation Flow Diagram](#partner-creation-flow-diagram)
    - [Real-World Examples](#real-world-examples)
    - [DealerType and Permission Auto-Assignment](#dealertype-and-permission-auto-assignment)
-   - [Roles vs. Personas vs. Permissions](#roles-vs-personas-vs-permissions)
+   - [Roles vs. DealerType vs. Permissions](#roles-vs-dealertype-vs-permissions)
    - [Company Feature/Module Visibility (UI Access)](#company-featuremodule-visibility-ui-access)
 4. [Key Features](#key-features)
    - [Dynamic Forms](#dynamic-forms)
@@ -57,6 +57,7 @@ System Admin can:
   - Claim Form Schema (defines what fields a claim has)
   - Registration Form Schema (defines what fields a product registration has)
   - Category/Brand/Fault/Issue schemas (as needed)
+  - Maybe in future we will add more form schema as per requirement to support all company types (like : Cars, Toys, Cloths, etc companies)
 - **Create and manage warranty templates** for each company (Core Configuration):
   - Define warranty rules and conditions
   - Map rules to registration form schema fields
@@ -83,18 +84,19 @@ Company Super Admin can:
 - **Add product registrations** (using the registration form schema defined by ADMIN).
 - **Handle consumer claims** (using the claim form schema defined by ADMIN).
 - **Manage brands, categories, faults, issues** (using respective schemas defined by ADMIN).
-- **Create DealerTypes** (partner categories like Dealer, Retailer, Installer) with specific permissions.
+- **Create DealerTypes** for both Internal and External (e.g., SupportAgent, Dealer, Retailer, Installer) with specific permissions.
 - **Add partners/staff**:
-  - **Internal** (partnerType: Internal): employees who belong to the same company org.
-  - **External** (partnerType: External): partners who act as a new child organization + DealerType with auto-assigned permissions.
-- **Define personas and permissions** for that company (granular permissions assigned to personas).
-- **Control UI visibility for company roles**: only show permission toggles and modules that were enabled for that company by SYSTEM_ADMIN.
+  - **Internal** (partnerType: Internal): employees who belong to the same company org + DealerType.
+  - **External** (partnerType: External): partners who act as a new child organization + DealerType.
+- Both Internal and External use **DealerType for permissions**. UI shown based on DealerType permissions when user logs in.
+- **Control UI visibility for company roles**: only show permission toggles and modules that were enabled for that company by SYSTEM_ADMIN. The same restriction applies to child organizations: when creating partner types or personas, only permissions currently assigned to that organization can be toggled for new partners.
 
 **Important**: Company Super Admin does NOT manage form schemas or warranty templates. These are "core configuration" items created and managed by SYSTEM_ADMIN during company onboarding.
 
 **Partner Types (see Core Concepts for details):**
-- **Internal** (partnerType: Internal): Staff who work directly in the company org. No new organization created.
-- **External** (partnerType: External): a **branch organization** (child org) with DealerType. This branch can have its own Internal staff and create its own External branches (hierarchical).
+- **Internal** (partnerType: Internal): employees who belong to the same company org + DealerType for permissions.
+- **External** (partnerType: External): partners who act as a new child organization (branch) + DealerType for permissions. Can have their own Internal staff and External partners.
+- Both use **DealerType** for permissions. UI shown based on DealerType permissions.
 
 ### Consumer Portal (End Customers)
 
@@ -112,90 +114,165 @@ Consumer registration for branch/partner sales (recommended):
 
 ## Core Concepts
 
-### User Ownership Rules
+### User Data Model
 
-**Company Super Admin ownership:**
-- One user can be Company Super Admin of **multiple companies** (manages multiple businesses).
-- One company has **one primary Company Super Admin** (the owner).
-- Same user account, different company contexts.
+**Single User Table for All Roles:**
+- All users are stored in a single **User** table regardless of role.
+- User roles: `ADMIN`, `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF`, `COMPANY_PARTNER`, `CONSUMER`
+- The difference is defined by **relationships** to organizations.
 
-**Consumer multi-company access:**
-- One consumer can register products and initiate claims across **multiple company portals**.
-- Same user account, different company contexts (registrations/claims per company).
+**Role Definitions:**
+| Role | Description | partnerType |
+|------|-------------|-------------|
+| `ADMIN` | Platform admin (global access) | - |
+| `COMPANY_SUPER_ADMIN` | Organization admin (root company or branch) | - |
+| `COMPANY_STAFF` | Internal workers/employees | Internal |
+| `COMPANY_PARTNER` | External business partners who sell/manage warranties | External |
+| `CONSUMER` | End customers who register products and file claims | - |
+
+**User-Organization Relationship:**
+- `ADMIN`: No organization relationship (global access)
+- `COMPANY_SUPER_ADMIN`: Connected to an organization (root or branch) as admin
+- `COMPANY_STAFF`: Connected to an organization + DealerType (partnerType: Internal)
+- `COMPANY_PARTNER`: Connected to an organization + DealerType (partnerType: External)
+- `CONSUMER`: Connected to registrations/claims per company (not directly to org)
+
+**One User, Multiple Contexts:**
+- A user can be COMPANY_SUPER_ADMIN of **multiple organizations** (manages multiple companies/branches).
+- A user can be COMPANY_STAFF in **multiple organizations** (works for multiple branches).
+- A user can be COMPANY_PARTNER in **multiple organizations** (partner with multiple companies).
+- A consumer can register products across **multiple company portals** (same account, different company contexts).
 
 ### Organizations & Hierarchy
 
-The platform is multi-tenant and organization-driven:
-- A **Company** is represented by a **root organization** (parent org).
-- **External partners = Branch organizations** - when you create an External partner, a new child organization (branch) is created.
-- A child organization (branch) points to the parent via `rootOrgId`.
-- Each branch can have its own Internal staff and create its own External partners (sub-branches).
+**Organization Data Model:**
+
+Each organization has three key fields for hierarchy:
+- **`root`**: Always points to the **main root organization** (top-level company)
+- **`parentRoot`**: Points to the **immediate parent organization**
+- **`children`**: List of **child organizations** under this org
+
+**Hierarchy Example:**
+```
+Company A (Root) → Company B (Branch 1) → Company C (Branch 1.1)
+```
+
+**Organization Records:**
+| Organization | root | parentRoot | children |
+|--------------|------|------------|----------|
+| Company A | Company A (self) | null | [Company B] |
+| Company B | Company A | Company A | [Company C] |
+| Company C | Company A | Company B | [] |
+
+**Key Rules:**
+- `root` always points to the **top-level company** (never changes down the hierarchy)
+- `parentRoot` points to the **immediate parent** (one level up)
+- Root organization has `parentRoot = null`
+- A branch's `root` is always the same as its parent's `root`
+
+**User-Organization Connection:**
+- Users connect to organizations through a **Membership** relation
+- Membership includes: `userId`, `orgId`, `dealerTypeId`, `role`
+- This allows:
+  - One user to belong to multiple organizations
+  - Same user to have different DealerTypes in different orgs
+  - Tracking which org a user belongs to
+
+**Internal vs External Staff:**
+- **Internal staff (COMPANY_STAFF)**: User's `orgId` = same as company org (no new org created)
+- **External partners (COMPANY_PARTNER)**: New organization created, user's `orgId` = new branch org
+- **Both use DealerType** for permissions. UI shown based on DealerType.
 
 ### Partner Creation: Internal vs External
 
-When Company Super Admin creates a partner/staff, they must specify two things:
+When Company Super Admin creates a partner/staff, they must specify:
 
 1. **partnerType** (system-level): `Internal` or `External`
-2. **DealerType** (company-defined): Only for External partners (e.g., Dealer, Retailer, Installer, Repairer)
+2. **Role**: `COMPANY_STAFF` (Internal) or `COMPANY_PARTNER` (External)
+3. **DealerType** (company-defined): applies to both (e.g., SupportAgent, Dealer, Retailer)
 
-#### Internal Partner (partnerType = Internal)
+**Both COMPANY_STAFF and COMPANY_PARTNER use DealerType for permissions.** The key difference:
+- **COMPANY_STAFF** = Internal workers, same org, no new org created
+- **COMPANY_PARTNER** = External business partners, new branch org created
 
-- Works directly in the company organization.
-- **No separate organization created**.
-- User belongs to the same company org (`orgId` = company root org).
-- Permissions assigned based on persona/role within the company.
-- Example: Support agents, warranty managers, quality auditors, sales staff.
+#### Internal (partnerType = Internal) → Role: COMPANY_STAFF
 
-#### External Partner (partnerType = External) = Branch Organization
+- Internal workers/employees who belong to the same company org.
+- **No new organization created**.
+- User belongs to the same org (`orgId` = company root org or parent branch org).
+- Assign a **DealerType** → permissions auto-assigned.
+- UI shown based on DealerType permissions.
+- Example DealerTypes: SupportAgent, WarrantyManager, QualityAuditor, SalesStaff.
 
-- **A new branch organization (child org) is created** for this partner.
-- Linked to parent company via `rootOrgId`.
-- Must assign a **DealerType** (company-defined category with permissions).
-- DealerType determines what permissions this branch organization has.
-- This branch can have its own **Internal staff** and create its own **External partners** (sub-branches).
-- Example: Dealers, retailers, installers, repairers, service centers.
+#### External (partnerType = External) → Role: COMPANY_PARTNER = Branch Organization
+
+- External business partners who **act as a new child organization** (branch).
+- Linked to parent via `rootOrgId`.
+- Assign a **DealerType** → permissions auto-assigned to the branch org.
+- UI shown based on DealerType permissions.
+- Can have their own **Internal staff** and **External partners** (sub-branches).
+- Example DealerTypes: Dealer, Retailer, Installer, Repairer, ServiceCenter.
 
 ### DealerType (Company-Defined Partner Categories)
 
-Company Super Admin creates DealerTypes (partner categories) with specific permissions:
+Company Super Admin creates DealerTypes for **both Internal and External** partners with specific permissions:
 
 **How it works:**
 1. Company Super Admin goes to "Partner Types" / "Dealer Types" section.
-2. Creates a new DealerType (e.g., "Dealer", "Retailer", "Installer", "Repairer").
-3. Toggles permissions for that DealerType (from modules enabled by SYSTEM_ADMIN).
-4. When creating an External partner, selects this DealerType.
-5. The new partner organization automatically gets permissions assigned from the DealerType.
+2. Creates DealerTypes for Internal staff (e.g., "SupportAgent", "WarrantyManager").
+3. Creates DealerTypes for External partners (e.g., "Dealer", "Retailer", "Installer").
+4. Toggles permissions for each DealerType (from modules enabled by SYSTEM_ADMIN).
+5. When creating a partner (Internal or External), selects the appropriate DealerType.
+6. Permissions and persona auto-assigned from DealerType.
+7. UI shown based on DealerType permissions when user logs in.
 
-**Example DealerTypes and Permissions:**
+**Example DealerTypes for Internal Staff:**
+- **SupportAgent**: Claims (view, update), Products (view)
+- **WarrantyManager**: Claims (view, update, approve), Registration (view), Products (view)
+- **QualityAuditor**: Claims (view), Products (view), Reports (view)
+
+**Example DealerTypes for External Partners:**
 - **Dealer**: Products (view), Registration (create, view), Claims (view)
 - **Retailer**: Products (view), Registration (create, view)
 - **Installer**: Products (view), Registration (create, view), Claims (create)
-- **Service Center**: Claims (view, update), Products (view)
+- **ServiceCenter**: Claims (view, update), Products (view)
 
 ### Hierarchical Branch Creation
 
-External partners = Branch organizations. Each branch can create its own sub-branches:
+External partners act as branch organizations. Each branch can have its own Internal staff and External partners:
 
 **Flow:**
-1. Company A creates External partner "Metro Dealers" with DealerType = "Dealer".
-2. Metro Dealers **branch organization** is created under Company A.
-3. Metro Dealers can now create their own partners:
-   - **Internal staff** (Metro employees - no new org)
-   - **External partners** (sub-branches under Metro - new org created)
-4. Metro Dealers defines their own DealerTypes (e.g., "Sub-Dealer", "Local Installer").
+1. Company A adds External partner "Metro Dealers" with DealerType = "Dealer".
+2. Metro Dealers acts as a **branch organization** under Company A.
+3. Metro Dealers can now add their own partners:
+   - **Internal** (Metro employees - belong to Metro org)
+   - **External** (sub-branches under Metro - new child org)
+4. Metro Dealers creates their own DealerTypes (e.g., "Sub-Dealer", "Local Installer").
 5. Metro Dealers toggles permissions for their DealerTypes (subset of what Metro has).
-6. Metro Dealers creates External partner "City Electronics" with DealerType = "Sub-Dealer".
-7. City Electronics **branch organization** is created under Metro Dealers.
+6. Metro Dealers adds External partner "City Electronics" with DealerType = "Sub-Dealer".
+7. City Electronics acts as a **sub-branch organization** under Metro Dealers.
 
-**Hierarchy (External = Branch):**
+**Hierarchy Diagram:**
 ```
 Company A (Root Organization)
-├── Internal Staff (partnerType: Internal) - same org
-└── Metro Dealers (partnerType: External, DealerType: Dealer) - BRANCH ORG
-    ├── Internal Staff (partnerType: Internal) - same org as Metro
-    └── City Electronics (partnerType: External, DealerType: Sub-Dealer) - SUB-BRANCH ORG
-        └── Internal Staff (partnerType: Internal) - same org as City Electronics
+├── Internal (employees in Company A org)
+└── Metro Dealers (External, DealerType: Dealer) - BRANCH
+    ├── Internal (employees in Metro org)
+    └── City Electronics (External, DealerType: Sub-Dealer) - SUB-BRANCH
+        └── Internal (employees in City Electronics org)
 ```
+
+**Organization Records (root/parentRoot structure):**
+| Organization | root | parentRoot | children |
+|--------------|------|------------|----------|
+| Company A | Company A | null | [Metro Dealers] |
+| Metro Dealers | Company A | Company A | [City Electronics] |
+| City Electronics | Company A | Metro Dealers | [] |
+
+**Key Points:**
+- `root` is always **Company A** (the top-level company) for all organizations in this hierarchy
+- `parentRoot` is the **immediate parent** (one level up)
+- This structure allows easy traversal: find all orgs under a root, find parent chain, etc.
 
 **Permission Inheritance Rule:**
 - A child partner cannot have more permissions than its parent.
@@ -217,20 +294,20 @@ flowchart TD
   subgraph CompanyPortal
     csa[COMPANY_SUPER_ADMIN]
     csa --> createDealerType[Create DealerTypes with Permissions]
-    csa --> addInternal[Add Internal Partner]
+    csa --> addInternal[Add Internal Staff]
     csa --> addExternal[Add External Partner]
     addExternal --> selectDealerType[Select DealerType]
-    selectDealerType --> createChildOrg[Create Child Organization]
-    createChildOrg --> assignPerms[Auto-assign Permissions from DealerType]
+    selectDealerType --> actAsBranch[Acts as Branch Org]
+    actAsBranch --> assignPerms[Auto-assign Permissions]
   end
 
-  subgraph ExternalPartnerPortal
-    extPartner[External Partner Admin]
+  subgraph BranchPortal[External Partner / Branch Portal]
+    extPartner[Branch Admin]
     extPartner --> createSubDealerType[Create Sub-DealerTypes]
     extPartner --> addSubInternal[Add Internal Staff]
-    extPartner --> addSubExternal[Add External Sub-Partner]
+    extPartner --> addSubExternal[Add External Partner]
     addSubExternal --> selectSubDealerType[Select Sub-DealerType]
-    selectSubDealerType --> createSubOrg[Create Sub-Child Organization]
+    selectSubDealerType --> actAsSubBranch[Acts as Sub-Branch Org]
   end
 
   inviteCSA --> csa
@@ -239,49 +316,71 @@ flowchart TD
 
 ### Real-World Examples
 
-**Example 1: Simple Company with Internal and External Partners**
+**Example 1: Simple Company with Internal and External Staff**
 
 Admin onboards "Acme Electronics" (a TV manufacturer):
 1. **ADMIN** creates Acme Electronics company, form schemas, warranty templates.
-2. **ADMIN** invites User "John" as Company Super Admin.
+2. **ADMIN** invites User "John" as Company Super Admin (role: `COMPANY_SUPER_ADMIN`).
 3. **John** logs into Acme Electronics Company Portal.
 4. **John** creates DealerTypes with permissions:
-   - "Dealer" → Products (view), Registration (create, view), Claims (view)
-   - "Retailer" → Products (view), Registration (create, view)
-   - "Service Center" → Claims (view, update), Products (view)
-5. **John** adds **Internal partners** (partnerType: Internal):
-   - Support agents, warranty managers (no new org created, belong to Acme org)
-6. **John** adds **External partner** (partnerType: External):
+   - **For COMPANY_STAFF:** "SupportAgent" → Claims (view, update), Products (view)
+   - **For COMPANY_STAFF:** "WarrantyManager" → Claims (view, update, approve), Products (view)
+   - **For COMPANY_PARTNER:** "Dealer" → Products (view), Registration (create, view), Claims (view)
+   - **For COMPANY_PARTNER:** "Retailer" → Products (view), Registration (create, view)
+5. **John** adds **COMPANY_STAFF** (Internal workers):
+   - Alice as "SupportAgent" → role: `COMPANY_STAFF`, sees Claims and Products in UI
+   - Bob as "WarrantyManager" → role: `COMPANY_STAFF`, sees Claims (with approve) and Products in UI
+6. **John** adds **COMPANY_PARTNER** (External partner):
    - Partner Name: "Best Buy Store"
    - DealerType: "Dealer"
-   - A new organization "Best Buy Store" is created under Acme
-   - Permissions auto-assigned from "Dealer" DealerType
+   - Best Buy Store acts as a branch organization under Acme
+   - Best Buy admin gets role: `COMPANY_SUPER_ADMIN` of Best Buy org
+   - Best Buy workers get role: `COMPANY_STAFF` with appropriate DealerType
 
 **Example 2: External Partner Creating Sub-Partners (Hierarchical)**
 
 Acme Electronics has a major dealer "Metro Dealers":
 1. **John** (Acme Super Admin) adds External partner "Metro Dealers" with DealerType = "Dealer".
-2. A new organization "Metro Dealers" is created under Acme.
-3. **John** invites User "Sarah" as admin of Metro Dealers organization.
+2. Metro Dealers acts as a branch organization under Acme.
+3. **John** invites User "Sarah" as admin of Metro Dealers (role: `COMPANY_SUPER_ADMIN` of Metro).
 4. **Sarah** logs into Metro Dealers portal.
 5. **Sarah** creates her own DealerTypes (subset of Metro's permissions):
-   - "Sub-Dealer" → Products (view), Registration (create)
-   - "Local Installer" → Registration (view)
-6. **Sarah** adds **Internal partners** (Metro employees).
-7. **Sarah** adds **External partner** "City Electronics" with DealerType = "Sub-Dealer".
-8. A new organization "City Electronics" is created under Metro Dealers.
+   - **For Internal:** "MetroStaff" → Products (view), Registration (view)
+   - **For External:** "Sub-Dealer" → Products (view), Registration (create)
+6. **Sarah** adds **Internal** staff with DealerType = "MetroStaff" (Metro employees).
+7. **Sarah** adds **External** partner "City Electronics" with DealerType = "Sub-Dealer".
+8. City Electronics acts as a sub-branch organization under Metro Dealers.
 
 **Resulting Hierarchy:**
 ```
 Acme Electronics (Root Company)
-├── Internal Partners (Acme employees - partnerType: Internal)
-├── Best Buy Store (partnerType: External, DealerType: Dealer)
-│   └── Internal Partners (Best Buy employees)
-└── Metro Dealers (partnerType: External, DealerType: Dealer)
-    ├── Internal Partners (Metro employees - partnerType: Internal)
-    └── City Electronics (partnerType: External, DealerType: Sub-Dealer)
-        └── Internal Partners (City Electronics employees)
+├── Internal (DealerType: SupportAgent, WarrantyManager)
+├── Best Buy Store (External, DealerType: Dealer)
+│   └── Internal (Best Buy employees with DealerType)
+└── Metro Dealers (External, DealerType: Dealer)
+    ├── Internal (DealerType: MetroStaff)
+    └── City Electronics (External, DealerType: Sub-Dealer)
+        └── Internal (City Electronics employees with DealerType)
 ```
+
+**Organization Records (root/parentRoot):**
+| Organization | root | parentRoot | children |
+|--------------|------|------------|----------|
+| Acme Electronics | Acme Electronics | null | [Best Buy, Metro Dealers] |
+| Best Buy Store | Acme Electronics | Acme Electronics | [] |
+| Metro Dealers | Acme Electronics | Acme Electronics | [City Electronics] |
+| City Electronics | Acme Electronics | Metro Dealers | [] |
+
+**User-Organization Memberships:**
+| User | Organization | DealerType | Role | partnerType |
+|------|--------------|------------|------|-------------|
+| John | Acme Electronics | - | COMPANY_SUPER_ADMIN | - |
+| Alice | Acme Electronics | SupportAgent | COMPANY_STAFF | Internal |
+| Bob | Acme Electronics | WarrantyManager | COMPANY_STAFF | Internal |
+| Sarah | Metro Dealers | - | COMPANY_SUPER_ADMIN | - (branch admin) |
+| (Metro worker) | Metro Dealers | MetroStaff | COMPANY_STAFF | Internal |
+| (City admin) | City Electronics | - | COMPANY_SUPER_ADMIN | - (sub-branch admin) |
+| (City worker) | City Electronics | CityStaff | COMPANY_STAFF | Internal |
 
 **Example 3: User Managing Multiple Companies**
 
@@ -307,32 +406,45 @@ Consumer "Mike" buys products from multiple companies:
 **Permission Flow:**
 1. **SYSTEM_ADMIN** enables modules for the company (Claims, Products, Registration, etc.).
 2. **Company Super Admin** sees only enabled modules in permission toggles.
-3. **Company Super Admin** creates DealerTypes (e.g., "Dealer", "Retailer") and toggles permissions for each.
-4. When **Company Super Admin** creates an External partner and selects a DealerType, permissions are auto-assigned.
+3. **Company Super Admin** creates DealerTypes for **both Internal and External** (e.g., "SupportAgent", "Dealer", "Retailer").
+4. When **Company Super Admin** creates a partner (Internal or External), selects a DealerType.
+5. Permissions auto-assigned from DealerType. UI shown based on these permissions.
 
-**Example Flow:**
+**Example Flow - Internal Staff:**
 1. Acme has modules enabled by ADMIN: Products, Claims, Registration.
-2. John creates DealerType "Dealer" with permissions: Products (view), Registration (create, view).
-3. John adds External partner "Best Buy Store" with DealerType = "Dealer".
-4. Best Buy Store organization is created and automatically gets: Products (view), Registration (create, view).
-5. All users in Best Buy Store organization inherit these permissions.
+2. John creates DealerType "SupportAgent" with permissions: Claims (view, update), Products (view).
+3. John adds Internal staff "Alice" with DealerType = "SupportAgent".
+4. Alice belongs to Acme org and sees UI based on SupportAgent permissions.
+
+**Example Flow - External Partner:**
+1. John creates DealerType "Dealer" with permissions: Products (view), Registration (create, view).
+2. John adds External partner "Best Buy Store" with DealerType = "Dealer".
+3. Best Buy Store acts as a branch org with auto-assigned permissions.
+4. All users in Best Buy Store see UI based on Dealer permissions.
 
 **Key Terms:**
 - **partnerType**: System-level field with two values: `Internal` or `External`
-- **DealerType**: Company-defined category (e.g., Dealer, Retailer, Installer) with toggled permissions
-- Only **External** partners require a DealerType (because a new org is created with those permissions)
-- **Internal** partners don't need a DealerType (they belong to the same org and get persona-based permissions)
+- **Role**: `COMPANY_STAFF` (Internal) or `COMPANY_PARTNER` (External)
+- **DealerType**: Company-defined category with permissions (applies to both roles)
+- **Internal (COMPANY_STAFF)**: employees belonging to same org + DealerType for permissions
+- **External (COMPANY_PARTNER)**: partners acting as branch org + DealerType for permissions
 
-### Roles vs. Personas vs. Permissions
+### Roles vs. DealerType vs. Permissions
 
 This system separates three ideas:
-- **Role**: broad system-level classification (e.g., SUPER_ADMIN, COMPANY_SUPER_ADMIN, COMPANY_PARTNER, CONSUMER).
-- **Persona**: company-defined category for partner/user types (e.g., Dealer, Installer, SupportAgent). Personas are configured per company.
-- **Permission**: granular capability flags that drive API access and UI visibility (examples: `CLAIMS`, `PRODUCTS`, `PRODUCT_FORM_SCHEMA`, `CLAIM_FORM_SCHEMA`, `PARTNER_TYPES`, `CAN_INVITE_PARTNER`).
+- **Role**: system-level classification that determines portal access and partnerType:
+  - `ADMIN` - Platform admin
+  - `COMPANY_SUPER_ADMIN` - Organization admin
+  - `COMPANY_STAFF` - Internal workers (partnerType: Internal)
+  - `COMPANY_PARTNER` - External partners (partnerType: External)
+  - `CONSUMER` - End customers
+- **DealerType**: company-defined category with specific permissions (e.g., SupportAgent, Dealer, Installer).
+- **Permission**: granular capability flags that drive API access and UI visibility (examples: `CLAIMS`, `PRODUCTS`, `REGISTRATION`, `PARTNER_TYPES`, `CAN_INVITE_PARTNER`).
 
 A practical model is:
-- Role decides which portal(s) a user can access.
-- Persona + permissions decide what they can do inside the Company Portal.
+- **Role** decides which portal(s) a user can access and whether they are Internal or External.
+- **DealerType** decides what permissions they have and what UI they see inside the Company Portal.
+- Both `COMPANY_STAFF` and `COMPANY_PARTNER` use DealerType for permissions.
 
 ### Company Feature/Module Visibility (UI Access)
 
@@ -401,35 +513,34 @@ NOTE: may be we add more form schema to manage warranty management properly.
    - After signup, the COMPANY_SUPER_ADMIN can:
      - Add products (using the product schema created by ADMIN)
      - Add registrations, handle claims (using respective schemas)
-     - Create **DealerTypes** with permissions (e.g., Dealer, Retailer, Installer)
-     - Add **Internal partners** (partnerType: Internal) - belong to same org
-     - Add **External partners** (partnerType: External) - creates new child org with DealerType
-     - Define personas and permissions for company users
+     - Create **DealerTypes** for both Internal and External (e.g., SupportAgent, Dealer, Retailer)
+     - Add **COMPANY_STAFF** (Internal workers - same org + DealerType)
+     - Add **COMPANY_PARTNER** (External partners - branch org + DealerType)
+     - UI shown based on DealerType permissions when staff logs in
    - **COMPANY_SUPER_ADMIN cannot**: create/edit form schemas or warranty templates.
 
 ### User & Partner Invitation
 
 1. **Invitation Created**
    - An admin (SYSTEM_ADMIN or COMPANY_SUPER_ADMIN) invites a user with name/email + target organization context.
-   - For partners, specify: **partnerType** (Internal/External) and **DealerType** (if External).
+   - For partners, specify: **partnerType** (Internal/External) and **DealerType** (for both Internal and External).
 
 2. **Email Trigger**
-   - COMPANY_SUPER_ADMIN onboarding email (initial company admin).
-   - COMPANY_PARTNER invitation email (internal or external partner user).
+   - COMPANY_SUPER_ADMIN onboarding email (initial company/branch admin).
+   - COMPANY_STAFF invitation email (internal workers).
+   - COMPANY_PARTNER invitation email (external partner users).
 
 3. **Account + Organization Linking**
    - User account is created/activated on signup.
-   - For **External partners** (partnerType: External):
-     - Create a new child organization with selected DealerType.
+   - For **External** (partnerType: External):
+     - Partner acts as a new child organization (branch) with selected DealerType.
      - Link to parent via `rootOrgId`.
-     - Auto-assign permissions from DealerType.
-   - For **Internal partners** (partnerType: Internal):
-     - Link user to the company root org (no new org created).
-     - Assign permissions based on persona.
+   - For **Internal** (partnerType: Internal):
+     - User belongs to the same company org (no new org created).
 
 4. **Permission Assignment**
-   - **External partners**: get permissions from DealerType (auto-assigned to new org).
-   - **Internal partners**: get permissions from assigned persona.
+   - **Both Internal and External** get permissions from assigned DealerType.
+   - UI shown based on DealerType permissions when user logs in.
 
 Note: a single user can be associated with multiple organizations (multi-org memberships), enabling the same user to operate under different company contexts if allowed.
 
@@ -442,22 +553,40 @@ Note: a single user can be associated with multiple organizations (multi-org mem
 
 ## Roles & Access Rules
 
-- **SUPER_ADMIN**
+| Role | Portal | partnerType | Description |
+|------|--------|-------------|-------------|
+| `ADMIN` | Admin Portal | - | Platform admin with global access |
+| `COMPANY_SUPER_ADMIN` | Company Portal | - | Organization admin (root or branch) |
+| `COMPANY_STAFF` | Company Portal | Internal | Internal workers/employees |
+| `COMPANY_PARTNER` | Company Portal | External | External business partners |
+| `CONSUMER` | Consumer Portal | - | End customers |
+
+- **ADMIN** (SUPER_ADMIN)
   - Portals: Admin Portal (and can be granted visibility into Company/Consumer views if required for support)
   - Scope: global across all companies
   - Responsibilities: onboarding companies, enabling modules, **creating/managing form schemas and warranty templates** (core configuration), system-level oversight
 
 - **COMPANY_SUPER_ADMIN**
   - Portals: Company Portal
-  - Scope: full access within their company (root org and its hierarchy)
-  - Responsibilities: add products, add registrations, handle claims, manage brands/categories/faults/issues, create **DealerTypes** with permissions, add Internal/External partners, define personas and permissions
-  - **Cannot do**: create/edit form schemas or warranty templates (managed by SUPER_ADMIN)
+  - Scope: full access within their organization (root company or branch)
+  - Can be admin of root company OR admin of a branch organization
+  - Responsibilities: add products, add registrations, handle claims, manage brands/categories/faults/issues, create **DealerTypes**, add Internal staff (COMPANY_STAFF) and External partners (COMPANY_PARTNER)
+  - **Cannot do**: create/edit form schemas or warranty templates (managed by ADMIN)
 
-- **COMPANY_PARTNER**
+- **COMPANY_STAFF** (partnerType: Internal)
   - Portals: Company Portal (restricted)
   - Scope: permission-based within their organization context
-  - **Internal partner** (partnerType: Internal): belongs to company root org, permissions from persona
-  - **External partner** (partnerType: External): belongs to a child org with DealerType, permissions from DealerType
+  - Internal workers/employees who belong to the same org
+  - Permissions from assigned DealerType (e.g., SupportAgent, WarrantyManager)
+  - UI shown based on DealerType permissions
+
+- **COMPANY_PARTNER** (partnerType: External)
+  - Portals: Company Portal (restricted)
+  - Scope: permission-based within their organization context
+  - External business partners who sell/manage warranties
+  - Belong to a branch organization
+  - Permissions from assigned DealerType (e.g., Dealer, Retailer, Installer)
+  - UI shown based on DealerType permissions
 
 - **CONSUMER**
   - Portals: Consumer Portal
