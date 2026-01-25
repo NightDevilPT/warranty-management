@@ -1,0 +1,60 @@
+model Warranty {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Registration FormData (the registration that created this warranty)
+  registrationFormDataId String    @db.Uuid
+  
+  // Original Warranty Template ID (for reference, but we store snapshot)
+  warrantyTemplateId      String    @db.Uuid
+  
+  // Product FormData (always required - registration is always for a product)
+  productFormDataId       String    @db.Uuid
+  
+  // Part FormData (optional - only set if this warranty is for a specific part within the product)
+  partFormDataId          String?   @db.Uuid
+  
+  // Warranty Applicability
+  isApplicable            Boolean   @default(false)
+  
+  // Parts Coverage (for part warranties - shows which parts are covered)
+  partsCoverage           Json?     @db.JsonB
+  
+  // Warranty Template Snapshot (copy of template at time of creation)
+  // Contains: name, warrantyType, warrantyPeriod, validationRules, coverageDetails, infoAndTerms, etc.
+  // This ensures warranty works as expected even if template is updated later
+  templateSnapshot        Json      @db.JsonB
+  
+  // Coverage Status
+  coverageStatus          String?   @db.String  // "FULL_COVERAGE", "PARTIAL", "NOT_COVERED", "EXPIRED"
+  
+  // Effective Dates
+  warrantyStartDate       DateTime? @db.Timestamptz
+  warrantyEndDate         DateTime? @db.Timestamptz
+  
+  // Validation Details (which rules passed/failed during creation)
+  validationDetails       Json?     @db.JsonB
+  
+  // Status
+  status                  String    @default("ACTIVE") @db.String  // "ACTIVE", "EXPIRED", "CANCELLED"
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Relationships
+  registrationFormData    FormData          @relation(fields: [registrationFormDataId], references: [id], onDelete: Cascade)
+  warrantyTemplate        WarrantyTemplate  @relation(fields: [warrantyTemplateId], references: [id], onDelete: Restrict)
+  productFormData         FormData          @relation("WarrantyToProduct", fields: [productFormDataId], references: [id], onDelete: Cascade)
+  partFormData            FormData?         @relation("WarrantyToPart", fields: [partFormDataId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([registrationFormDataId])
+  @@index([warrantyTemplateId])
+  @@index([productFormDataId])
+  @@index([partFormDataId])
+  @@index([isApplicable])
+  @@index([coverageStatus])
+  @@index([status])
+  @@index([createdAt])
+}

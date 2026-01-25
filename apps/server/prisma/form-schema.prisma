@@ -1,0 +1,70 @@
+model FormSchema {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Organization (tenant isolation)
+  orgId                   String    @db.Uuid
+  
+  // Form Type: "PRODUCT", "PART", "BRAND", "CATEGORY", "REGISTRATION", "CLAIM", "FAULT", "ISSUE", etc.
+  type                    String    @db.String
+  
+  // Form Name
+  name                    String    @db.String
+  description             String?   @db.String
+  
+  // Version control
+  version                 Int       @default(1)
+  isActive                Boolean   @default(true)
+  isPublished             Boolean   @default(false)
+  
+  // Schema Definition (JSON structure defining form fields)
+  schema                  Json      @db.JsonB
+  
+  // Metadata (additional config, UI hints, validation rules, etc.)
+  metadata                Json?     @db.JsonB
+  
+  // Relationships
+  // For Product schemas: links to Brand and Category schemas
+  // For Part schemas: also links to Brand and Category schemas (parts have brand/category too)
+  linkedBrandSchemaId     String?   @db.Uuid
+  linkedCategorySchemaId   String?   @db.Uuid
+  
+  // For Part schemas: links to parent Product schema (optional - parts can exist independently)
+  parentProductSchemaId   String?   @db.Uuid
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  publishedAt             DateTime? @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Relationships
+  organization            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Self-referential for schema linking
+  linkedBrandSchema       FormSchema?   @relation("BrandToProduct", fields: [linkedBrandSchemaId], references: [id], onDelete: SetNull)
+  linkedCategorySchema    FormSchema?   @relation("CategoryToProduct", fields: [linkedCategorySchemaId], references: [id], onDelete: SetNull)
+  parentProductSchema     FormSchema?   @relation("PartToProduct", fields: [parentProductSchemaId], references: [id], onDelete: SetNull)
+  
+  // Reverse relations
+  productSchemasWithBrand FormSchema[]  @relation("BrandToProduct")
+  productSchemasWithCategory FormSchema[] @relation("CategoryToProduct")
+  partSchemas             FormSchema[]  @relation("PartToProduct")
+  
+  // Data and templates
+  formData                FormData[]
+  warrantyTemplates       WarrantyTemplate[]
+  
+  // Indexes
+  @@index([orgId])
+  @@index([type])
+  @@index([isActive])
+  @@index([isPublished])
+  @@index([parentProductSchemaId])
+  @@index([linkedBrandSchemaId])
+  @@index([linkedCategorySchemaId])
+  @@unique([orgId, type, name, version], name: "unique_schema_version")
+}

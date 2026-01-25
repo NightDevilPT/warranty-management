@@ -1,0 +1,91 @@
+model FormData {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Organization (tenant isolation)
+  orgId                   String    @db.Uuid
+  
+  // Reference to the schema this data conforms to
+  formSchemaId            String    @db.Uuid
+  
+  // Form Type (denormalized from FormSchema for query performance)
+  formType                String    @db.String  // "PRODUCT", "PART", "BRAND", "REGISTRATION", etc.
+  
+  // Actual form data (JSON structure matching the schema)
+  // For Product FormData: also stores warrantyTemplateIds and partIds arrays
+  // For Part FormData: also stores warrantyTemplateIds array
+  // For Registration FormData: also stores warrantyIds array
+  data                    Json      @db.JsonB
+  
+  // Status
+  status                  String    @default("DRAFT") @db.String  // "DRAFT", "ACTIVE", "ARCHIVED", etc.
+  
+  // Relationships for Product-Part structure
+  // If this is a Part FormData, link to parent Product FormData (optional - parts can exist independently)
+  parentProductDataId     String?   @db.Uuid
+  
+  // If this is a Registration FormData, link to Product FormData
+  registeredProductId     String?   @db.Uuid
+  
+  // For Product FormData: explicit link to Brand FormData (one brand per product)
+  // For Part FormData: explicit link to Brand FormData (one brand per part)
+  brandFormDataId         String?   @db.Uuid
+  
+  // Note: Categories are stored as array in data.categoryIds (for both Product and Part FormData)
+  // Note: Warranty Templates assigned to Product are stored in data.warrantyTemplateIds
+  // Note: Parts assigned to Product are stored in data.partIds
+  // Note: Warranty Templates assigned to Part are stored in data.warrantyTemplateIds
+  // Note: Registration FormData stores all created Warranty IDs in data.warrantyIds array
+  
+  // Creator/Updater tracking
+  createdBy               String?   @db.Uuid
+  updatedBy               String?   @db.Uuid
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Relationships
+  organization            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  formSchema              FormSchema    @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+  
+  // Self-referential for Product-Part hierarchy (optional - parts can exist independently)
+  parentProductData       FormData?     @relation("ProductToPart", fields: [parentProductDataId], references: [id], onDelete: Cascade)
+  partData                FormData[]    @relation("ProductToPart")
+  
+  // Registration links
+  registeredProduct       FormData?     @relation("RegistrationToProduct", fields: [registeredProductId], references: [id], onDelete: Restrict)
+  registrations           FormData[]    @relation("RegistrationToProduct")
+  
+  // Brand link (for Product and Part FormData) - one brand per product/part
+  brandFormData           FormData?     @relation("ProductToBrand", fields: [brandFormDataId], references: [id], onDelete: SetNull)
+  
+  // Reverse relations
+  // Note: This includes both products and parts that reference this brand
+  // Filter by formType in application code to get products or parts separately
+  itemsWithBrand          FormData[]    @relation("ProductToBrand")
+  
+  // Creator/Updater
+  creator                 User?         @relation("FormDataCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater                 User?         @relation("FormDataUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  
+  // Warranty records
+  warranties              Warranty[]
+  productWarranties       Warranty[]  @relation("WarrantyToProduct")
+  partWarranties          Warranty[]  @relation("WarrantyToPart")
+  
+  // Indexes
+  @@index([orgId])
+  @@index([formSchemaId])
+  @@index([formType])
+  @@index([status])
+  @@index([parentProductDataId])
+  @@index([registeredProductId])
+  @@index([brandFormDataId])
+  @@index([createdBy])
+  @@index([createdAt])
+}

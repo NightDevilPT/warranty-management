@@ -1,0 +1,54 @@
+model User {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Basic Identity Information
+  email                   String    @unique @db.String
+  phone                   String?   @db.String
+  firstName               String    @db.String
+  lastName                String?   @db.String
+  fullName                String    @db.String
+  avatar                  String?   @db.String
+  
+  // ADMIN Portal Authentication (Only for ADMIN portal)
+  adminPasswordHash       String?   @db.String
+  adminEmailVerified      Boolean   @default(false)
+  adminEmailVerifiedAt    DateTime? @db.Timestamptz
+  
+  // Security Features (Shared across all portals)
+  twoFactorEnabled        Boolean   @default(false)
+  twoFactorSecret         String?   @db.String
+  backupCodes             String?   @db.String
+  
+  // Account Status (Shared)
+  isActive                Boolean   @default(true)
+  isLocked                Boolean   @default(false)
+  lockedReason            String?   @db.String
+  lockedUntil             DateTime? @db.Timestamptz
+  
+  // Activity Tracking
+  adminLastLoginAt        DateTime? @db.Timestamptz
+  adminLastPasswordChangeAt DateTime? @db.Timestamptz
+  lastTwoFactorChangeAt   DateTime? @db.Timestamptz
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Relationships
+  userAccesses            UserAccess[]
+  createdFormData         FormData[]  @relation("FormDataCreator")
+  updatedFormData         FormData[]  @relation("FormDataUpdater")
+  dealerPersonas          DealerPersona[]
+  
+  // Indexes
+  @@index([email])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([adminEmailVerified])
+  @@unique([email, deletedAt], name: "unique_email_when_not_deleted")
+}

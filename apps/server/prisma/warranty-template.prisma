@@ -1,0 +1,188 @@
+model WarrantyTemplate {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Organization (tenant isolation)
+  orgId                   String    @db.Uuid
+  
+  // Template Name
+  name                    String    @db.String
+  description             String?   @db.String
+  
+  // Links to FormSchema (can be Product OR Part schema)
+  formSchemaId            String    @db.Uuid
+  
+  // Warranty Type
+  warrantyType            String    @db.String  // "STANDARD", "EXTENDED", "PARTS_ONLY", "LABOR_ONLY", etc.
+  
+  // Warranty Period - stored as JSON to support different units
+  // Format: { "value": 12, "unit": "MONTHS" } or { "value": 50000, "unit": "KILOMETERS" }
+  // Units: "DAYS", "MONTHS", "YEARS", "KILOMETERS", "MILES", "HOURS", "CYCLES"
+  warrantyPeriod          Json?     @db.JsonB
+  
+  // Rules - JSON structure for warranty validation rules
+  // JSON Schema:
+  // {
+  //   "logic": "AND" | "OR" (optional, defaults to "AND"),
+  //   "conditions": [
+  //     {
+  //       "left": "field.path" (required),
+  //       "op": "operator" (required),
+  //       "right": value (optional for EXISTS/NOT_EXISTS)
+  //     } | {
+  //       "logic": "AND" | "OR" (optional, defaults to "AND"),
+  //       "conditions": [...] (nested conditions)
+  //     }
+  //   ]
+  // }
+  //
+  // Field Paths (dot notation):
+  //   - "registration.*" - Registration FormData.data fields
+  //   - "product.*" - Product FormData.data fields
+  //   - "part.*" - Part FormData.data fields (for part warranty templates)
+  //
+  // Operators (for matching/validation):
+  //   - "EQ" or "EQUALS" - Equal to
+  //   - "NE" or "NOT_EQUALS" - Not equal to
+  //   - "GT" or "GREATER_THAN" - Greater than
+  //   - "GTE" or "GREATER_THAN_OR_EQUAL" - Greater than or equal to
+  //   - "LT" or "LESS_THAN" - Less than
+  //   - "LTE" or "LESS_THAN_OR_EQUAL" - Less than or equal to
+  //   - "EXISTS" - Field exists in data
+  //   - "NOT_EXISTS" - Field does not exist in data (right value optional)
+  //
+  // Right Value Types:
+  //   - Primitive: string | number | boolean | date (ISO 8601)
+  //   - Dynamic: { "value": number, "unit": "DAYS" | "MONTHS" | "YEARS" | "KILOMETERS" | "MILES" | "HOURS" | "CYCLES" }
+  //   - Null: null (for EXISTS/NOT_EXISTS, can be omitted)
+  //
+  // Notes:
+  //   - Negative values in dynamic units represent "before now" (e.g., { "value": -30, "unit": "DAYS" } = 30 days ago)
+  //   - Nested conditions support unlimited depth
+  //   - Evaluation context built from: registration, product, parts[], brand, categories[]
+  rules                    Json      @db.JsonB
+  
+  // Coverage Details - Array of objects containing different types of coverage information
+  // Follows same structure as infos and terms
+  // Each object has a type field and corresponding data structure
+  // Types: "BULLET_POINTS", "DESCRIPTION", "TABLE", "LIST", "COVERED_ITEMS", "EXCLUDED_ITEMS", etc.
+  // Format: [{ "type": "BULLET_POINTS", "title": "Coverage Includes", "items": [...] }, ...]
+  // Example:
+  // [
+  //   {
+  //     "type": "BULLET_POINTS",
+  //     "title": "Coverage Includes",
+  //     "items": [
+  //       "Manufacturing defects",
+  //       "Material defects",
+  //       "Workmanship issues",
+  //       "Parts replacement",
+  //       "Labor costs"
+  //     ]
+  //   },
+  //   {
+  //     "type": "BULLET_POINTS",
+  //     "title": "Not Covered",
+  //     "items": [
+  //       "Normal wear and tear",
+  //       "Damage from misuse",
+  //       "Damage from accidents",
+  //       "Unauthorized repairs"
+  //     ]
+  //   },
+  //   {
+  //     "type": "DESCRIPTION",
+  //     "title": "Coverage Notes",
+  //     "content": "Warranty is valid only for original purchaser and non-transferable. All repairs must be performed by authorized service centers."
+  //   },
+  //   {
+  //     "type": "TABLE",
+  //     "title": "Coverage by Component",
+  //     "headers": ["Component", "Coverage Period", "Coverage Type"],
+  //     "rows": [
+  //       ["Engine", "2 Years", "Parts & Labor"],
+  //       ["Transmission", "3 Years", "Parts Only"],
+  //       ["Battery", "1 Year", "Parts & Labor"]
+  //     ]
+  //   }
+  // ]
+  coverageDetails         Json?     @db.JsonB
+  
+  // Infos - Array of objects containing different types of information display
+  // Each object has a type field and corresponding data structure
+  // Types: "BULLET_POINTS", "DESCRIPTION", "CALCULATION", "TABLE", "LIST", etc.
+  // Format: [{ "type": "BULLET_POINTS", "title": "Coverage Includes", "items": [...] }, ...]
+  // Example:
+  // [
+  //   {
+  //     "type": "BULLET_POINTS",
+  //     "title": "Coverage Includes",
+  //     "items": ["Manufacturing defects", "Material defects", "Workmanship issues"]
+  //   },
+  //   {
+  //     "type": "DESCRIPTION",
+  //     "title": "Warranty Overview",
+  //     "content": "This warranty provides comprehensive coverage for your product."
+  //   },
+  //   {
+  //     "type": "CALCULATION",
+  //     "title": "Warranty Period Calculation",
+  //     "formula": "purchaseDate + warrantyPeriod",
+  //     "description": "Warranty starts from purchase date and extends for the warranty period duration."
+  //   }
+  // ]
+  info                    Json?     @db.JsonB
+  
+  // Terms - Array of objects containing different types of Terms display
+  // Each object has a type field and corresponding data structure
+  // Types: "BULLET_POINTS", "DESCRIPTION", "CALCULATION", "TABLE", "LIST", etc.
+  // Format: [{ "type": "BULLET_POINTS", "title": "Coverage Includes", "items": [...] }, ...]
+  // Example:
+  // [
+  //   {
+  //     "type": "BULLET_POINTS",
+  //     "title": "Coverage Includes",
+  //     "items": ["Manufacturing defects", "Material defects", "Workmanship issues"]
+  //   },
+  //   {
+  //     "type": "DESCRIPTION",
+  //     "title": "Warranty Overview",
+  //     "content": "This warranty provides comprehensive coverage for your product."
+  //   },
+  //   {
+  //     "type": "CALCULATION",
+  //     "title": "Warranty Period Calculation",
+  //     "formula": "purchaseDate + warrantyPeriod",
+  //     "description": "Warranty starts from purchase date and extends for the warranty period duration."
+  //   }
+  // ]
+  terms                    Json?     @db.JsonB
+  
+  // Status
+  isActive                Boolean   @default(true)
+  isDefault               Boolean   @default(false)
+  
+  // Version control
+  version                 Int       @default(1)
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Relationships
+  organization            Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  formSchema              FormSchema          @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+  warranties              Warranty[]
+  
+  // Indexes
+  @@index([orgId])
+  @@index([formSchemaId])
+  @@index([warrantyType])
+  @@index([isActive])
+  @@index([isDefault])
+  @@unique([orgId, formSchemaId, name, version], name: "unique_template_version")
+}

@@ -1,0 +1,45 @@
+model DealerPersona {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // User
+  userId                  String    @db.Uuid
+  
+  // Organization
+  orgId                   String    @db.Uuid
+  
+  // Persona (represents one permission)
+  personaId               String    @db.Uuid
+  
+  // DealerType (optional - null if direct assignment, set if assigned via DealerType)
+  dealerTypeId            String?   @db.Uuid
+  
+  // Status
+  isActive                Boolean   @default(true)  // Toggle permission on/off for this user
+  
+  // Who assigned this persona to the user
+  assignedBy              String    @db.String  // "SUPER_ADMIN" | "COMPANY_SUPER_ADMIN" | "BRANCH_ADMIN" | "SYSTEM" (for auto-assignment)
+  assignedById            String?   @db.Uuid  // User ID who assigned it (null if SYSTEM auto-assignment)
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Relationships
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  persona                 Persona       @relation(fields: [personaId], references: [id], onDelete: Restrict)
+  dealerType              DealerType?   @relation(fields: [dealerTypeId], references: [id], onDelete: SetNull)
+  
+  // Indexes
+  @@index([userId])
+  @@index([orgId])
+  @@index([personaId])
+  @@index([dealerTypeId])
+  @@index([isActive])
+  @@unique([userId, orgId, personaId], name: "unique_user_org_persona")
+}

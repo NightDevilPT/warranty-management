@@ -1,0 +1,32 @@
+model Persona {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Basic Information
+  name                    String    @db.String  // e.g., "Create Product", "Create Brand"
+  label                   String    @db.String  // Display label for UI (e.g., "Can Create Product")
+  code                    String    @unique @db.String  // Unique permission code (e.g., "CAN_CREATE_PRODUCT", "CAN_CREATE_BRAND")
+  description             String?   @db.String  // What this permission allows
+  
+  // Status
+  isActive                Boolean   @default(true)  // Toggled by SUPER_ADMIN (enable/disable globally)
+  
+  // Metadata
+  metadata                Json?     @db.JsonB  // Additional persona configuration (category, module, etc.)
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Relationships
+  dealerPersonas          DealerPersona[]
+  
+  // Indexes
+  @@index([code])
+  @@index([isActive])
+  @@index([createdAt])
+}

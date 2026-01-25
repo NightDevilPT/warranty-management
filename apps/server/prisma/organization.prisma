@@ -1,0 +1,84 @@
+model Organization {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Basic Information
+  name                    String    @db.String
+  slug                    String    @unique @db.String  // For URL routing
+  companyName             String    @db.String
+  
+  // Contact Information
+  email                   String?   @db.String
+  phone                   String?   @db.String
+  website                 String?   @db.String
+  
+  // Address
+  addressLine1            String?   @db.String
+  addressLine2            String?   @db.String
+  city                    String?   @db.String
+  state                   String?   @db.String
+  country                 String?   @db.String
+  postalCode              String?   @db.String
+  
+  // Media
+  logo                    String?   @db.String
+  favicon                 String?   @db.String
+  
+  // Configuration
+  currency                String    @default("USD") @db.String
+  timezone                String    @default("UTC") @db.String
+  language                String    @default("en") @db.String
+  
+  // Hierarchy
+  rootId                  String    @db.Uuid      // Always points to top-level company
+  parentId                String?   @db.Uuid      // Immediate parent (null if root)
+  
+  // Type: "ROOT" or "BRANCH"
+  type                    String    @default("ROOT") @db.String
+  
+  // Partner Info (if type = "BRANCH")
+  partnerType             String?   @db.String    // Dealer, Retailer, Installer, etc.
+  
+  // Modules Configuration
+  enabledModules          Json      // { products: true, claims: true, ... }
+  
+  // Status
+  isActive                Boolean   @default(true)
+  isVerified              Boolean   @default(false)
+  verifiedAt              DateTime? @db.Timestamptz
+  
+  // Onboarding
+  onboardingStatus        String    @default("PENDING") @db.String
+  onboardingCompletedAt   DateTime? @db.Timestamptz
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Soft Delete
+  deletedAt               DateTime? @db.Timestamptz
+  deletedBy               String?   @db.String
+  
+  // Self-referential relationships
+  parent                  Organization?   @relation("OrganizationHierarchy", fields: [parentId], references: [id])
+  children                Organization[]  @relation("OrganizationHierarchy")
+  root                    Organization    @relation("OrganizationRoot", fields: [rootId], references: [id], onDelete: Cascade)
+  rootOrganizations       Organization[]  @relation("OrganizationRoot")
+  
+  // Other relationships
+  userAccesses            UserAccess[]
+  dealerTypes             DealerType[]
+  formSchemas             FormSchema[]
+  formData                FormData[]
+  warrantyTemplates       WarrantyTemplate[]
+  dealerPersonas          DealerPersona[]
+  
+  // Indexes
+  @@index([slug])
+  @@index([rootId])
+  @@index([parentId])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdAt])
+  @@unique([slug, deletedAt], name: "unique_slug_when_not_deleted")
+}

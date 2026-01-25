@@ -1,0 +1,56 @@
+model UserAccess {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Foreign keys
+  userId                  String    @db.Uuid
+  orgId                   String    @db.Uuid
+  
+  // Portal Type: "COMPANY" or "CONSUMER"
+  portalType              String    @db.String
+  
+  // Password for THIS specific portal + organization
+  passwordHash            String?   @db.String
+  
+  // Email verification for THIS portal + organization
+  emailVerified           Boolean   @default(false)
+  emailVerifiedAt         DateTime? @db.Timestamptz
+  
+  // Role (only for COMPANY portal)
+  // "COMPANY_SUPER_ADMIN", "COMPANY_STAFF", "COMPANY_PARTNER"
+  role                    String?   @db.String
+  
+  // DealerType (only for COMPANY portal)
+  dealerTypeId            String?   @db.Uuid
+  
+  // Partner type (only for COMPANY portal)
+  partnerType             String?   @db.String  // "INTERNAL" or "EXTERNAL"
+  
+  // Activity tracking
+  lastLoginAt             DateTime? @db.Timestamptz
+  lastPasswordChangeAt    DateTime? @db.Timestamptz
+  
+  // Status
+  isActive                Boolean   @default(true)
+  invitedAt               DateTime  @default(now()) @db.Timestamptz
+  acceptedAt              DateTime? @db.Timestamptz
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Relationships
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  dealerType              DealerType?   @relation(fields: [dealerTypeId], references: [id], onDelete: SetNull)
+  
+  // Composite unique constraint
+  @@unique([userId, orgId, portalType])
+  
+  // Indexes
+  @@index([userId])
+  @@index([orgId])
+  @@index([portalType])
+  @@index([isActive])
+  @@index([emailVerified])
+  @@index([role])
+}

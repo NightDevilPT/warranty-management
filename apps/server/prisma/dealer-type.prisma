@@ -1,0 +1,35 @@
+model DealerType {
+  // Primary ID
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Basic Information
+  name                    String    @db.String
+  description             String?   @db.String
+  
+  // Which organization created this DealerType
+  orgId                   String    @db.Uuid
+  
+  // For COMPANY_STAFF or COMPANY_PARTNER
+  // "INTERNAL" = for COMPANY_STAFF (employees)
+  // "EXTERNAL" = for COMPANY_PARTNER (external partners)
+  partnerType             String    @db.String
+  
+  // Status
+  isActive                Boolean   @default(true)
+  isDefault               Boolean   @default(false)
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @db.Timestamptz
+  
+  // Relationships
+  organization            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userAccesses            UserAccess[]  // Users assigned this DealerType
+  dealerPersonas          DealerPersona[]
+  
+  // Indexes
+  @@index([orgId])
+  @@index([partnerType])
+  @@index([isActive])
+  @@index([isDefault])
+}
