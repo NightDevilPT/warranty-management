@@ -15,8 +15,10 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return "Hello Pawan! Welcome to Warranty Management System"', () => {
+      expect(appController.getHello()).toBe(
+        'Hello Pawan! Welcome to Warranty Management System',
+      );
     });
   });
 });

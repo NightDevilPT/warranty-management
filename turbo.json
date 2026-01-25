@@ -10,6 +10,20 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "test": {
+      "cache": true,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "test/**/*.ts",
+        "test/**/*.tsx",
+        "**/*.spec.ts",
+        "**/*.test.ts",
+        "vitest.config.ts",
+        "vitest.setup.ts"
+      ]
+    },
     "check-types": {
       "dependsOn": ["^check-types"]
     },
