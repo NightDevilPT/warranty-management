@@ -1,0 +1,56 @@
+// prisma/schema/warranties.prisma
+
+model WarrantyTemplate {
+  // Primary key for the warranty rules engine
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Foreign key linking the rules to a specific company
+  orgId           String    @db.Uuid
+  // Foreign key linking these rules to a specific Product or Part Schema
+  formSchemaId    String    @db.Uuid
+  // Name of the warranty (e.g., "Standard 1-Year Coverage")
+  name            String
+  // Categorizes the coverage (e.g., "FULL_REPLACEMENT", "PARTS_ONLY")
+  warrantyType    String
+  // JSON array containing the logical AND/OR conditions that must be met to approve a claim
+  validationRules Json      @db.JsonB
+  // Tracks iterations so updating the rules doesn't invalidate past customer warranties
+  version         Int       @default(1)
+  // Master switch to turn this specific warranty offer on or off
+  isActive        Boolean   @default(true)
+
+  // --- Relations ---
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  formSchema      FormSchema   @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+  warranties      Warranty[]
+
+  // Ensures unique rule versions per schema
+  @@unique([orgId, formSchemaId, name, version])
+}
+
+model Warranty {
+  // Primary key for the actual warranty granted to a customer
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Foreign key linking to the customer's Registration form data
+  registrationFormDataId String    @db.Uuid
+  // Foreign key linking back to the rules engine that approved this
+  warrantyTemplateId     String    @db.Uuid
+  // Foreign key linking to the specific Product data being covered
+  productFormDataId      String    @db.Uuid
+  // Optional foreign key. Populated only if this warranty covers one specific Part.
+  partFormDataId         String?   @db.Uuid
+  
+  // Boolean result determining if the product actually passed the validation rules
+  isApplicable           Boolean   @default(false)
+  // A hardened JSON copy of the rules AT THE TIME OF CREATION, preventing future rule edits from altering a customer's contract
+  templateSnapshot       Json      @db.JsonB
+  // Current status of the warranty (e.g., "ACTIVE", "EXPIRED", "VOID")
+  status                 String    @default("ACTIVE")
+
+  // --- Relations ---
+  registrationFormData   FormData         @relation("RegistrationWarranty", fields: [registrationFormDataId], references: [id], onDelete: Cascade)
+  warrantyTemplate       WarrantyTemplate @relation(fields: [warrantyTemplateId], references: [id], onDelete: Restrict)
+  productFormData        FormData         @relation("WarrantyToProduct", fields: [productFormDataId], references: [id], onDelete: Cascade)
+  partFormData           FormData?        @relation("WarrantyToPart", fields: [partFormDataId], references: [id], onDelete: Cascade)
+}

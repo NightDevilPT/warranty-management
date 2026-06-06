@@ -1,0 +1,57 @@
+// prisma/schema/user.prisma
+
+model User {
+  // Primary key using a universally unique identifier for security
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // The user's email, used for global login across all companies
+  email         String?   @unique
+  // The user's phone number, used for SMS OTP login
+  phoneNumber   String?   @unique
+  
+  // User's given name for UI display and emails
+  firstName     String
+  // User's family name for UI display and emails
+  lastName      String
+  // Combined name for easier searching and display
+  fullName      String
+  
+  // Hashed password for standard login. Null if the user only uses OTP.
+  passwordHash  String?
+  // Global fallback role. Usually CONSUMER unless elevated to platform ADMIN.
+  role          UserRole  @default(CONSUMER)
+  
+  // Tracks if the user clicked the verification link sent to their email
+  emailVerified Boolean   @default(false)
+  // Tracks if the user entered the SMS code sent to their phone
+  phoneVerified Boolean   @default(false)
+  
+  // Master switch to completely deactivate a user platform-wide
+  isActive      Boolean   @default(true)
+  
+  // Automatically records when the user first signed up
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  // Automatically updates every time the user's row is changed
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+  // Soft-delete timestamp. Keeps the record in the DB for historical audits.
+  deletedAt     DateTime? @db.Timestamptz
+  // Tracks which Admin user performed the soft-delete
+  deletedBy     String?
+
+  // --- Reverse Relations ---
+  // Links to all OTP codes requested by this user
+  otpRequests    OtpVerification[] 
+  // Links to all the different companies this user belongs to
+  accessProfiles UserAccess[]
+  // Links to all the specific permissions this user has been granted
+  dealerPersonas DealerPersona[]
+  // Tracks every single form (product, claim) this user originally created
+  createdForms   FormData[] @relation("FormDataCreator")
+  // Tracks every single form (product, claim) this user last modified
+  updatedForms   FormData[] @relation("FormDataUpdater")
+
+  // Indexes to drastically speed up database lookups during login
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([role])
+}

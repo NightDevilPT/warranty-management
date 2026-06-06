@@ -1,0 +1,32 @@
+// prisma/schema/enums.prisma
+
+enum UserRole {
+  // Global super admin for the entire platform
+  ADMIN
+  // Admin for a specific company or branch
+  COMPANY_SUPER_ADMIN
+  // Internal employee working for a company
+  COMPANY_STAFF
+  // External partner (like a dealer or repair shop)
+  COMPANY_PARTNER
+  // End customer who buys and registers products
+  CONSUMER
+}
+
+enum OrganizationType {
+  // The main, top-level company (the primary tenant)
+  ROOT
+  // A child organization (external partner, regional office, etc.)
+  BRANCH
+}
+
+enum OtpType {
+  // Used for passwordless login
+  LOGIN
+  // Used to recover an account if a password is set
+  PASSWORD_RESET
+  // Used to verify an email address during signup
+  VERIFY_EMAIL
+  // Used to verify a mobile number during signup
+  VERIFY_PHONE
+}
