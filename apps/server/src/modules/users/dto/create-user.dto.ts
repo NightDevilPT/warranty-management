@@ -14,7 +14,7 @@ import { UserRole } from 'generated/prisma/enums';
 export class CreateUserDto {
   @ApiProperty({
     description: 'The first name of the user',
-    example: 'John',
+    example: 'Pawan',
     type: String,
   })
   @IsNotEmpty({ message: 'First name is required' })
@@ -24,7 +24,7 @@ export class CreateUserDto {
 
   @ApiProperty({
     description: 'The last name of the user',
-    example: 'Doe',
+    example: 'Kumar',
     type: String,
   })
   @IsNotEmpty({ message: 'Last name is required' })
@@ -35,7 +35,7 @@ export class CreateUserDto {
   @ApiPropertyOptional({
     description:
       'The email address of the user (Required if no phone number is provided)',
-    example: 'john.doe@example.com',
+    example: 'pawankumartadagsingh@gmail.com',
     type: String,
   })
   @ValidateIf((o) => !o.phoneNumber || o.email) // Fix validation logic

@@ -78,6 +78,13 @@ export class UserResponseDto {
   phoneVerified: boolean;
 
   @ApiProperty({
+    description: 'User profile picture',
+    example: 'profile-picture.jpg',
+  })
+  @Expose()
+  profile?: string | null;
+
+  @ApiProperty({
     description: 'Timestamp when the user was created',
     example: '2024-01-01T00:00:00.000Z',
   })

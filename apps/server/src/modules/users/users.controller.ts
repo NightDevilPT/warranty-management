@@ -1,14 +1,15 @@
+// src/modules/users/users.controller.ts
 import {
   Controller,
   Post,
+  Get,
+  Patch,
   Body,
-  FileValidator,
   UploadedFile,
   UseInterceptors,
-  Param,
-  BadRequestException,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,15 +17,16 @@ import {
   ApiResponse,
   ApiBody,
   ApiConsumes,
-  ApiParam,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UserResponseDto } from './dto/user-response.dto';
 import { ProfilePictureResponseDto } from './dto/profile-picture-response.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
+import { UpdateMeDto } from './dto/update-user.dto';
 
-@ApiTags('Users') // Swagger Tag grouping
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -34,20 +36,51 @@ export class UsersController {
   @ApiResponse({
     status: 201,
     description: 'The user has been successfully created.',
+    type: UserResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Bad Request. Validation failed.' })
   @ApiResponse({
     status: 409,
     description: 'Conflict. Email or Phone number already exists.',
   })
-  @ApiBody({ type: CreateUserDto }) // For Swagger documentation - show both content types
-  @ApiConsumes('application/json', 'multipart/form-data')
+  @ApiBody({ type: CreateUserDto })
+  @ApiConsumes('application/json')
   async createUser(@Body() createUserDto: CreateUserDto) {
-    // We return the raw object. The ResponseInterceptor will format it.
-    return this.usersService.createUser(createUserDto);
+    return this.usersService.create(createUserDto);
   }
 
-  @Post('profile-picture')
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile retrieved successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMe(@Req() req: any) {
+    const userId = req.user?.id;
+    return this.usersService.getMe(userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 409, description: 'Email or phone already in use' })
+  @ApiConsumes('application/json')
+  @ApiBody({ type: UpdateMeDto })
+  async updateMe(@Req() req: any, @Body() dto: UpdateMeDto) {
+    const userId = req.user?.id;
+    return this.usersService.updateMe(userId, dto);
+  }
+
+  @Post('me/profile-picture')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Upload profile picture' })
   @ApiResponse({
@@ -96,13 +129,7 @@ export class UsersController {
       throw new BadRequestException('Profile picture file is required');
     }
 
-    // Get userId from authenticated user (JwtAuthGuard attaches user to request)
     const userId = req.user?.id;
-
-    if (!userId) {
-      throw new BadRequestException('User not authenticated');
-    }
-
     return this.usersService.uploadProfilePicture(userId, file);
   }
 }

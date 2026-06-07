@@ -3,10 +3,11 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { CommonModules } from 'services';
 import { UserCommandHandlers } from './commands';
+import { UserQueryHandlers } from './queries';
 
 @Module({
   imports: [...CommonModules],
   controllers: [UsersController],
-  providers: [UsersService, ...UserCommandHandlers],
+  providers: [UsersService, ...UserCommandHandlers, ...UserQueryHandlers],
 })
 export class UsersModule {}

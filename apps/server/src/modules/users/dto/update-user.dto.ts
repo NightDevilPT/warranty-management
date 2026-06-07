@@ -1,15 +1,9 @@
+// src/modules/users/dto/update-me.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsEmail,
-  IsEnum,
-  IsOptional,
-  IsString,
-} from 'class-validator';
-import { Type, Transform } from 'class-transformer';
-import { UserRole } from 'generated/prisma/enums';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class UpdateUserDto {
+export class UpdateMeDto {
   @ApiPropertyOptional({
     description: 'The first name of the user',
     example: 'John',
@@ -36,7 +30,7 @@ export class UpdateUserDto {
     type: String,
   })
   @IsOptional()
-  @IsEmail({}, { message: 'Must be a valid email format' })
+  @IsEmail({}, { message: 'Must provide a valid email' })
   @Type(() => String)
   email?: string;
 
@@ -49,68 +43,4 @@ export class UpdateUserDto {
   @IsString()
   @Type(() => String)
   phoneNumber?: string;
-
-  @ApiPropertyOptional({
-    description: 'The global system role of the user',
-    enum: UserRole,
-    enumName: 'UserRole',
-  })
-  @IsOptional()
-  @IsEnum(UserRole, { message: 'Invalid user role' })
-  @Type(() => String)
-  role?: UserRole;
-
-  @ApiPropertyOptional({
-    description: 'Master switch to completely deactivate a user platform-wide',
-    example: true,
-    type: Boolean,
-  })
-  @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }) => {
-    // Handle string "true"/"false" from multipart form data
-    if (value === 'true' || value === '1') return true;
-    if (value === 'false' || value === '0') return false;
-    return value; // Let IsBoolean validator handle invalid values
-  })
-  isActive?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Manual override to mark an email as verified',
-    example: true,
-    type: Boolean,
-  })
-  @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }) => {
-    // Handle string "true"/"false" from multipart form data
-    if (value === 'true' || value === '1') return true;
-    if (value === 'false' || value === '0') return false;
-    return value; // Let IsBoolean validator handle invalid values
-  })
-  emailVerified?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Manual override to mark a phone number as verified',
-    example: true,
-    type: Boolean,
-  })
-  @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }) => {
-    // Handle string "true"/"false" from multipart form data
-    if (value === 'true' || value === '1') return true;
-    if (value === 'false' || value === '0') return false;
-    return value; // Let IsBoolean validator handle invalid values
-  })
-  phoneVerified?: boolean;
-
-  // Add this for file upload support
-  @ApiPropertyOptional({
-    description: 'Profile picture file',
-    type: 'string',
-    format: 'binary',
-  })
-  @IsOptional()
-  profilePicture?: any;
 }
