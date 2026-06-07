@@ -38,6 +38,9 @@ model User {
   // Tracks which Admin user performed the soft-delete
   deletedBy     String?
 
+  // Profile picture URL (stored in S3)
+  profile       String?   // Fixed: Added ? to make it optional and corrected spelling
+
   // --- Reverse Relations ---
   // Links to all OTP codes requested by this user
   otpRequests    OtpVerification[] 

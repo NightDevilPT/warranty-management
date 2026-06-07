@@ -1,169 +1,182 @@
-# NestJS CQRS Backend Developer Rule Book
-
-This document defines the strict coding standards, directory structures, global service usages, and API response contracts for the Warranty Management System (WMS) backend.
-
-All developers **must** adhere to these guidelines when creating new APIs to maintain consistency, observability, and stability.
+You're absolutely right! Here's the clean, concise Rule Book without function implementations - just types, signatures, folder structure, and usage patterns.
 
 ---
 
-## 1. Directory Structure Standard
+# 🚀 Warranty Management System - Backend Developer Rule Book
 
-Every new feature must be isolated in its own module inside `src/modules/` following the strict CQRS pattern.
+---
+
+## 1. Folder Structure (Complete)
 
 ```text
-src/modules/<feature-name>/
-├── commands/                  # Write operations (Create, Update, Delete)
-│   ├── impl/                  # Command class definitions (.command.ts)
-│   └── handlers/              # Command execution logic (.handler.ts)
-├── queries/                   # Read operations (Get, List)
-│   ├── impl/                  # Query class definitions (.query.ts)
-│   └── handlers/              # Query execution logic (.handler.ts)
-├── dto/                       # Request payload validation classes
-├── <feature>.service.ts       # Service Facade (dispatches commands/queries)
-├── <feature>.controller.ts    # HTTP Controller (receives requests)
-└── <feature>.module.ts        # Module configuration
-
+src/
+├── services/                              # Global Services
+│   └── index.ts                           # Exports CommonModules array
+│
+├── modules/
+│   └── <feature-name>/
+│       ├── commands/
+│       │   ├── handlers/
+│       │   │   ├── create-<feature>.handler.ts
+│       │   │   ├── update-<feature>.handler.ts
+│       │   │   └── upload-<file-type>.handler.ts    # Only if file upload
+│       │   ├── impl/
+│       │   │   ├── create-<feature>.command.ts
+│       │   │   ├── update-<feature>.command.ts
+│       │   │   └── upload-<file-type>.command.ts    # Only if file upload
+│       │   └── index.ts                             # Export all command handlers array
+│       ├── queries/
+│       │   ├── handlers/
+│       │   │   ├── get-<feature>.handler.ts
+│       │   │   └── list-<features>.handler.ts
+│       │   ├── impl/
+│       │   │   ├── get-<feature>.query.ts
+│       │   │   └── list-<features>.query.ts
+│       │   └── index.ts                             # Export all query handlers array
+│       ├── dto/
+│       │   ├── create-<feature>.dto.ts
+│       │   ├── update-<feature>.dto.ts
+│       │   ├── <feature>-response.dto.ts
+│       │   └── upload-<file-type>.dto.ts            # Only if file upload
+│       ├── <feature>.service.ts                     # Service Facade
+│       ├── <feature>.controller.ts                  # HTTP Controller
+│       └── <feature>.module.ts                      # Module Configuration
 ```
 
 ---
 
-## 2. Global Services Reference Guide
+## 2. Global Services - Signatures & Usage
 
-To enforce uniform logging, error handling, database access, and integrations, **never use native Node.js or raw NestJS equivalents**. Always inject and use the custom global services defined in `src/common/`.
+### 2.1 PrismaService
 
-### 2.1 Database Access (`PrismaService`)
-
-**Rule:** NEVER instantiate a raw `new PrismaClient()`. ALWAYS inject our custom, globally scoped `PrismaService`.
-
-Because our `PrismaModule` is decorated with `@Global()`, you **do not** need to import `PrismaModule` into your feature modules' `imports` array. You simply inject `PrismaService` directly into your handlers or services. Our custom service cleanly handles database connection lifecycles (`OnModuleInit` and `OnModuleDestroy`), preventing memory leaks and connection pool exhaustion.
-
-**Injection & Usage:**
+**Import:** `import { PrismaService } from 'services/prisma/prisma.service';`
+**Injection:** `private readonly prisma: PrismaService`
+**Module:** `@Global()` - NO need to import in feature modules
 
 ```typescript
-constructor(private readonly prisma: PrismaService) {}
-
-// Inside a Command or Query Handler
-const user = await this.prisma.user.findUnique({
-  where: { email: command.email }
-});
-
+// Available Prisma methods (all standard Prisma ORM methods)
+prisma.<model>.findUnique(args): <Model> | null
+prisma.<model>.findFirst(args): <Model> | null
+prisma.<model>.findMany(args): <Model>[]
+prisma.<model>.create(args): <Model>
+prisma.<model>.update(args): <Model>
+prisma.<model>.delete(args): <Model>
+prisma.<model>.count(args): number
+prisma.<model>.upsert(args): <Model>
+prisma.$transaction([...]): any[]
 ```
 
-### 2.2 Error Handling (`ErrorService`)
+### 2.2 ErrorService
 
-**Rule:** NEVER throw raw NestJS exceptions (e.g., `new BadRequestException()`). ALWAYS inject and use the `ErrorService`. All errors thrown via `ErrorService` are automatically caught by the global `ExceptionInterceptor` and formatted properly for the client.
-
-**Injection:**
+**Import:** `import { ErrorService } from 'services/errors/error.service';`
+**Injection:** `private readonly errorService: ErrorService`
+**All methods throw exceptions, return type is `never`**
 
 ```typescript
-constructor(private readonly errorService: ErrorService) {}
-
+errorService.badRequest(message: string): never                          // 400
+errorService.unauthorized(message: string): never                        // 401
+errorService.forbidden(message: string): never                           // 403
+errorService.notFound(message: string): never                            // 404
+errorService.conflict(message: string): never                            // 409
+errorService.unprocessableEntity(message: string): never                 // 422
+errorService.internalServerError(message: string): never                 // 500
 ```
 
-**Available Methods:**
-All methods accept the following optional parameters:
+### 2.3 LoggerService
 
-- `message?` (string): The error message sent to the client.
-- `options?` (ErrorOptions): `{ description?: string; cause?: Error }` for internal debugging.
-
-| Method                  | HTTP Status | Use Case                              | Example                                                                                |
-| ----------------------- | ----------- | ------------------------------------- | -------------------------------------------------------------------------------------- |
-| `badRequest()`          | 400         | Invalid inputs or malformed requests. | `throw this.errorService.badRequest('Invalid email format');`                          |
-| `unauthorized()`        | 401         | Missing or invalid auth token.        | `throw this.errorService.unauthorized('Token expired');`                               |
-| `forbidden()`           | 403         | Authenticated, lacks permissions.     | `throw this.errorService.forbidden('Missing CAN_CREATE_PRODUCT role');`                |
-| `notFound()`            | 404         | Resource does not exist in DB.        | `throw this.errorService.notFound('User not found');`                                  |
-| `conflict()`            | 409         | Resource exists or state conflict.    | `throw this.errorService.conflict('Email already in use');`                            |
-| `unprocessableEntity()` | 422         | Semantic errors in payload data.      | `throw this.errorService.unprocessableEntity('Start date before end date');`           |
-| `internalServerError()` | 500         | Unexpected system failures.           | `throw this.errorService.internalServerError('DB connection failed', { cause: err });` |
-
-### 2.3 Logging (`LoggerService`)
-
-**Rule:** NEVER use `console.log` or `console.error`. ALWAYS inject and use `LoggerService`. Always set the context in the constructor so logs indicate exactly which class generated them.
-
-**Injection & Setup:**
+**Import:** `import { LoggerService } from 'services/logger/logger.service';`
+**Injection:** `private readonly logger: LoggerService`
 
 ```typescript
-constructor(private readonly logger: LoggerService) {
-  this.logger.setContext(MyHandler.name);
+// Setup (REQUIRED in every handler constructor)
+logger.setContext(ClassName.name): void
+
+// Logging methods
+logger.log(message: string, context?: string, meta?: Record<string, any>): void
+logger.warn(message: string, context?: string, meta?: Record<string, any>): void
+logger.error(message: string, trace?: string, context?: string, meta?: Record<string, any>): void
+logger.debug(message: string, context?: string, meta?: Record<string, any>): void
+```
+
+### 2.4 FileService
+
+**Import:** `import { FileService } from 'services/files/file.service';`
+**Injection:** `private readonly fileService: FileService`
+
+```typescript
+// Upload single file
+fileService.uploadFile(file: Express.Multer.File, folder?: string): Promise<UploadedFile>
+
+// Upload multiple files
+fileService.uploadFiles(files: Express.Multer.File[], folder?: string): Promise<UploadedFile[]>
+
+// Get download URL
+fileService.getDownloadUrl(key: string): Promise<string>
+
+// Delete file
+fileService.deleteFile(key: string): Promise<void>
+
+// UploadedFile type
+interface UploadedFile {
+  key: string;          // "profiles/123-abc.jpg"
+  url: string;          // Download URL
+  fileName: string;     // Generated unique name
+  originalName: string; // Original file name
+  mimeType: string;     // "image/jpeg"
+  size: number;         // Bytes
 }
-
 ```
 
-**Available Methods:**
+**Standard folders:** `'profiles'`, `'products'`, `'documents'`, `'claims'`
 
-- `meta?` (LogMetadata): An optional object for extra data `{ userId: 123 }`.
+### 2.5 MailService
 
-| Method             | Parameters                                                                | Use Case                                                          |
-| ------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `log()` / `info()` | `(message: string, context?: string, meta?: LogMetadata)`                 | Standard operational events.                                      |
-| `warn()`           | `(message: string, context?: string, meta?: LogMetadata)`                 | Unexpected behavior that isn't a hard failure.                    |
-| `error()`          | `(message: string, trace?: string, context?: string, meta?: LogMetadata)` | Critical failures and caught exceptions. Always pass stack trace. |
-| `debug()`          | `(message: string, context?: string, meta?: LogMetadata)`                 | Verbose data for local development/troubleshooting.               |
+**Import:** `import { MailService } from 'services/mail/mail.service';`
+**Injection:** `private readonly mailService: MailService`
 
-### 2.4 Email Service (`MailService`)
-
-**Rule:** Use `MailService` for all outbound emails. It uses a Factory pattern, meaning we can switch from Gmail to AWS SES without changing business logic.
-
-**Available Methods:**
-
-- `sendMail(options: SendMailOptions): Promise<any>`
-- **Options Interface:** `{ to: string | string[], subject: string, html?: string, text?: string, from?: string, cc?: string[], bcc?: string[], attachments?: any[] }`
+```typescript
+mailService.sendMail(options: {
+  to: string | string[]
+  subject: string
+  html?: string
+  text?: string
+  from?: string
+  cc?: string[]
+  bcc?: string[]
+  attachments?: any[]
+}): Promise<any>
+```
 
 ---
 
-## 3. API Response Formatting Standard
+## 3. Response Patterns (ONLY 3 Allowed)
 
-We utilize a global `ResponseInterceptor` and `ExceptionInterceptor` to enforce a strict contract for all API responses. The final response sent to the client will **always** follow the `IApiResponse<T>` interface:
-
-```typescript
-{
-  "data": T | null,
-  "success": boolean,
-  "message": string,
-  "statusCode": number,
-  "meta": {
-    "timings": { "processingTime": "...", "serverTime": "...", "requestReceived": "...", "responseSent": "..." },
-    "request": { "path": "...", "method": "...", "ip": "...", "userAgent": "..." },
-    "page": number,  // Optional (for pagination)
-    "limit": number, // Optional
-    "total": number  // Optional
-  }
-}
-
-```
-
-### How to format returns in your Controllers/Handlers:
-
-Because the `ResponseInterceptor` automatically wraps your output, **you do NOT need to manually construct the `IApiResponse` object in your code**.
-
-#### Scenario 1: Standard Response (Single Object or Array)
-
-Simply return the raw data. The interceptor will wrap it in `data`, set `success: true`, and generate an automated message based on the HTTP Method (e.g., POST = "Resource created successfully").
-
-**What you return:**
+### Pattern 1: Raw Data
 
 ```typescript
-return await this.prisma.user.findUnique({ where: { id } });
+// Return object
+return user;
+return UserResponseDto.fromEntity(user);
+
+// Return array
+return users;
+return UserResponseDto.fromEntities(users);
 ```
 
-#### Scenario 2: Custom Success Message
+**Response:** `{ data: ..., success: true, message: "Resource created successfully", statusCode: 201, meta: {...} }`
 
-If you want to override the default HTTP method message, wrap your return object with `data` and `message`.
-
-**What you return:**
+### Pattern 2: Custom Message
 
 ```typescript
 return {
-  data: updatedUser,
-  message: "User profile updated successfully!",
+  data: result,
+  message: "Custom message here",
 };
 ```
 
-#### Scenario 3: Paginated Data (Listings)
+**Response:** `{ data: ..., success: true, message: "Custom message here", statusCode: 200, meta: {...} }`
 
-When returning lists, return an object containing `items` and `meta`. The interceptor will map `items` to `data` and merge your pagination info into the root `meta` object alongside the timings.
-
-**What you return:**
+### Pattern 3: Paginated
 
 ```typescript
 return {
@@ -172,55 +185,303 @@ return {
 };
 ```
 
----
-
-## 4. The API Creation Workflow (Step-by-Step)
-
-When adding a new API endpoint, follow this exact flow:
-
-**Step 1: Define the DTO (`feature.dto.ts`)**
-Define strict validation rules using `class-validator` to ensure the controller catches bad data.
-
-**Step 2: Create the Command/Query (`impl/feature.command.ts`)**
-Create a simple class that holds the validated data. _No logic goes here._
-
-**Step 3: Create the Handler (`handlers/feature.handler.ts`)**
-
-1. Implement `ICommandHandler` (or `IQueryHandler`).
-2. Inject `PrismaService`, `LoggerService`, and `ErrorService`.
-3. Set the logger context inside the constructor.
-4. Write your business logic using `this.prisma` and **return the raw data** (or `{ items, meta }` for pagination).
-5. Add the handler to the array in `handlers/index.ts`.
-
-**Step 4: Update the Service Facade (`feature.service.ts`)**
-Create a method that accepts the DTO and dispatches the new Command to the `CommandBus` (or `QueryBus`).
-
-**Step 5: Update the Controller (`feature.controller.ts`)**
-Create the HTTP route (e.g., `@Post()`). Apply necessary Guards. Call the Service Facade. Let the Interceptor handle the response formatting.
+**Response:** `{ data: [...], success: true, message: "...", statusCode: 200, meta: { page: 1, limit: 10, total: 50, ...timings } }`
 
 ---
 
-## 5. Strict Anti-Patterns (Do NOT Do This)
+## 4. File Templates (Type Signatures Only)
 
-- ❌ **Manually wrapping responses:** Do not write `return { success: true, data: result, statusCode: 200 }` in your controllers. The interceptor does this automatically. Just return the `result`.
-- ❌ **Raw Prisma Instantiation:** Never write `new PrismaClient()`. This creates memory leaks. Always use the injected `PrismaService`.
-- ❌ **Fat Controllers/Services:** Controllers and Service Facades should never contain database queries (`this.prisma.user.find(...)`). They only receive requests and dispatch to the Command/Query buses.
-- ❌ **Missing Logger Context:** Calling `this.logger.error('Failed')` without setting the context in the constructor makes debugging impossible.
-- ❌ **Swallowing Errors:** Never write an empty catch block `catch (e) { }`. Always log the error stack trace using `LoggerService` and throw an appropriate `ErrorService` exception.
-- ❌ **Cross-Module Database Calls:** If the `OrdersModule` needs user data, it should query the DB directly via its own handlers, OR trigger a Query on the `QueryBus`. Do not inject `UsersService` into `OrdersService`.
+### 4.1 Module (`<feature>.module.ts`)
+
+```typescript
+@Module({
+  imports: [...CommonModules],
+  controllers: [<Feature>Controller],
+  providers: [
+    <Feature>Service,
+    ...<Feature>CommandHandlers,
+    ...<Feature>QueryHandlers,
+  ],
+})
+export class <Feature>Module {}
+```
+
+### 4.2 Commands Index (`commands/index.ts`)
+
+```typescript
+import { Handler1 } from './handlers/handler1';
+import { Handler2 } from './handlers/handler2';
+
+export const <Feature>CommandHandlers = [Handler1, Handler2];
+```
+
+### 4.3 Command (`commands/impl/<action>.command.ts`)
+
+```typescript
+export class <Action>Command {
+  constructor(public readonly dto: <Action>Dto) {}
+}
+
+// For file upload
+export class Upload<FileType>Command {
+  constructor(
+    public readonly resourceId: string,
+    public readonly file: Express.Multer.File,
+  ) {}
+}
+```
+
+### 4.4 Command Handler (`commands/handlers/<action>.handler.ts`)
+
+```typescript
+@CommandHandler(<Action>Command)
+export class <Action>Handler implements ICommandHandler<<Action>Command> {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+    private readonly errorService: ErrorService,
+    private readonly fileService?: FileService, // Only if file upload
+  ) {
+    this.logger.setContext(<Action>Handler.name); // REQUIRED
+  }
+
+  async execute(command: <Action>Command): Promise<<Feature>ResponseDto> {
+    this.logger.log('Executing <Action>Command', undefined, { /* meta */ });
+
+    try {
+      // 1. Validations (throw this.errorService.xxx() if fails)
+      // 2. Business logic
+      // 3. Database operations (this.prisma.<model>.xxx())
+      // 4. File operations (this.fileService.xxx()) if needed
+
+      this.logger.log('<Action> successful', undefined, { id: result.id });
+
+      // Return Pattern 1
+      return <Feature>ResponseDto.fromEntity(result);
+
+      // OR Pattern 2 for file uploads
+      return {
+        data: { fileUrl: uploadedFile.url },
+        message: 'File uploaded successfully',
+      };
+
+    } catch (error) {
+      if (error.status) throw error; // Re-throw HTTP exceptions
+      this.logger.error('Failed to <action>', error.stack);
+      throw this.errorService.internalServerError('Failed to <action>');
+    }
+  }
+
+  // Only for file upload handlers
+  private extractKeyFromUrl(url: string): string | null { /* ... */ }
+}
+```
+
+### 4.5 Query Handler (`queries/handlers/<action>.handler.ts`)
+
+```typescript
+@QueryHandler(<Action>Query)
+export class <Action>Handler implements IQueryHandler<<Action>Query> {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+    private readonly errorService: ErrorService,
+  ) {
+    this.logger.setContext(<Action>Handler.name);
+  }
+
+  async execute(query: <Action>Query): Promise<<Feature>ResponseDto | PaginatedResult> {
+    this.logger.log('Executing <Action>Query', undefined, { /* meta */ });
+
+    try {
+      // Single item
+      const result = await this.prisma.<model>.findUnique({ where: { id: query.id } });
+      if (!result) throw this.errorService.notFound('<Feature> not found');
+      return <Feature>ResponseDto.fromEntity(result); // Pattern 1
+
+      // OR Paginated
+      const [items, total] = await Promise.all([...]);
+      return { items: <Feature>ResponseDto.fromEntities(items), meta: { page, limit, total } }; // Pattern 3
+
+    } catch (error) {
+      if (error.status) throw error;
+      this.logger.error('Failed to <action>', error.stack);
+      throw this.errorService.internalServerError('Failed to <action>');
+    }
+  }
+}
+```
+
+### 4.6 Create DTO (`dto/create-<feature>.dto.ts`)
+
+```typescript
+export class Create<Feature>Dto {
+  @ApiProperty({ description: '...', example: '...', type: String })
+  @IsNotEmpty({ message: '...' })
+  @IsString()
+  @Type(() => String)
+  fieldName: string;
+
+  @ApiPropertyOptional({ description: '...', example: '...', type: String })
+  @IsOptional()
+  @IsString()
+  @Type(() => String)
+  optionalField?: string;
+}
+```
+
+### 4.7 Response DTO (`dto/<feature>-response.dto.ts`)
+
+```typescript
+@Exclude()
+export class <Feature>ResponseDto {
+  @ApiProperty({ description: '...', example: '...' })
+  @Expose()
+  id: string;
+
+  @ApiProperty({ description: '...', example: '...' })
+  @Expose()
+  fieldName: string;
+
+  @ApiProperty({ description: 'Created at', example: '2024-01-01T00:00:00.000Z' })
+  @Expose()
+  createdAt: Date;
+
+  @ApiProperty({ description: 'Updated at', example: '2024-01-01T00:00:00.000Z' })
+  @Expose()
+  updatedAt: Date;
+
+  static fromEntity(entity: any): <Feature>ResponseDto
+  static fromEntities(entities: any[]): <Feature>ResponseDto[]
+}
+```
+
+**Note:** `fromEntity` uses `plainToInstance(ResponseDto, entity, { excludeExtraneousValues: true })`
+
+### 4.8 File Upload DTO (`dto/upload-<file-type>.dto.ts`)
+
+```typescript
+export class Upload<FileType>Dto {
+  @ApiProperty({
+    description: 'File (jpg, png, webp - max 5MB)',
+    type: 'string',
+    format: 'binary',
+    required: true,
+  })
+  file: Express.Multer.File;
+}
+```
+
+### 4.9 Service Facade (`<feature>.service.ts`)
+
+```typescript
+@Injectable()
+export class <Feature>Service {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  // Commands
+  async create(dto: CreateDto): Promise<ResponseDto>
+  async update(id: string, dto: UpdateDto): Promise<ResponseDto>
+  async uploadFile(id: string, file: Express.Multer.File): Promise<{ data: {...}, message: string }>
+
+  // Queries
+  async findById(id: string): Promise<ResponseDto>
+  async findAll(page: number, limit: number): Promise<{ items: ResponseDto[], meta: {...} }>
+}
+```
+
+### 4.10 Controller (`<feature>.controller.ts`)
+
+```typescript
+@ApiTags('<Features>')
+@Controller('<features>')
+export class <Feature>Controller {
+  constructor(private readonly service: <Feature>Service) {}
+
+  // JSON endpoints
+  @Post()
+  @ApiOperation({ summary: 'Create' })
+  @ApiResponse({ status: 201, description: 'Created', type: ResponseDto })
+  @ApiConsumes('application/json')
+  @ApiBody({ type: CreateDto })
+  async create(@Body() dto: CreateDto): Promise<ResponseDto>
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update' })
+  @ApiParam({ name: 'id', description: 'ID' })
+  @ApiResponse({ status: 200, description: 'Updated', type: ResponseDto })
+  @ApiConsumes('application/json')
+  @ApiBody({ type: UpdateDto })
+  async update(@Param('id') id: string, @Body() dto: UpdateDto): Promise<ResponseDto>
+
+  // File upload endpoint
+  @Post(':id/upload')
+  @ApiOperation({ summary: 'Upload file' })
+  @ApiParam({ name: 'id', description: 'ID' })
+  @ApiResponse({ status: 200, description: 'File URL' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File (jpg, png, webp - max 5MB)',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', {
+    fileFilter: (req, file, callback) => {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        return callback(new BadRequestException('Invalid file type'), false);
+      }
+      callback(null, true);
+    },
+  }))
+  async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File)
+}
+```
 
 ---
 
-## 6. Pull Request / Development Checklist
+## 5. Anti-Patterns (NEVER)
 
-Before submitting a Pull Request for a new API, verify the following:
+| ❌ Wrong                                    | ✅ Correct                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| `new PrismaClient()`                        | `this.prisma`                                                     |
+| `throw new BadRequestException()`           | `this.errorService.badRequest()`                                  |
+| `console.log()` / `console.error()`         | `this.logger.log()` / `this.logger.error()`                       |
+| Raw S3/AWS SDK calls                        | `this.fileService.uploadFile()`                                   |
+| `return { success: true, data: ... }`       | `return data` (Pattern 1)                                         |
+| `return { fileUrl: '...', message: '...' }` | `return { data: { fileUrl: '...' }, message: '...' }` (Pattern 2) |
+| DB queries in controller/service            | Only in handlers                                                  |
+| Missing `this.logger.setContext()`          | Always set in constructor                                         |
+| Empty `catch (e) {}`                        | Log + throw error                                                 |
+| Injecting feature services cross-module     | Use QueryBus or direct DB queries                                 |
+| File upload without old file deletion       | Delete old file before uploading new                              |
+| Importing `PrismaModule` / `FileModule`     | They are `@Global()`, just inject service                         |
 
-- [ ] Created module folder (`src/modules/feature_name`).
-- [ ] Separated logic strictly into `commands/` and `queries/`.
-- [ ] Created strict DTOs for payload validation.
-- [ ] **Verified API returns raw data or `{ items, meta }` to allow the `ResponseInterceptor` to format the final JSON.**
-- [ ] **Verified database calls are strictly using the injected `PrismaService` (No `new PrismaClient()`).**
-- [ ] **Verified `PrismaModule` was NOT imported into the feature module (it is already `@Global()`).**
-- [ ] Replaced all generic `throw new HttpException` / `BadRequestException` with `this.errorService`.
-- [ ] Replaced all `console.log` with `this.logger`.
-- [ ] Controller only calls the Service Facade; Service Facade only calls the `CommandBus`/`QueryBus`.
+---
+
+## 6. Quick Checklist
+
+- [ ] Module folder created with `commands/`, `queries/`, `dto/`
+- [ ] `commands/index.ts` and `queries/index.ts` export handler arrays
+- [ ] Command/Query classes in `impl/`, handlers in `handlers/`
+- [ ] DTOs use `class-validator` + Swagger decorators
+- [ ] Response DTO has `@Exclude()`, `@Expose()`, `fromEntity()`, `fromEntities()`
+- [ ] Handler injects: `PrismaService`, `LoggerService`, `ErrorService` (+ `FileService` if needed)
+- [ ] Handler sets logger context: `this.logger.setContext(ClassName.name)`
+- [ ] Handler returns Pattern 1, 2, or 3
+- [ ] Service Facade only calls `commandBus.execute()` / `queryBus.execute()`
+- [ ] Controller only calls Service Facade methods
+- [ ] Module imports `CommonModules` from `services`
+- [ ] File upload uses `@UseInterceptors(FileInterceptor())` with validation
+- [ ] Error handling: `if (error.status) throw error;` else throw 500

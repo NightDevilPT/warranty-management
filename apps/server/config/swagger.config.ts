@@ -42,7 +42,10 @@ export const swaggerConfig = new DocumentBuilder()
     },
     'refreshToken',
   )
-  .addServer('http://localhost:3000', 'Local Development Server')
+  .addServer(
+    `http://localhost:${process.env.PORT || 4000}`,
+    'Local Development Server',
+  )
   .addServer('https://api.warranty-system.com', 'Production Server')
   .build();
 

@@ -10,8 +10,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "docker:dev": "docker-compose up --build -d",
     "prepare": "husky install",
-    "prisma:generate": "pnpm --filter server prisma generate",
-    "prisma:migrate": "pnpm --filter server npx prisma migrate dev"
+    "prisma:generate": "pnpm --filter server exec prisma generate",
+    "prisma:migrate": "pnpm --filter server exec prisma migrate dev",
+    "prisma:migrate:deploy": "pnpm --filter server exec prisma migrate deploy"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",

@@ -7,7 +7,6 @@ import { AppController } from './app.controller';
 import { MailModule } from 'services/mail/mail.module';
 import { PrismaModule } from 'services/prisma/prisma.module';
 import { AllModules } from './modules';
-import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -19,7 +18,6 @@ import { UsersModule } from './users/users.module';
     MailModule,
     ...AllModules,
     ...CommonModules,
-    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

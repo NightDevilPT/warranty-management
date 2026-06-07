@@ -1,5 +1,4 @@
-import { MailModule } from "services/mail/mail.module";
+import { CommonModules } from 'services';
+import { UsersModule } from './users/users.module';
 
-export const AllModules = [
-	MailModule
-];
+export const AllModules = [UsersModule, ...CommonModules];
