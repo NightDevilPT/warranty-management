@@ -79,7 +79,7 @@ export class UserResponseDto {
 
   @ApiProperty({
     description: 'User profile picture',
-    example: 'profile-picture.jpg',
+    example: 'https://example.com/profile-picture.jpg',
   })
   @Expose()
   profile?: string | null;

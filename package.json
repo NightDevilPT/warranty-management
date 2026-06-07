@@ -11,7 +11,8 @@
     "docker:dev": "docker-compose up --build -d",
     "prepare": "husky install",
     "prisma:generate": "pnpm --filter server exec prisma generate",
-    "prisma:migrate": "pnpm --filter server exec prisma migrate dev",
+    "prisma:seed": "pnpm --filter server exec ts-node prisma/seed/seed.ts",
+    "prisma:migrate": "pnpm --filter server pnpm run prisma migrate dev",
     "prisma:migrate:deploy": "pnpm --filter server exec prisma migrate deploy"
   },
   "devDependencies": {

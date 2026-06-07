@@ -25,6 +25,9 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { ProfilePictureResponseDto } from './dto/profile-picture-response.dto';
 import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
 import { UpdateMeDto } from './dto/update-user.dto';
+import { RolesGuard } from 'middleware/guards/roles.guard';
+import { UserRole } from 'generated/prisma/enums';
+import { Roles } from 'decorators/roles.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -32,6 +35,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new user globally' })
   @ApiResponse({
     status: 201,
