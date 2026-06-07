@@ -3,50 +3,45 @@ import { PrismaClient, UserRole } from '../../generated/prisma/client';
 import * as bcrypt from 'bcrypt';
 
 export async function seedUsers(prisma: PrismaClient) {
-  console.log('🌱 Seeding Users...');
+  console.log('🌱 Seeding Users...\n');
 
   const adminEmail = 'pawankumartadagsingh@gmail.com';
   const adminPassword = 'Admin@123';
-  const adminPhone = '+919876543210';
 
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+  // Delete existing admin if exists (to get fresh ID)
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
 
   if (existingAdmin) {
-    console.log('⚠️  Admin user already exists!');
-    console.log(`   Email: ${existingAdmin.email}`);
-    console.log(`   Role: ${existingAdmin.role}`);
-
-    if (existingAdmin.role !== UserRole.ADMIN) {
-      await prisma.user.update({
-        where: { id: existingAdmin.id },
-        data: { role: UserRole.ADMIN },
-      });
-      console.log('✅ Updated to ADMIN role');
-    }
-
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
     await prisma.user.update({
       where: { id: existingAdmin.id },
       data: {
         passwordHash,
+        role: UserRole.ADMIN,
         emailVerified: true,
         phoneVerified: true,
         isActive: true,
       },
     });
 
-    console.log('✅ Admin updated\n');
-    return;
-  }
+    console.log('✅ Admin user updated!');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📧 Email:    ', adminEmail);
+    console.log('🔑 Password: ', adminPassword);
+    console.log('👤 Role:     ', 'ADMIN');
+    console.log('🆔 ID:       ', existingAdmin.id);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
+    return existingAdmin;
+  }
 
   const admin = await prisma.user.create({
     data: {
       email: adminEmail,
-      phoneNumber: adminPhone,
+      phoneNumber: '+919876543210',
       firstName: 'Pawan',
       lastName: 'Kumar',
       fullName: 'Pawan Kumar',
@@ -58,8 +53,13 @@ export async function seedUsers(prisma: PrismaClient) {
     },
   });
 
-  console.log('✅ Admin created!');
-  console.log(`📧 ${admin.email}`);
-  console.log(`🔑 ${adminPassword}`);
-  console.log('');
+  console.log('✅ Admin user created!');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📧 Email:    ', admin.email);
+  console.log('🔑 Password: ', adminPassword);
+  console.log('👤 Role:     ', admin.role);
+  console.log('🆔 ID:       ', admin.id);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  return admin;
 }

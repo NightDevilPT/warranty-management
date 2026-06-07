@@ -3,6 +3,7 @@ import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { seedUsers } from './user.seed';
+import { seedOrganizations } from './organization.seed';
 
 const pool = new Pool({
   connectionString:
@@ -19,7 +20,6 @@ const prisma = new PrismaClient({
 async function clearDatabase() {
   console.log('🧹 Clearing all tables...\n');
 
-  // Delete in order to respect foreign key constraints
   await prisma.warranty.deleteMany();
   await prisma.warrantyTemplate.deleteMany();
   await prisma.formData.deleteMany();
@@ -44,8 +44,11 @@ async function main() {
   // Clear all existing data
   await clearDatabase();
 
-  // Seed data
-  await seedUsers(prisma);
+  // Seed admin user first (returns admin user for ID)
+  const adminUser = await seedUsers(prisma);
+
+  // Seed organizations with admin user ID as creator
+  await seedOrganizations(prisma, adminUser.id, 20);
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('\n✅ All seeds completed successfully!');

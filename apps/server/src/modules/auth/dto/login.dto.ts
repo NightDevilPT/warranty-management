@@ -12,7 +12,7 @@ import { Type } from 'class-transformer';
 export class LoginDto {
   @ApiPropertyOptional({
     description: 'Email address for email/password login',
-    example: 'john.doe@example.com',
+    example: 'pawankumartadagsingh@gmail.com',
   })
   @ValidateIf((o) => !o.phoneNumber)
   @IsEmail({}, { message: 'Please provide a valid email address' })
@@ -31,7 +31,7 @@ export class LoginDto {
   @ApiPropertyOptional({
     description:
       'Password for email/password login. Required if using email login.',
-    example: 'SecurePassword@123',
+    example: 'Admin@123',
   })
   @IsOptional()
   @IsString()

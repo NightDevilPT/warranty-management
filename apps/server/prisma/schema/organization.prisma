@@ -19,6 +19,11 @@ model Organization {
   // Master switch to deactivate an entire company and lock out all its users
   isActive        Boolean          @default(true)
 
+  // Tracks which Admin user created this organization
+  createdBy       String?          @db.Uuid
+  // Tracks which Admin user last updated this organization
+  updatedBy       String?          @db.Uuid
+
   // Timestamp of when the company was onboarded
   createdAt       DateTime         @default(now()) @db.Timestamptz
   // Timestamp of the last setting update for this company
@@ -38,6 +43,12 @@ model Organization {
   parent          Organization?    @relation("ParentToChild", fields: [parentId], references: [id])
   // Reverse relation: The list of immediate child branches under this organization
   children        Organization[]   @relation("ParentToChild")
+
+  // --- User Relations ---
+  // Relation: The Admin user who created this organization
+  creator         User?            @relation("OrganizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // Relation: The Admin user who last updated this organization
+  updater         User?            @relation("OrganizationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   // --- External Relations ---
   // List of all users granted access to this company

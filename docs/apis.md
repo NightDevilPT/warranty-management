@@ -14,16 +14,15 @@ Here is your updated, accurate master document:
 
 ### Tables Used: `User`, `OtpVerification`
 
-| Priority | API Endpoint           | Method | Description                             | Tables Used           | Auth | Allowed Roles     | Status         |
-| -------- | ---------------------- | ------ | --------------------------------------- | --------------------- | ---- | ----------------- | -------------- |
-| 1        | `/api/auth/send-otp`   | POST   | Request OTP for login/verify            | OtpVerification, User | No   | Public            | ✅ DONE        |
-| 2        | `/api/auth/verify-otp` | POST   | Verify OTP & validate user              | OtpVerification, User | No   | Public            | ✅ DONE        |
-| 3        | `/api/auth/login`      | POST   | Standard email/password login           | User                  | No   | Public            | ✅ DONE        |
-| 4        | `/api/auth/signup`     | POST   | Register new consumer account           | User                  | No   | Public            | ⏳ PENDING     |
-| 5        | `/api/auth/refresh`    | POST   | Exchange refresh token for access token | None                  | No   | Public            | ✅ DONE        |
-| 6        | `/api/auth/logout`     | POST   | Logout user & invalidate session        | None                  | Yes  | All Authenticated | ✅ DONE        |
-| 7        | `/api/users/me`        | GET    | Get current user profile                | User                  | Yes  | All Authenticated | 🟡 IN PROGRESS |
-| 8        | `/api/users/me`        | PUT    | Update user profile info                | User                  | Yes  | All Authenticated | 🟡 IN PROGRESS |
+| Priority | API Endpoint           | Method | Description                             | Tables Used           | Auth | Allowed Roles     | Status  |
+| -------- | ---------------------- | ------ | --------------------------------------- | --------------------- | ---- | ----------------- | ------- |
+| 1        | `/api/auth/send-otp`   | POST   | Request OTP for login/verify            | OtpVerification, User | No   | Public            | ✅ DONE |
+| 2        | `/api/auth/verify-otp` | POST   | Verify OTP & validate user              | OtpVerification, User | No   | Public            | ✅ DONE |
+| 3        | `/api/auth/login`      | POST   | Standard email/password login           | User                  | No   | Public            | ✅ DONE |
+| 5        | `/api/auth/refresh`    | POST   | Exchange refresh token for access token | None                  | No   | Public            | ✅ DONE |
+| 6        | `/api/auth/logout`     | POST   | Logout user & invalidate session        | None                  | Yes  | All Authenticated | ✅ DONE |
+| 7        | `/api/users/me`        | GET    | Get current user profile                | User                  | Yes  | All Authenticated | ✅ DONE |
+| 8        | `/api/users/me`        | PUT    | Update user profile info                | User                  | Yes  | All Authenticated | ✅ DONE |
 
 ---
 

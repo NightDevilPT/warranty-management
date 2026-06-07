@@ -1,12 +1,12 @@
-import { CommonModules } from 'services';
+import { AllModules } from './modules';
 import { Module } from '@nestjs/common';
+import { CommonModules } from 'services';
 import { AppService } from './app.service';
 import configuration from '../config/config';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { MailModule } from 'services/mail/mail.module';
 import { PrismaModule } from 'services/prisma/prisma.module';
-import { AllModules } from './modules';
 
 @Module({
   imports: [

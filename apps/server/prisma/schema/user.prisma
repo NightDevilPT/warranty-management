@@ -53,6 +53,10 @@ model User {
   // Tracks every single form (product, claim) this user last modified
   updatedForms   FormData[] @relation("FormDataUpdater")
 
+  // --- Reverse Relations (add these) ---
+  createdOrganizations Organization[] @relation("OrganizationCreator")
+  updatedOrganizations Organization[] @relation("OrganizationUpdater")
+
   // Indexes to drastically speed up database lookups during login
   @@index([email])
   @@index([phoneNumber])
