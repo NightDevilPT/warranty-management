@@ -4,6 +4,7 @@ import { LoggerModule } from './logger/logger.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { FileModule } from './files/file.module';
+import { JwtModule } from './jwt/jwt.module';
 
 export const CommonModules = [
   CqrsModule,
@@ -12,4 +13,5 @@ export const CommonModules = [
   MailModule,
   PrismaModule,
   FileModule,
+  JwtModule,
 ];

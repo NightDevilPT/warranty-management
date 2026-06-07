@@ -9,6 +9,11 @@ export const swaggerConfig = new DocumentBuilder()
     - This API uses cookie-based authentication
     - Login endpoints will set httpOnly cookies for accessToken and refreshToken
     - All subsequent requests will automatically include these cookies\n\n
+    ## 🔑 How to Authenticate in Swagger UI
+    1. Execute Login endpoint first
+    2. Copy the tokens from the response (check browser console)
+    3. Click the 🔒 Authorize button at the top
+    4. Paste your accessToken and refreshToken\n\n
     ## Security
     - accessToken: Short-lived authentication token (15-30 minutes)
     - refreshToken: Long-lived token for obtaining new access tokens
@@ -28,9 +33,9 @@ export const swaggerConfig = new DocumentBuilder()
       type: 'apiKey',
       in: 'cookie',
       name: 'accessToken',
-      description: 'Access Token for authentication',
+      description: 'Access Token (copy from login response)',
     },
-    'accessToken',
+    'cookie-auth',
   )
   .addCookieAuth(
     'refreshToken',
@@ -38,9 +43,9 @@ export const swaggerConfig = new DocumentBuilder()
       type: 'apiKey',
       in: 'cookie',
       name: 'refreshToken',
-      description: 'Refresh Token for obtaining new access tokens',
+      description: 'Refresh Token (copy from login response)',
     },
-    'refreshToken',
+    'cookie-auth',
   )
   .addServer(
     `http://localhost:${process.env.PORT || 4000}`,
@@ -53,9 +58,43 @@ export const swaggerCustomOptions: SwaggerCustomOptions = {
   swaggerOptions: {
     persistAuthorization: true,
     withCredentials: true, // Important for cookies
-    requestInterceptor: (req) => {
+    requestInterceptor: (req: any) => {
+      // Log for debugging
+      console.log('📤 Request:', req.method, req.url);
+
+      // If tokens are in Swagger's authorization, add them as cookies
+      if (req.headers['cookie']) {
+        console.log('🍪 Cookies being sent:', req.headers['cookie']);
+      }
+
       req.credentials = 'include';
       return req;
+    },
+    responseInterceptor: (res: any) => {
+      // Log response to help get tokens
+      console.log('📥 Response:', res.status, res.url);
+
+      // Check for tokens in response body
+      if (res.body) {
+        try {
+          const body = JSON.parse(res.text || '{}');
+          if (body.data?.accessToken || body.accessToken) {
+            console.log('🔑 TOKENS FOUND - Copy these:');
+            console.log(
+              'accessToken:',
+              body.data?.accessToken || body.accessToken,
+            );
+            console.log(
+              'refreshToken:',
+              body.data?.refreshToken || body.refreshToken,
+            );
+          }
+        } catch (e) {
+          // Not JSON response
+        }
+      }
+
+      return res;
     },
     displayRequestDuration: true,
     docExpansion: 'none',

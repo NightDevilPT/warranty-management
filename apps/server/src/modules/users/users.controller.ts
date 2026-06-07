@@ -7,6 +7,8 @@ import {
   UseInterceptors,
   Param,
   BadRequestException,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +22,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ProfilePictureResponseDto } from './dto/profile-picture-response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
 
 @ApiTags('Users') // Swagger Tag grouping
 @Controller('users')
@@ -44,14 +47,16 @@ export class UsersController {
     return this.usersService.createUser(createUserDto);
   }
 
-  @Post(':id/profile-picture')
-  @ApiOperation({ summary: '📸 Upload profile picture' })
-  @ApiParam({ name: 'id', description: 'User ID' })
+  @Post('profile-picture')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Upload profile picture' })
   @ApiResponse({
-    status: 200,
-    description: 'Profile picture URL',
+    status: 201,
+    description: 'Profile picture uploaded successfully',
     type: ProfilePictureResponseDto,
   })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Invalid file' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -69,27 +74,33 @@ export class UsersController {
   @UseInterceptors(
     FileInterceptor('profilePicture', {
       fileFilter: (req, file, callback) => {
-        // Simple validation
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        const maxSize = 5 * 1024 * 1024; // 5MB
-
         if (!allowedTypes.includes(file.mimetype)) {
           return callback(
-            new Error('Only jpg, png, webp files are allowed'),
+            new BadRequestException('Only jpg, png, webp files are allowed'),
             false,
           );
         }
-
         callback(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
       },
     }),
   )
   async uploadProfilePicture(
-    @Param('id') userId: string,
+    @Req() req: any,
     @UploadedFile() file: Express.Multer.File,
-  ): Promise<ProfilePictureResponseDto> {
+  ) {
     if (!file) {
       throw new BadRequestException('Profile picture file is required');
+    }
+
+    // Get userId from authenticated user (JwtAuthGuard attaches user to request)
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
     }
 
     return this.usersService.uploadProfilePicture(userId, file);

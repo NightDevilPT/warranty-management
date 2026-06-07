@@ -29,10 +29,21 @@ export class ResponseInterceptor<T>
       map((data) => {
         const endTime = process.hrtime(startTime);
         const processingTimeMs = endTime[0] * 1000 + endTime[1] / 1000000;
-        const timestamp = new Date().toLocaleString();
 
-        const statusCode = this.getStatusCode(context, data);
-        const message = this.getMessage(context, data?.message, statusCode);
+        // Handle token extraction and cookie setting
+        const { accessToken, refreshToken, ...cleanData } =
+          this.extractTokens(data);
+
+        if (accessToken || refreshToken) {
+          this.setTokenCookies(response, accessToken, refreshToken);
+        }
+
+        const statusCode = this.getStatusCode(context, cleanData);
+        const message = this.getMessage(
+          context,
+          cleanData?.message,
+          statusCode,
+        );
 
         // Create metadata object
         const metadata = this.createMetadata(
@@ -42,34 +53,121 @@ export class ResponseInterceptor<T>
         );
 
         // If data is already formatted with our structure, enhance it
-        if (this.isAlreadyFormatted(data)) {
+        if (this.isAlreadyFormatted(cleanData)) {
           return {
-            ...data,
-            statusCode: data.statusCode || statusCode,
-            message: data.message || message,
+            success: cleanData.success ?? this.isSuccess(statusCode),
+            data: cleanData.data as T,
+            statusCode: cleanData.statusCode || statusCode,
+            message: cleanData.message || message,
             meta: {
-              ...data.meta,
+              ...cleanData.meta,
               ...metadata,
             },
-          };
+          } as IApiResponse<T>;
         }
 
         // Extract data and meta based on common patterns
-        const responseData = this.extractData(data);
-        const existingMeta = this.extractMeta(data);
+        const responseData = this.extractData(cleanData) as T;
+        const existingMeta = this.extractMeta(cleanData);
 
         return {
+          success: this.isSuccess(statusCode),
           data: responseData,
           meta: {
             ...existingMeta,
             ...metadata,
           },
-          success: this.isSuccess(statusCode),
           message: message,
           statusCode: statusCode,
-        };
+        } as IApiResponse<T>;
       }),
     );
+  }
+
+  /**
+   * Extract tokens from response data and return them separately
+   */
+  private extractTokens(data: any): {
+    accessToken?: string;
+    refreshToken?: string;
+    [key: string]: any;
+  } {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+
+    const tokens: { accessToken?: string; refreshToken?: string } = {};
+    const remainingData = { ...data };
+
+    // Extract tokens if they exist in the response
+    if ('accessToken' in remainingData) {
+      tokens.accessToken = remainingData.accessToken;
+      delete remainingData.accessToken;
+    }
+
+    if ('refreshToken' in remainingData) {
+      tokens.refreshToken = remainingData.refreshToken;
+      delete remainingData.refreshToken;
+    }
+
+    // Also check nested data object for tokens
+    if (remainingData.data && typeof remainingData.data === 'object') {
+      const nestedTokens = this.extractTokens(remainingData.data);
+
+      if (nestedTokens.accessToken || nestedTokens.refreshToken) {
+        tokens.accessToken = tokens.accessToken || nestedTokens.accessToken;
+        tokens.refreshToken = tokens.refreshToken || nestedTokens.refreshToken;
+        remainingData.data = this.removeTokens(nestedTokens);
+      }
+    }
+
+    return { ...tokens, ...remainingData };
+  }
+
+  /**
+   * Remove token properties from an object
+   */
+  private removeTokens(data: any): any {
+    if (!data || typeof data !== 'object') return data;
+
+    const clean = { ...data };
+    delete clean.accessToken;
+    delete clean.refreshToken;
+    return clean;
+  }
+
+  /**
+   * Set access and refresh tokens as HTTP-only cookies
+   */
+  private setTokenCookies(
+    response: any,
+    accessToken?: string,
+    refreshToken?: string,
+  ): void {
+    // For localhost development, we need specific settings
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction, // false for localhost (HTTP)
+      sameSite: isProduction ? 'strict' : 'lax', // 'lax' for localhost
+      path: '/',
+      domain: isProduction ? '.yourdomain.com' : 'localhost',
+    };
+
+    if (accessToken) {
+      response.cookie('accessToken', accessToken, {
+        ...cookieOptions,
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      });
+    }
+
+    if (refreshToken) {
+      response.cookie('refreshToken', refreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+    }
   }
 
   private createMetadata(

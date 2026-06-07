@@ -1,9 +1,21 @@
 // src/config/configuration.ts
 export default () => ({
   databaseUrl: process.env.DATABASE_URL,
-  jwtSecret: process.env.JWT_SECRET,
-  jwtAccessExpireIn: process.env.JWT_ACCESS_EXPIREIN,
-  jwtRefreshExpireIn: process.env.JWT_REFRESH_EXPIREIN,
+
+  // JWT Configuration
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+    accessExpireIn:
+      process.env.JWT_ACCESS_EXPIREIN ||
+      process.env.JWT_ACCESS_EXPIRES_IN ||
+      '15m',
+    refreshExpireIn:
+      process.env.JWT_REFRESH_EXPIREIN ||
+      process.env.JWT_REFRESH_EXPIRES_IN ||
+      '7d',
+  },
+
   admin: process.env.ADMIN_ORIGIN,
   company: process.env.COMPANY_ORIGIN,
   consumer: process.env.CONSUMER_ORIGIN,
