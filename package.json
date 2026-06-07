@@ -12,8 +12,9 @@
     "prepare": "husky install",
     "prisma:generate": "pnpm --filter server exec prisma generate",
     "prisma:seed": "pnpm --filter server exec ts-node prisma/seed/seed.ts",
-    "prisma:migrate": "pnpm --filter server pnpm run prisma migrate dev",
-    "prisma:migrate:deploy": "pnpm --filter server exec prisma migrate deploy"
+    "prisma:migrate": "pnpm --filter server exec prisma migrate dev",
+    "prisma:migrate:deploy": "pnpm --filter server exec prisma migrate deploy",
+    "prisma:migrate:reset": "pnpm --filter server exec prisma migrate reset"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",

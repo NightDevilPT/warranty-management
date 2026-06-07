@@ -1,42 +1,34 @@
 // prisma/schema/userAccess.prisma
 
 model UserAccess {
-  // Primary key for this access bridge
+  // Primary key
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   
-  // Foreign key pointing to the global User
+  // Foreign keys
   userId        String    @db.Uuid
-  // Foreign key pointing to the specific Company they are accessing
   orgId         String    @db.Uuid
   
-  // Determines if they log into the STAFF dashboard or the public CONSUMER portal
+  // Portal type: STAFF (internal dashboard) or CONSUMER (public portal)
   portalType    String
   
-  // Their broad system level (e.g., COMPANY_SUPER_ADMIN vs null for consumers)
+  // Role within this organization
+  // COMPANY_SUPER_ADMIN, COMPANY_STAFF, COMPANY_PARTNER, CONSUMER
   role          String?
-  // Defines if they are an INTERNAL employee or an EXTERNAL partner
-  partnerType   String?
   
-  // Foreign key linking them to a company-defined role (e.g., "Retailer") to grant permissions
-  dealerTypeId  String?   @db.Uuid
+  // Partner type: INTERNAL or EXTERNAL
+  partnerType   String?
 
-  // Timestamp of when this user was added to this company
+  // Timestamps
   createdAt     DateTime  @default(now()) @db.Timestamptz
-  // Timestamp of the last time their access settings changed
   updatedAt     DateTime  @updatedAt @db.Timestamptz
 
   // --- Relations ---
-  // Link to the user. Deleted if user is deleted.
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // Link to the organization. Deleted if company is deleted.
   organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  // Link to the specific role. Set to Null if the role is deleted, stripping their permissions safely.
-  dealerType    DealerType?  @relation(fields: [dealerTypeId], references: [id], onDelete: SetNull)
 
-  // Critical Constraint: Ensures one user can only have one active profile per company
+  // One user, one profile per organization
   @@unique([userId, orgId])
   
-  // Indexes for fast lookups during login authorization
   @@index([userId])
   @@index([orgId])
   @@index([portalType])

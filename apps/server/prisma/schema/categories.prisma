@@ -1,0 +1,52 @@
+// prisma/schema/product.prisma
+
+// Category - Product categories with hierarchy support
+// Each organization can have its own categories
+// Example: Electronics > Mobile Phones > Smartphones
+model Category {
+  // Primary key
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Organization this category belongs to
+  orgId       String    @db.Uuid
+  
+  // Category name (e.g., "Electronics", "Mobile Phones")
+  name        String
+  
+  // URL-friendly slug (e.g., "electronics", "mobile-phones")
+  slug        String
+  
+  // Optional description
+  description String?
+  
+  // Icon or image URL for UI
+  image       String?
+  
+  // Parent category for nested hierarchy (null = root/top-level category)
+  parentId    String?   @db.Uuid
+  
+  // Sort order within the same parent level
+  sortOrder   Int       @default(0)
+  
+  // Active status
+  isActive    Boolean   @default(true)
+  
+  // Audit
+  createdBy   String?   @db.Uuid
+  updatedBy   String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+
+  // --- Hierarchy Relations ---
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+
+  // --- Relations ---
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("CategoryCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?        @relation("CategoryUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@index([parentId])
+}

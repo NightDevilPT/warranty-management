@@ -1,71 +1,69 @@
 // prisma/schema/organization.prisma
 
 model Organization {
-  // Primary key for the company/tenant
+  // Primary key - auto-generated UUID for security
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   
-  // Display name of the organization (e.g., "Acme North America")
+  // Display name shown in UI (e.g., "Acme North America")
   name            String
-  // Official registered name of the overarching company
+  
+  // Official registered business name for legal documents
   companyName     String
-  // URL-friendly string (e.g., 'acme') used for path-based routing (domain.com/acme/login)
+  
+  // URL-friendly unique identifier for path-based routing
+  // Example: "acme" → domain.com/acme/login
   slug            String           @unique
   
-  // Defines if this is a top-level tenant (ROOT) or a child partner (BRANCH)
+  // Organization logo URL (stored in S3)
+  logo            String?
+  
+  // Organization hierarchy type
+  // ROOT: Top-level parent company (main tenant)
+  // BRANCH: Child organization (dealer, partner, regional office)
   type            OrganizationType @default(ROOT)
   
-  // JSON object defining exactly which features the system admin turned on for this company
-  enabledModules  Json?            @db.JsonB 
-  // Master switch to deactivate an entire company and lock out all its users
+  // Master switch to activate/deactivate entire organization
   isActive        Boolean          @default(true)
 
-  // Tracks which Admin user created this organization
+  // Admin user ID who onboarded/created this organization
   createdBy       String?          @db.Uuid
-  // Tracks which Admin user last updated this organization
+  
+  // Admin user ID who last modified this organization
   updatedBy       String?          @db.Uuid
 
-  // Timestamp of when the company was onboarded
+  // Timestamps
   createdAt       DateTime         @default(now()) @db.Timestamptz
-  // Timestamp of the last setting update for this company
   updatedAt       DateTime         @updatedAt @db.Timestamptz
 
   // --- Hierarchy Relations ---
-  // Foreign key pointing to the ultimate top-level parent company for strict data isolation
   rootId          String?          @db.Uuid
-  // Relation linking this branch directly to its top-level root company
   root            Organization?    @relation("RootToNode", fields: [rootId], references: [id])
-  // Reverse relation: The root company's list of ALL branches under it
   nodesUnderRoot  Organization[]   @relation("RootToNode")
 
-  // Foreign key pointing to the immediate parent (could be a branch above this branch)
   parentId        String?          @db.Uuid
-  // Relation linking to the immediate parent organization
   parent          Organization?    @relation("ParentToChild", fields: [parentId], references: [id])
-  // Reverse relation: The list of immediate child branches under this organization
   children        Organization[]   @relation("ParentToChild")
 
-  // --- User Relations ---
-  // Relation: The Admin user who created this organization
+  // --- Audit Relations ---
   creator         User?            @relation("OrganizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  // Relation: The Admin user who last updated this organization
   updater         User?            @relation("OrganizationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // --- External Relations ---
-  // List of all users granted access to this company
-  userAccesses         UserAccess[]
-  // List of roles (DealerTypes) created specifically by this company
-  dealerTypes          DealerType[]
-  // List of permissions (Personas) this company is allowed to use
-  organizationPersonas OrganizationPersona[]
-  // List of final permissions assigned to users inside this company
-  dealerPersonas       DealerPersona[]
-  // List of custom form structures (Product, Claim) built for this company
-  formSchemas          FormSchema[]
-  // List of actual data records (Products, Claims) belonging to this company
-  formData             FormData[]
-  // List of warranty rules built for this company
-  warrantyTemplates    WarrantyTemplate[]
+  // --- Feature Access ---
+  featureAccess   FeatureAccess[]
 
-  // Index to speed up tenant resolution from the URL path
+  // --- User Access ---
+  userAccesses    UserAccess[]
+
+  // --- Categories & Brands ---
+  categories      Category[]
+  brands          Brand[]
+
+  // --- Forms & Data ---
+  formSchemas     FormSchema[]
+  formData        FormData[]
+
+  // --- Warranty ---
+  warrantyTemplates WarrantyTemplate[]
+
   @@index([slug])
 }

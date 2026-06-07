@@ -1,0 +1,42 @@
+// Brand - Product brands/manufacturers
+// Each organization can have its own brands
+// Example: Samsung, Apple, LG, Sony
+model Brand {
+  // Primary key
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Organization this brand belongs to
+  orgId       String    @db.Uuid
+  
+  // Brand name (e.g., "Samsung", "Apple", "Sony")
+  name        String
+  
+  // URL-friendly slug (e.g., "samsung", "apple")
+  slug        String
+  
+  // Optional description
+  description String?
+  
+  // Brand logo URL
+  logo        String?
+  
+  // Brand website URL
+  website     String?
+  
+  // Active status
+  isActive    Boolean   @default(true)
+  
+  // Audit
+  createdBy   String?   @db.Uuid
+  updatedBy   String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+
+  // --- Relations ---
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("BrandCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?        @relation("BrandUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+}
