@@ -1,34 +1,49 @@
 // prisma/schema/userAccess.prisma
 
 model UserAccess {
-  // Primary key
+  // Primary key - auto-generated UUID
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
-  // Foreign keys
+
+  // Foreign key - which global user this access profile belongs to
   userId        String    @db.Uuid
+
+  // Foreign key - which organization this access is for
   orgId         String    @db.Uuid
-  
-  // Portal type: STAFF (internal dashboard) or CONSUMER (public portal)
+
+  // Portal type determining login destination - STAFF (internal dashboard) or CONSUMER (public portal)
   portalType    String
-  
-  // Role within this organization
-  // COMPANY_SUPER_ADMIN, COMPANY_STAFF, COMPANY_PARTNER, CONSUMER
+
+  // Role within this specific organization - COMPANY_SUPER_ADMIN, COMPANY_STAFF, COMPANY_PARTNER, CONSUMER
+  // This is the REAL role that determines what user can do in this organization
   role          String?
-  
-  // Partner type: INTERNAL or EXTERNAL
+
+  // Defines if user is INTERNAL employee or EXTERNAL partner in this organization
   partnerType   String?
 
-  // Timestamps
+  // Foreign key linking to a company-defined role template (DealerType)
+  // When set, features are auto-assigned based on this template
+  dealerTypeId  String?   @db.Uuid
+
+  // Timestamp when this user was added to this organization
   createdAt     DateTime  @default(now()) @db.Timestamptz
+
+  // Timestamp of last access settings change
   updatedAt     DateTime  @updatedAt @db.Timestamptz
 
   // --- Relations ---
+
+  // Reference to the global user - deleted if user is deleted
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Reference to the organization - deleted if organization is deleted
   organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // One user, one profile per organization
+  // Link to the specific role template - set to null if role is deleted
+  dealerType    DealerType?  @relation(fields: [dealerTypeId], references: [id], onDelete: SetNull)
+
+  // One user can only have one access profile per organization
   @@unique([userId, orgId])
-  
+
   @@index([userId])
   @@index([orgId])
   @@index([portalType])

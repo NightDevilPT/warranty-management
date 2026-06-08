@@ -1,56 +1,81 @@
 // prisma/schema/warranties.prisma
 
 model WarrantyTemplate {
-  // Primary key for the warranty rules engine
+  // Primary key - auto-generated UUID
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
-  // Foreign key linking the rules to a specific company
+
+  // Organization this warranty template belongs to
   orgId           String    @db.Uuid
-  // Foreign key linking these rules to a specific Product or Part Schema
+
+  // Form schema this warranty template is linked to (Product or Part schema)
   formSchemaId    String    @db.Uuid
-  // Name of the warranty (e.g., "Standard 1-Year Coverage")
+
+  // Display name of the warranty (e.g., "Standard 1-Year Coverage")
   name            String
-  // Categorizes the coverage (e.g., "FULL_REPLACEMENT", "PARTS_ONLY")
+
+  // Warranty category type - FULL_REPLACEMENT, PARTS_ONLY, LABOR_ONLY, EXTENDED, etc.
   warrantyType    String
-  // JSON array containing the logical AND/OR conditions that must be met to approve a claim
+
+  // JSON array with AND/OR conditions for claim validation against registration data
   validationRules Json      @db.JsonB
-  // Tracks iterations so updating the rules doesn't invalidate past customer warranties
+
+  // Version number for tracking iterations without invalidating past warranties
   version         Int       @default(1)
-  // Master switch to turn this specific warranty offer on or off
+
+  // Master switch to activate/deactivate this warranty template
   isActive        Boolean   @default(true)
 
   // --- Relations ---
+
+  // Organization this template belongs to
   organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Form schema this template is linked to
   formSchema      FormSchema   @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+
+  // Warranty records created from this template
   warranties      Warranty[]
 
-  // Ensures unique rule versions per schema
+  // Unique constraint per organization, schema, name, and version
   @@unique([orgId, formSchemaId, name, version])
 }
 
 model Warranty {
-  // Primary key for the actual warranty granted to a customer
+  // Primary key - auto-generated UUID
   id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
-  // Foreign key linking to the customer's Registration form data
+
+  // Registration form data that triggered this warranty creation
   registrationFormDataId String    @db.Uuid
-  // Foreign key linking back to the rules engine that approved this
+
+  // Warranty template used to evaluate and create this warranty
   warrantyTemplateId     String    @db.Uuid
-  // Foreign key linking to the specific Product data being covered
+
+  // Product form data being covered by this warranty
   productFormDataId      String    @db.Uuid
-  // Optional foreign key. Populated only if this warranty covers one specific Part.
+
+  // Optional - Part form data if this warranty covers a specific part only
   partFormDataId         String?   @db.Uuid
-  
-  // Boolean result determining if the product actually passed the validation rules
+
+  // Whether the product/part passed the warranty validation rules
   isApplicable           Boolean   @default(false)
-  // A hardened JSON copy of the rules AT THE TIME OF CREATION, preventing future rule edits from altering a customer's contract
+
+  // Immutable snapshot of the warranty template at creation time (prevents retroactive changes)
   templateSnapshot       Json      @db.JsonB
-  // Current status of the warranty (e.g., "ACTIVE", "EXPIRED", "VOID")
+
+  // Current warranty status - ACTIVE, EXPIRED, VOID, CLAIMED
   status                 String    @default("ACTIVE")
 
   // --- Relations ---
+
+  // Registration that created this warranty
   registrationFormData   FormData         @relation("RegistrationWarranty", fields: [registrationFormDataId], references: [id], onDelete: Cascade)
+
+  // Warranty template used for evaluation
   warrantyTemplate       WarrantyTemplate @relation(fields: [warrantyTemplateId], references: [id], onDelete: Restrict)
+
+  // Product covered by this warranty
   productFormData        FormData         @relation("WarrantyToProduct", fields: [productFormDataId], references: [id], onDelete: Cascade)
+
+  // Part covered by this warranty (optional - null if covers whole product)
   partFormData           FormData?        @relation("WarrantyToPart", fields: [partFormDataId], references: [id], onDelete: Cascade)
 }

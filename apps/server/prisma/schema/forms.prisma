@@ -1,93 +1,141 @@
 // prisma/schema/forms.prisma
 
 model FormSchema {
-  // Primary key for the schema blueprint
+  // Primary key - auto-generated UUID
   id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
-  // Foreign key pointing to the company this schema belongs to
+
+  // Organization this schema belongs to
   orgId                  String    @db.Uuid
-  // Specifies what kind of form this is (e.g., "PRODUCT", "CLAIM", "REGISTRATION")
+
+  // Form type - PRODUCT, PART, BRAND, CATEGORY, REGISTRATION, CLAIM, etc.
   type                   String
-  // The display name of the form
+
+  // Display name of the form schema
   name                   String
-  // Tracks iterations of the schema so older data doesn't break when fields change
+
+  // Version number for tracking schema iterations without breaking existing data
   version                Int       @default(1)
-  // The core JSON payload defining the actual input fields, types, and requirements
+
+  // JSON payload defining form fields, types, validation rules, and layout
   schema                 Json      @db.JsonB
-  // Toggle to activate or archive this form
+
+  // Whether this schema is active and available for form submissions
   isActive               Boolean   @default(true)
 
-  // --- Self-Relations for Schema Hierarchy ---
-  // Used by Product schemas to mandate linking to a Brand schema
+  // --- Schema Hierarchy Links ---
+
+  // Links to Brand schema (for Product schemas that require brand selection)
   linkedBrandSchemaId    String?   @db.Uuid
-  // Used by Product schemas to mandate linking to a Category schema
+
+  // Links to Category schema (for Product schemas that require category selection)
   linkedCategorySchemaId String?   @db.Uuid
-  // Used by Part schemas to define what Product schema they belong inside of
+
+  // Links to parent Product schema (for Part schemas that belong to a product)
   parentProductSchemaId  String?   @db.Uuid
 
   // --- Relations ---
+
+  // Organization this schema belongs to
   organization           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
+  // Linked brand schema reference
   linkedBrandSchema      FormSchema?  @relation("BrandToProduct", fields: [linkedBrandSchemaId], references: [id], onDelete: SetNull)
+
+  // Linked category schema reference
   linkedCategorySchema   FormSchema?  @relation("CategoryToProduct", fields: [linkedCategorySchemaId], references: [id], onDelete: SetNull)
+
+  // Parent product schema reference (for parts)
   parentProductSchema    FormSchema?  @relation("PartToProduct", fields: [parentProductSchemaId], references: [id], onDelete: SetNull)
 
+  // Reverse relations
   productSchemasWithBrand    FormSchema[] @relation("BrandToProduct")
   productSchemasWithCategory FormSchema[] @relation("CategoryToProduct")
   partSchemas                FormSchema[] @relation("PartToProduct")
 
+  // Form data submitted using this schema
   formData               FormData[]
+
+  // Warranty templates linked to this schema
   warrantyTemplates      WarrantyTemplate[]
 
-  // Ensures a company doesn't accidentally make two schemas with the exact same name/version
+  // Unique constraint per organization, type, name, and version
   @@unique([orgId, type, name, version])
 }
 
 model FormData {
-  // Primary key for the actual submitted data record
+  // Primary key - auto-generated UUID
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
-  // Foreign key linking the data to the company that owns it
+
+  // Organization this form data belongs to
   orgId               String    @db.Uuid
-  // Foreign key linking the data back to the schema blueprint that defines it
+
+  // Schema that defines the structure of this form data
   formSchemaId        String    @db.Uuid
-  // Denormalized from the schema for much faster database queries
+
+  // Denormalized form type for faster queries (copied from schema)
   formType            String
-  // The actual JSON payload submitted by the user (e.g., {"serial": "123", "color": "red"})
+
+  // JSON payload containing the actual submitted data
   data                Json      @db.JsonB
-  // Tracks the lifecycle of the data (e.g., "DRAFT", "ACTIVE", "ARCHIVED")
+
+  // Lifecycle status - DRAFT, ACTIVE, ARCHIVED, SUBMITTED, APPROVED, REJECTED
   status              String    @default("ACTIVE")
 
-  // --- Data Hierarchy Linking ---
-  // If this record is a Part, this points to the Product record it belongs to
+  // --- Data Hierarchy Links ---
+
+  // If this is a Part, links to the parent Product record it belongs to
   parentProductDataId String?   @db.Uuid
-  // If this record is a Registration, this points to the Product record being registered
+
+  // If this is a Registration, links to the Product being registered
   registeredProductId String?   @db.Uuid
-  // Points to the specific Brand record this product belongs to
+
+  // Links to the Brand record this product belongs to
   brandFormDataId     String?   @db.Uuid
 
-  // Foreign key tracking which User originally submitted this data
+  // User who originally submitted this data
   createdBy           String?   @db.Uuid
-  // Foreign key tracking which User most recently edited this data
+
+  // User who most recently edited this data
   updatedBy           String?   @db.Uuid
 
   // --- Relations ---
+
+  // Organization this data belongs to
   organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Schema blueprint that defines this data structure
   formSchema          FormSchema   @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
-  
+
+  // User who created this record
   creator             User?        @relation("FormDataCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  // User who last updated this record
   updater             User?        @relation("FormDataUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
+  // Parent product data (for parts belonging to a product)
   parentProductData   FormData?    @relation("ProductToPart", fields: [parentProductDataId], references: [id], onDelete: Cascade)
+
+  // Child part records under this product
   partData            FormData[]   @relation("ProductToPart")
 
+  // Product being registered
   registeredProduct   FormData?    @relation("RegistrationToProduct", fields: [registeredProductId], references: [id], onDelete: Restrict)
+
+  // Registration records for this product
   registrations       FormData[]   @relation("RegistrationToProduct")
 
+  // Brand form data this product links to
   brandFormData       FormData?    @relation("ProductToBrand", fields: [brandFormDataId], references: [id], onDelete: SetNull)
+
+  // Products linked to this brand
   formsLinkedToBrand  FormData[]   @relation("ProductToBrand")
 
+  // Warranty records created from this registration
   warranties          Warranty[] @relation("RegistrationWarranty")
+
+  // Warranty records for this product
   productWarranties   Warranty[] @relation("WarrantyToProduct")
+
+  // Warranty records for this part
   partWarranties      Warranty[] @relation("WarrantyToPart")
 }

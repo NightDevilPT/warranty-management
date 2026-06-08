@@ -1,42 +1,58 @@
+// prisma/schema/brands.prisma
+
 // Brand - Product brands/manufacturers
 // Each organization can have its own brands
 // Example: Samsung, Apple, LG, Sony
 model Brand {
-  // Primary key
+  // Primary key - auto-generated UUID
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
+
   // Organization this brand belongs to
   orgId       String    @db.Uuid
-  
+
   // Brand name (e.g., "Samsung", "Apple", "Sony")
   name        String
-  
+
   // URL-friendly slug (e.g., "samsung", "apple")
   slug        String
-  
-  // Optional description
+
+  // Optional description of this brand
   description String?
-  
-  // Brand logo URL
+
+  // Brand logo URL stored in S3
   logo        String?
-  
-  // Brand website URL
+
+  // Brand official website URL
   website     String?
-  
-  // Active status
+
+  // Active status - false hides this brand from UI
   isActive    Boolean   @default(true)
-  
-  // Audit
+
+  // User ID who created this brand
   createdBy   String?   @db.Uuid
+
+  // User ID who last updated this brand
   updatedBy   String?   @db.Uuid
+
+  // Timestamp when brand was created
   createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  // Timestamp automatically updated on changes
   updatedAt   DateTime  @updatedAt @db.Timestamptz
 
   // --- Relations ---
+
+  // Organization this brand belongs to
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // User who created this brand
   creator      User?        @relation("BrandCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  // User who last updated this brand
   updater      User?        @relation("BrandUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
+  // Unique slug per organization
   @@unique([orgId, slug])
+
   @@index([orgId])
 }

@@ -1,52 +1,70 @@
-// prisma/schema/product.prisma
+// prisma/schema/categories.prisma
 
 // Category - Product categories with hierarchy support
 // Each organization can have its own categories
 // Example: Electronics > Mobile Phones > Smartphones
 model Category {
-  // Primary key
+  // Primary key - auto-generated UUID
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
+
   // Organization this category belongs to
   orgId       String    @db.Uuid
-  
+
   // Category name (e.g., "Electronics", "Mobile Phones")
   name        String
-  
+
   // URL-friendly slug (e.g., "electronics", "mobile-phones")
   slug        String
-  
-  // Optional description
+
+  // Optional description of this category
   description String?
-  
-  // Icon or image URL for UI
+
+  // Icon or image URL for UI display
   image       String?
-  
+
   // Parent category for nested hierarchy (null = root/top-level category)
   parentId    String?   @db.Uuid
-  
-  // Sort order within the same parent level
+
+  // Sort order within the same parent level - lower numbers appear first
   sortOrder   Int       @default(0)
-  
-  // Active status
+
+  // Active status - false hides this category from UI
   isActive    Boolean   @default(true)
-  
-  // Audit
+
+  // User ID who created this category
   createdBy   String?   @db.Uuid
+
+  // User ID who last updated this category
   updatedBy   String?   @db.Uuid
+
+  // Timestamp when category was created
   createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  // Timestamp automatically updated on changes
   updatedAt   DateTime  @updatedAt @db.Timestamptz
 
   // --- Hierarchy Relations ---
+
+  // Parent category in the hierarchy tree
   parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+
+  // Child categories under this parent
   children    Category[] @relation("CategoryHierarchy")
 
   // --- Relations ---
+
+  // Organization this category belongs to
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // User who created this category
   creator      User?        @relation("CategoryCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  // User who last updated this category
   updater      User?        @relation("CategoryUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
+  // Unique slug per organization
   @@unique([orgId, slug])
+
   @@index([orgId])
   @@index([parentId])
 }

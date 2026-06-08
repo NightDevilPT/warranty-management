@@ -1,0 +1,57 @@
+// prisma/schema/dealerType.prisma
+
+// DealerType - Company-defined role templates
+// Used to group users by their function and auto-assign features
+// Example: SupportAgent, WarrantyManager, Dealer, Retailer, Installer
+model DealerType {
+  // Primary key - auto-generated UUID
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Organization this dealer type belongs to
+  orgId       String    @db.Uuid
+
+  // Display name of the role (e.g., "SupportAgent", "Dealer", "Installer")
+  name        String
+
+  // Defines if this role is for INTERNAL staff or EXTERNAL partners
+  // INTERNAL = COMPANY_STAFF (same org employees)
+  // EXTERNAL = COMPANY_PARTNER (branch organization partners)
+  partnerType String
+
+  // Optional description of what this role does
+  description String?
+
+  // Whether this dealer type is active and can be assigned to users
+  isActive    Boolean   @default(true)
+
+  // User ID who created this dealer type
+  createdBy   String?   @db.Uuid
+
+  // User ID who last updated this dealer type
+  updatedBy   String?   @db.Uuid
+
+  // Timestamp when dealer type was created
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  // Timestamp automatically updated on changes
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+
+  // --- Relations ---
+
+  // Organization that created this dealer type
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // User who created this dealer type
+  creator      User?        @relation("DealerTypeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  // User who last updated this dealer type
+  updater      User?        @relation("DealerTypeUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // Users assigned to this dealer type via UserAccess
+  userAccesses UserAccess[]
+
+  // Unique name per organization
+  @@unique([orgId, name])
+
+  @@index([orgId])
+}

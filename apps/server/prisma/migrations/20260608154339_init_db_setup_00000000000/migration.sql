@@ -48,6 +48,22 @@ CREATE TABLE "Category" (
 );
 
 -- CreateTable
+CREATE TABLE "DealerType" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "orgId" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "partnerType" TEXT NOT NULL,
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdBy" UUID,
+    "updatedBy" UUID,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ NOT NULL,
+
+    CONSTRAINT "DealerType_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Feature" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" TEXT NOT NULL,
@@ -69,7 +85,7 @@ CREATE TABLE "Feature" (
 CREATE TABLE "FeatureAccess" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "orgId" UUID NOT NULL,
-    "userId" UUID,
+    "userId" UUID NOT NULL,
     "featureId" UUID NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "enabledAt" TIMESTAMPTZ,
@@ -176,6 +192,7 @@ CREATE TABLE "UserAccess" (
     "portalType" TEXT NOT NULL,
     "role" TEXT,
     "partnerType" TEXT,
+    "dealerTypeId" UUID,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMPTZ NOT NULL,
 
@@ -224,6 +241,12 @@ CREATE INDEX "Category_parentId_idx" ON "Category"("parentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_orgId_slug_key" ON "Category"("orgId", "slug");
+
+-- CreateIndex
+CREATE INDEX "DealerType_orgId_idx" ON "DealerType"("orgId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DealerType_orgId_name_key" ON "DealerType"("orgId", "name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Feature_code_key" ON "Feature"("code");
@@ -319,6 +342,15 @@ ALTER TABLE "Category" ADD CONSTRAINT "Category_createdBy_fkey" FOREIGN KEY ("cr
 ALTER TABLE "Category" ADD CONSTRAINT "Category_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Feature" ADD CONSTRAINT "Feature_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Feature"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -392,6 +424,9 @@ ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_userId_fkey" FOREIGN KEY ("u
 
 -- AddForeignKey
 ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_dealerTypeId_fkey" FOREIGN KEY ("dealerTypeId") REFERENCES "DealerType"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WarrantyTemplate" ADD CONSTRAINT "WarrantyTemplate_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

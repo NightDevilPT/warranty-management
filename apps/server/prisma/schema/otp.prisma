@@ -1,25 +1,30 @@
 // prisma/schema/otp.prisma
 
 model OtpVerification {
-  // Primary key for the OTP record
+  // Primary key - auto-generated UUID
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
-  // Foreign key linking to the User who requested the code
+
+  // User who requested this OTP code
   userId      String    @db.Uuid
-  
-  // The actual 6-digit (or similar) code sent to the user
+
+  // The actual OTP code sent to the user (typically 6-digit number)
   code        String
-  // Identifies why this code was generated (e.g., LOGIN vs PASSWORD_RESET)
+
+  // Purpose of this OTP - LOGIN, PASSWORD_RESET, VERIFY_EMAIL, VERIFY_PHONE
   type        OtpType
-  // The exact timestamp when this code becomes invalid (e.g., 10 minutes from creation)
+
+  // Exact timestamp when this OTP expires and becomes invalid (typically 10 minutes from creation)
   expiresAt   DateTime  @db.Timestamptz
-  // Security flag set to true immediately after successful use to prevent replay attacks
+
+  // Security flag - set to true after successful use to prevent replay attacks
   isUsed      Boolean   @default(false)
-  // Automatically records when the code was generated
+
+  // Timestamp when this OTP was generated
   createdAt   DateTime  @default(now()) @db.Timestamptz
 
   // --- Relations ---
-  // Links back to the User model. If the user is deleted, their OTPs are deleted.
+
+  // User who requested this OTP (deleted if user is deleted)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Indexes for fast verification lookups

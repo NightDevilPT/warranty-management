@@ -3,30 +3,39 @@
 enum UserRole {
   // Global super admin for the entire platform
   ADMIN
-  // Admin for a specific company or branch
+  // Admin for a specific company or branch - manages that organization
   COMPANY_SUPER_ADMIN
-  // Internal employee working for a company
+  // Internal employee working for a company - limited access based on feature assignment
   COMPANY_STAFF
-  // External partner (like a dealer or repair shop)
+  // External partner like dealer or repair shop - belongs to branch organization
   COMPANY_PARTNER
-  // End customer who buys and registers products
+  // End customer who buys products and registers warranties
   CONSUMER
 }
 
 enum OrganizationType {
-  // The main, top-level company (the primary tenant)
+  // Top-level parent company - the main tenant
   ROOT
-  // A child organization (external partner, regional office, etc.)
+  // Child organization - dealer, partner, regional office under a ROOT
   BRANCH
 }
 
 enum OtpType {
-  // Used for passwordless login
+  // OTP for passwordless login
   LOGIN
-  // Used to recover an account if a password is set
+  // OTP to recover account when password is forgotten
   PASSWORD_RESET
-  // Used to verify an email address during signup
+  // OTP to verify email address during signup
   VERIFY_EMAIL
-  // Used to verify a mobile number during signup
+  // OTP to verify mobile number during signup
   VERIFY_PHONE
+}
+
+enum FeatureStatus {
+  // Planned but not yet available to anyone - shows "Coming Soon" badge
+  COMING_SOON
+  // Available globally - can be assigned to users
+  ENABLED
+  // Temporarily turned off globally - hidden from UI, not assignable
+  DISABLED
 }
