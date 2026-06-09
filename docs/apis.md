@@ -97,14 +97,14 @@
 
 ## MODULE 7: Category (Product Categories - Admin)
 
-| #   | API Endpoint                        | Method | Description                        | Auth | Allowed Roles                  | Status |
-| --- | ----------------------------------- | ------ | ---------------------------------- | ---- | ------------------------------ | ------ |
-| 29  | `/api/admin/categories`             | POST   | Create category                    | Yes  | `ADMIN`                        | TODO   |
-| 30  | `/api/admin/categories/tree`        | GET    | Get category tree hierarchy        | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | TODO   |
-| 31  | `/api/admin/categories`             | GET    | List categories (search, paginate) | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | TODO   |
-| 32  | `/api/admin/categories/:categoryId` | GET    | Get category by ID with children   | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | TODO   |
-| 33  | `/api/admin/categories/:categoryId` | PATCH  | Update category                    | Yes  | `ADMIN`                        | TODO   |
-| 34  | `/api/admin/categories/:categoryId` | DELETE | Delete category                    | Yes  | `ADMIN`                        | TODO   |
+| #   | API Endpoint                        | Method | Description                        | Auth | Allowed Roles                  | Status  |
+| --- | ----------------------------------- | ------ | ---------------------------------- | ---- | ------------------------------ | ------- |
+| 29  | `/api/admin/categories`             | POST   | Create category                    | Yes  | `ADMIN`                        | ✅ DONE |
+| 30  | `/api/admin/categories/tree`        | GET    | Get category tree hierarchy        | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 31  | `/api/admin/categories`             | GET    | List categories (search, paginate) | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 32  | `/api/admin/categories/:categoryId` | GET    | Get category by ID with children   | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 33  | `/api/admin/categories/:categoryId` | PATCH  | Update category                    | Yes  | `ADMIN`                        | ✅ DONE |
+| 34  | `/api/admin/categories/:categoryId` | DELETE | Delete category                    | Yes  | `ADMIN`                        | ✅ DONE |
 
 ---
 
