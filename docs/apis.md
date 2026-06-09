@@ -22,26 +22,29 @@
 
 ---
 
-## MODULE 1: Auth (Authentication)
+## MODULE 1: Auth (Authentication) - ✅ COMPLETED
 
-| #   | API Endpoint           | Method | Description                          | Auth | Allowed Roles     | Status |
-| --- | ---------------------- | ------ | ------------------------------------ | ---- | ----------------- | ------ |
-| 1   | `/api/auth/send-otp`   | POST   | Request OTP for login/verify         | No   | Public            | TODO   |
-| 2   | `/api/auth/verify-otp` | POST   | Verify OTP & login                   | No   | Public            | TODO   |
-| 3   | `/api/auth/login`      | POST   | Email/password or passwordless login | No   | Public            | TODO   |
-| 4   | `/api/auth/refresh`    | POST   | Refresh access token                 | No   | Public            | TODO   |
-| 5   | `/api/auth/logout`     | POST   | Logout & clear cookies               | Yes  | All Authenticated | TODO   |
+| #   | API Endpoint                   | Method | Description                          | Auth | Allowed Roles     | Status  |
+| --- | ------------------------------ | ------ | ------------------------------------ | ---- | ----------------- | ------- |
+| 1   | `/api/auth/send-otp`           | POST   | Request OTP for login/verify         | No   | Public            | ✅ DONE |
+| 2   | `/api/auth/verify-otp`         | POST   | Verify OTP & login                   | No   | Public            | ✅ DONE |
+| 3   | `/api/auth/login`              | POST   | Email/password or passwordless login | No   | Public            | ✅ DONE |
+| 4   | `/api/auth/logout`             | POST   | Logout & clear cookies               | Yes  | All Authenticated | ✅ DONE |
+| 5   | `/api/auth/me`                 | GET    | Get current user profile             | Yes  | All Authenticated | ✅ DONE |
+| 6   | `/api/auth/me`                 | PATCH  | Update current user profile          | Yes  | All Authenticated | ✅ DONE |
+| 7   | `/api/auth/me/profile-picture` | POST   | Upload current user profile picture  | Yes  | All Authenticated | ✅ DONE |
 
 ---
 
-## MODULE 2: User (User Management)
+## MODULE 2: User (User Management) - ✅ COMPLETED
 
-| #   | API Endpoint                    | Method | Description                         | Auth | Allowed Roles     | Status |
-| --- | ------------------------------- | ------ | ----------------------------------- | ---- | ----------------- | ------ |
-| 6   | `/api/users`                    | POST   | Create new user (Admin only)        | Yes  | `ADMIN`           | TODO   |
-| 7   | `/api/users/me`                 | GET    | Get current user profile            | Yes  | All Authenticated | TODO   |
-| 8   | `/api/users/me`                 | PATCH  | Update current user profile         | Yes  | All Authenticated | TODO   |
-| 9   | `/api/users/me/profile-picture` | POST   | Upload current user profile picture | Yes  | All Authenticated | TODO   |
+| #   | API Endpoint                    | Method | Description                         | Auth | Allowed Roles     | Status  |
+| --- | ------------------------------- | ------ | ----------------------------------- | ---- | ----------------- | ------- |
+| 6   | `/api/users`                    | POST   | Create new user (Admin only)        | Yes  | `ADMIN`           | ✅ DONE |
+| 7   | `/api/users/me`                 | GET    | Get current user profile            | Yes  | All Authenticated | ✅ DONE |
+| 8   | `/api/users/me`                 | PATCH  | Update current user profile         | Yes  | All Authenticated | ✅ DONE |
+| 9   | `/api/users/me/profile-picture` | POST   | Upload current user profile picture | Yes  | All Authenticated | ✅ DONE |
+| 10  | `/api/users/me/password`        | PATCH  | Change own password                 | Yes  | All Authenticated | ✅ DONE |
 
 ---
 
