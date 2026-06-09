@@ -1,8 +1,8 @@
-// apps/server/prisma/seed/seed.ts
 import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { seedUsers } from './user.seed';
+import { seedOrganizations } from './organization.seed';
 
 const pool = new Pool({
   connectionString:
@@ -44,14 +44,32 @@ async function main() {
   // Clear all existing data
   await clearDatabase();
 
-  // Seed admin user
-  await seedUsers(prisma);
+  // 1. Seed admin user first
+  console.log('👤 Seeding users...');
+  const users = await seedUsers(prisma);
+  const adminUser = users[0]; // Get first user from array
 
-  // Add more seed functions here as needed:
+  if (!adminUser || adminUser.role !== 'ADMIN') {
+    throw new Error(
+      'Admin user not found or incorrect role after seeding users.',
+    );
+  }
+
+  console.log(`✅ Admin user ready with ID: ${adminUser.id}\n`);
+
+  // 2. Seed random organizations
+  console.log('🏢 Seeding random organizations...');
+  const organizations = await seedOrganizations(prisma, 15, adminUser.id);
+
+  // 3. Add more seed functions here:
+  // await seedCategories(prisma, organizations, adminUser.id);
+  // await seedBrands(prisma, organizations, adminUser.id);
   // await seedFeatures(prisma, adminUser.id);
-  // await seedOrganizations(prisma, adminUser.id);
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('\n📊 Final Summary:');
+  console.log(`   👤 Users: ${users.length}`);
+  console.log(`   🏢 Organizations: ${organizations.length}`);
   console.log('\n✅ All seeds completed successfully!');
 }
 

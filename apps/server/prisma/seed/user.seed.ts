@@ -1,4 +1,3 @@
-// apps/server/prisma/seed/user.seed.ts
 import { PrismaClient } from '../../generated/prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -21,7 +20,7 @@ export async function seedUsers(prisma: PrismaClient) {
 
     // Update password and ensure correct role
     const passwordHash = await bcrypt.hash(adminPassword, 10);
-    await prisma.user.update({
+    const updatedAdmin = await prisma.user.update({
       where: { id: existingAdmin.id },
       data: {
         passwordHash,
@@ -40,9 +39,11 @@ export async function seedUsers(prisma: PrismaClient) {
     console.log('📧 Email:    ', adminEmail);
     console.log('🔑 Password: ', adminPassword);
     console.log('👤 Role:     ADMIN');
-    console.log('🆔 ID:       ', existingAdmin.id);
+    console.log('🆔 ID:       ', updatedAdmin.id);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    return existingAdmin;
+
+    // Return array for consistency
+    return [updatedAdmin];
   }
 
   // Hash password
@@ -72,5 +73,6 @@ export async function seedUsers(prisma: PrismaClient) {
   console.log('🆔 ID:       ', admin.id);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  return admin;
+  // Return array for consistency
+  return [admin];
 }
