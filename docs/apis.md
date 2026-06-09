@@ -50,26 +50,26 @@
 
 ## MODULE 3: Organization (Company Management - Admin)
 
-| #   | API Endpoint                           | Method | Description                               | Auth | Allowed Roles | Status |
-| --- | -------------------------------------- | ------ | ----------------------------------------- | ---- | ------------- | ------ |
-| 10  | `/api/admin/organizations`             | POST   | Create ROOT organization                  | Yes  | `ADMIN`       | TODO   |
-| 11  | `/api/admin/organizations`             | GET    | List all organizations (search, paginate) | Yes  | `ADMIN`       | TODO   |
-| 12  | `/api/admin/organizations/:orgId`      | GET    | Get organization by ID                    | Yes  | `ADMIN`       | TODO   |
-| 13  | `/api/admin/organizations/:orgId`      | PATCH  | Update organization                       | Yes  | `ADMIN`       | TODO   |
-| 14  | `/api/admin/organizations/:orgId/logo` | POST   | Upload organization logo                  | Yes  | `ADMIN`       | TODO   |
+| #   | API Endpoint                           | Method | Description                               | Auth | Allowed Roles | Status  |
+| --- | -------------------------------------- | ------ | ----------------------------------------- | ---- | ------------- | ------- |
+| 10  | `/api/admin/organizations`             | POST   | Create ROOT organization                  | Yes  | `ADMIN`       | ✅ DONE |
+| 11  | `/api/admin/organizations`             | GET    | List all organizations (search, paginate) | Yes  | `ADMIN`       | ✅ DONE |
+| 12  | `/api/admin/organizations/:orgId`      | GET    | Get organization by ID                    | Yes  | `ADMIN`       | ✅ DONE |
+| 13  | `/api/admin/organizations/:orgId`      | PATCH  | Update organization                       | Yes  | `ADMIN`       | ✅ DONE |
+| 14  | `/api/admin/organizations/:orgId/logo` | POST   | Upload organization logo                  | Yes  | `ADMIN`       | ✅ DONE |
 
 ---
 
 ## MODULE 4: Feature (Permission/Module Management - Admin)
 
-| #   | API Endpoint                            | Method | Description                      | Auth | Allowed Roles | Status |
-| --- | --------------------------------------- | ------ | -------------------------------- | ---- | ------------- | ------ |
-| 15  | `/api/admin/features`                   | POST   | Create feature/module            | Yes  | `ADMIN`       | TODO   |
-| 16  | `/api/admin/features/tree`              | GET    | Get full feature tree hierarchy  | Yes  | `ADMIN`       | TODO   |
-| 17  | `/api/admin/features`                   | GET    | List features (search, paginate) | Yes  | `ADMIN`       | TODO   |
-| 18  | `/api/admin/features/:featureId`        | GET    | Get feature by ID with children  | Yes  | `ADMIN`       | TODO   |
-| 19  | `/api/admin/features/:featureId`        | PATCH  | Update feature                   | Yes  | `ADMIN`       | TODO   |
-| 20  | `/api/admin/features/:featureId/status` | PATCH  | Update feature status            | Yes  | `ADMIN`       | TODO   |
+| #   | API Endpoint                            | Method | Description                      | Auth | Allowed Roles | Status  |
+| --- | --------------------------------------- | ------ | -------------------------------- | ---- | ------------- | ------- |
+| 15  | `/api/admin/features`                   | POST   | Create feature/module            | Yes  | `ADMIN`       | ✅ DONE |
+| 16  | `/api/admin/features/tree`              | GET    | Get full feature tree hierarchy  | Yes  | `ADMIN`       | ✅ DONE |
+| 17  | `/api/admin/features`                   | GET    | List features (search, paginate) | Yes  | `ADMIN`       | ✅ DONE |
+| 18  | `/api/admin/features/:featureId`        | GET    | Get feature by ID with children  | Yes  | `ADMIN`       | ✅ DONE |
+| 19  | `/api/admin/features/:featureId`        | PATCH  | Update feature                   | Yes  | `ADMIN`       | ✅ DONE |
+| 20  | `/api/admin/features/:featureId/status` | PATCH  | Update feature status            | Yes  | `ADMIN`       | ✅ DONE |
 
 ---
 
