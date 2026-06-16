@@ -110,13 +110,13 @@
 
 ## MODULE 8: Brand (Product Brands - Admin)
 
-| #   | API Endpoint                 | Method | Description                    | Auth | Allowed Roles                  | Status |
-| --- | ---------------------------- | ------ | ------------------------------ | ---- | ------------------------------ | ------ |
-| 35  | `/api/admin/brands`          | POST   | Create brand                   | Yes  | `ADMIN`                        | TODO   |
-| 36  | `/api/admin/brands`          | GET    | List brands (search, paginate) | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | TODO   |
-| 37  | `/api/admin/brands/:brandId` | GET    | Get brand by ID                | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | TODO   |
-| 38  | `/api/admin/brands/:brandId` | PATCH  | Update brand                   | Yes  | `ADMIN`                        | TODO   |
-| 39  | `/api/admin/brands/:brandId` | DELETE | Delete brand                   | Yes  | `ADMIN`                        | TODO   |
+| #   | API Endpoint                 | Method | Description                    | Auth | Allowed Roles                  | Status  |
+| --- | ---------------------------- | ------ | ------------------------------ | ---- | ------------------------------ | ------- |
+| 35  | `/api/admin/brands`          | POST   | Create brand                   | Yes  | `ADMIN`                        | ✅ DONE |
+| 36  | `/api/admin/brands`          | GET    | List brands (search, paginate) | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 37  | `/api/admin/brands/:brandId` | GET    | Get brand by ID                | Yes  | `ADMIN`, `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 38  | `/api/admin/brands/:brandId` | PATCH  | Update brand                   | Yes  | `ADMIN`                        | ✅ DONE |
+| 39  | `/api/admin/brands/:brandId` | DELETE | Delete brand                   | Yes  | `ADMIN`                        | ✅ DONE |
 
 ---
 
