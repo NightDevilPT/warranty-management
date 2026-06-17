@@ -5,6 +5,7 @@ import { OrganizationModule } from './organization/organization.module';
 import { FeatureModule } from './feature/feature.module';
 import { CategoryModule } from './category/category.module';
 import { BrandModule } from './brand/brand.module';
+import { BranchModule } from './branch/branch.module';
 
 export const AllModules = [
   ...CommonModules,
@@ -14,4 +15,5 @@ export const AllModules = [
   FeatureModule,
   CategoryModule,
   BrandModule,
+  BranchModule,
 ];

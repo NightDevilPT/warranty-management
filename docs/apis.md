@@ -122,11 +122,11 @@
 
 ## MODULE 9: Branch (Organization Hierarchy - Company)
 
-| #   | API Endpoint           | Method | Description                         | Auth | Allowed Roles         | Status |
-| --- | ---------------------- | ------ | ----------------------------------- | ---- | --------------------- | ------ |
-| 40  | `/api/:slug/branches`  | POST   | Create child branch organization    | Yes  | `COMPANY_SUPER_ADMIN` | TODO   |
-| 41  | `/api/:slug/branches`  | GET    | List branches under organization    | Yes  | `COMPANY_SUPER_ADMIN` | TODO   |
-| 42  | `/api/:slug/hierarchy` | GET    | Get full org tree (root + branches) | Yes  | `COMPANY_SUPER_ADMIN` | TODO   |
+| #   | API Endpoint           | Method | Description                         | Auth | Allowed Roles         | Status  |
+| --- | ---------------------- | ------ | ----------------------------------- | ---- | --------------------- | ------- |
+| 40  | `/api/:slug/branches`  | POST   | Create child branch organization    | Yes  | `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 41  | `/api/:slug/branches`  | GET    | List branches under organization    | Yes  | `COMPANY_SUPER_ADMIN` | ✅ DONE |
+| 42  | `/api/:slug/hierarchy` | GET    | Get full org tree (root + branches) | Yes  | `COMPANY_SUPER_ADMIN` | ✅ DONE |
 
 ---
 
