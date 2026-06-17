@@ -10,6 +10,7 @@ import { GetOrgUserQuery } from './queries/impl/get-org-user.query';
 import { ListOrgUsersQuery } from './queries/impl/list-org-users.query';
 import { GetUserFeaturesQuery } from './queries/impl/get-user-features.query';
 import { UpdateOrgUserDto } from './dto/update-org-user.dto';
+import { GetMyPermissionsQuery } from './queries/impl/get-my-permissions.query';
 
 @Injectable()
 export class OrgUserService {
@@ -56,5 +57,9 @@ export class OrgUserService {
 
   async getUserFeatures(orgId: string, userId: string) {
     return this.queryBus.execute(new GetUserFeaturesQuery(orgId, userId));
+  }
+
+  async getMyPermissions(orgId: string, userId: string) {
+    return this.queryBus.execute(new GetMyPermissionsQuery(orgId, userId));
   }
 }

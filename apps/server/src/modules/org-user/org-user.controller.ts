@@ -161,4 +161,17 @@ export class OrgUserController {
   ) {
     return this.orgUserService.getUserFeatures(orgId, userId);
   }
+
+  @Get(':orgId/me/permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Get current user's permissions in organization" })
+  @ApiParam({ name: 'orgId', description: 'Organization ID' })
+  @ApiResponse({ status: 200, description: 'Permissions retrieved' })
+  @ApiResponse({
+    status: 404,
+    description: 'Not a member of this organization',
+  })
+  async getMyPermissions(@Param('orgId') orgId: string, @Req() req: any) {
+    return this.orgUserService.getMyPermissions(orgId, req.user?.id);
+  }
 }

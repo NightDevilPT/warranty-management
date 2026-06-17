@@ -132,22 +132,15 @@
 
 ## MODULE 10: OrgUser (User Management within Organization - Company)
 
-| #   | API Endpoint                        | Method | Description                                   | Auth | Allowed Roles                          | Status |
-| --- | ----------------------------------- | ------ | --------------------------------------------- | ---- | -------------------------------------- | ------ |
-| 43  | `/api/:slug/users`                  | POST   | Invite/add user to org (with role + features) | Yes  | `COMPANY_SUPER_ADMIN`                  | TODO   |
-| 44  | `/api/:slug/users`                  | GET    | List users in organization                    | Yes  | `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF` | TODO   |
-| 45  | `/api/:slug/users/:userId`          | GET    | Get user detail in organization               | Yes  | `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF` | TODO   |
-| 46  | `/api/:slug/users/:userId`          | PATCH  | Update user role/access in org                | Yes  | `COMPANY_SUPER_ADMIN`                  | TODO   |
-| 47  | `/api/:slug/users/:userId`          | DELETE | Remove user from organization                 | Yes  | `COMPANY_SUPER_ADMIN`                  | TODO   |
-| 48  | `/api/:slug/users/:userId/features` | GET    | Get user's features in org                    | Yes  | `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF` | TODO   |
-
----
-
-## MODULE 11: Permission (Current User Permissions - Company)
-
-| #   | API Endpoint                | Method | Description                                    | Auth | Allowed Roles     | Status |
-| --- | --------------------------- | ------ | ---------------------------------------------- | ---- | ----------------- | ------ |
-| 49  | `/api/:slug/me/permissions` | GET    | Get current user's features/permissions in org | Yes  | All Authenticated | TODO   |
+| #   | API Endpoint                                             | Method | Description                                   | Auth | Allowed Roles                          | Status  |
+| --- | -------------------------------------------------------- | ------ | --------------------------------------------- | ---- | -------------------------------------- | ------- |
+| 43  | `/api/admin/organizations/:orgId/users`                  | POST   | Invite/add user to org (with role + features) | Yes  | `COMPANY_SUPER_ADMIN`                  | ✅ DONE |
+| 44  | `/api/admin/organizations/:orgId/users`                  | GET    | List users in organization                    | Yes  | `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF` | ✅ DONE |
+| 45  | `/api/admin/organizations/:orgId/users/:userId`          | GET    | Get user detail in organization               | Yes  | `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF` | ✅ DONE |
+| 46  | `/api/admin/organizations/:orgId/users/:userId`          | PATCH  | Update user role/access in org                | Yes  | `COMPANY_SUPER_ADMIN`                  | ✅ DONE |
+| 47  | `/api/admin/organizations/:orgId/users/:userId`          | DELETE | Remove user from organization                 | Yes  | `COMPANY_SUPER_ADMIN`                  | ✅ DONE |
+| 48  | `/api/admin/organizations/:orgId/users/:userId/features` | GET    | Get user's features in org                    | Yes  | `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF` | ✅ DONE |
+| 49  | `/api/admin/organizations/:orgId/me/permissions`         | GET    | Get current user's permissions in org         | Yes  | All Authenticated                      | ✅ DONE |
 
 ---
 
