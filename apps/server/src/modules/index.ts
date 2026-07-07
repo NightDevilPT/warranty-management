@@ -7,6 +7,7 @@ import { CategoryModule } from './category/category.module';
 import { BrandModule } from './brand/brand.module';
 import { BranchModule } from './branch/branch.module';
 import { OrgUserModule } from './org-user/org-user.module';
+import { DealerTypeModule } from './dealer-types/dealer-types.module';
 
 export const AllModules = [
   ...CommonModules,
@@ -18,4 +19,5 @@ export const AllModules = [
   BrandModule,
   BranchModule,
   OrgUserModule,
+  DealerTypeModule,
 ];

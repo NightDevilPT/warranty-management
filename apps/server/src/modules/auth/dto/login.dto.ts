@@ -11,7 +11,7 @@ import { Type } from 'class-transformer';
 export class LoginDto {
   @ApiPropertyOptional({
     description: 'Email address for login',
-    example: 'user@example.com',
+    example: 'pawankumartadagsingh@gmail.com',
   })
   @IsOptional()
   @IsEmail({}, { message: 'Invalid email format' })
@@ -29,7 +29,7 @@ export class LoginDto {
 
   @ApiPropertyOptional({
     description: 'Password for password-based login',
-    example: 'StrongP@ss123',
+    example: 'Admin@123',
   })
   @IsOptional()
   @IsString()
