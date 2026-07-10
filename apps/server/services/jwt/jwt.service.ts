@@ -5,12 +5,34 @@ import { ConfigService } from '@nestjs/config';
 import { LoggerService } from 'services/logger/logger.service';
 import { ErrorService } from 'services/errors/error.service';
 
+/**
+ * JWT Payload interface
+ *
+ * Contains all information needed for authorization without database queries.
+ * Permissions are embedded to avoid FeatureAccess queries on every request.
+ * The token is short-lived (15 min), so permission changes propagate quickly.
+ */
 export interface JwtPayload {
-  sub: string;
-  email?: string;
-  phoneNumber?: string;
-  role: string;
-  type?: 'access' | 'refresh';
+  // User identity
+  sub: string; // userId - unique identifier
+  email?: string; // User email
+  phoneNumber?: string; // User phone number
+
+  // Organization context (current active organization)
+  orgId?: string; // Current organization ID
+  orgSlug?: string; // Current organization slug for URL routing
+  portalType?: string; // 'COMPANY' | 'CONSUMER' | 'ADMIN'
+
+  // Authorization
+  role: string; // UserRole: ADMIN, COMPANY_SUPER_ADMIN, etc.
+  permissions?: string[]; // Feature codes for current organization
+  // Embedded to avoid DB queries on every request
+  // Example: ['PRODUCT_CREATE', 'CLAIM_VIEW', ...]
+
+  // Token metadata
+  type?: 'access' | 'refresh'; // Token type
+  iat?: number; // Issued at timestamp
+  exp?: number; // Expiration timestamp
 }
 
 export interface TokenPair {
@@ -30,7 +52,6 @@ export class JwtService implements OnModuleInit {
   }
 
   onModuleInit() {
-    // Validate that secrets are configured
     const accessSecret = this.configService.get('jwt.accessSecret');
     const refreshSecret = this.configService.get('jwt.refreshSecret');
 
@@ -53,11 +74,15 @@ export class JwtService implements OnModuleInit {
 
   /**
    * Generate access and refresh token pair
+   *
+   * @param payload - Full JWT payload with user identity, org context, role, and permissions
    */
   async generateTokenPair(payload: JwtPayload): Promise<TokenPair> {
     this.logger.log('Generating token pair', undefined, {
       userId: payload.sub,
+      orgId: payload.orgId,
       role: payload.role,
+      permissionCount: payload.permissions?.length || 0,
     });
 
     try {
@@ -84,7 +109,10 @@ export class JwtService implements OnModuleInit {
   }
 
   /**
-   * Generate access token (short-lived)
+   * Generate access token (short-lived: 15 minutes)
+   *
+   * Includes full payload with permissions for authorization without DB queries.
+   * Short lifetime ensures permission changes propagate within 15 minutes.
    */
   async generateAccessToken(payload: JwtPayload): Promise<string> {
     const tokenPayload = {
@@ -108,11 +136,17 @@ export class JwtService implements OnModuleInit {
   }
 
   /**
-   * Generate refresh token (long-lived)
+   * Generate refresh token (long-lived: 7 days)
+   *
+   * Contains minimal payload - only user identity and role.
+   * Permissions and org context are NOT included; they're resolved fresh on refresh.
    */
   async generateRefreshToken(payload: JwtPayload): Promise<string> {
     const tokenPayload = {
-      ...payload,
+      sub: payload.sub,
+      email: payload.email,
+      phoneNumber: payload.phoneNumber,
+      role: payload.role,
       type: 'refresh' as const,
     };
 
@@ -133,6 +167,8 @@ export class JwtService implements OnModuleInit {
 
   /**
    * Verify access token
+   *
+   * Returns full payload including permissions for request authorization.
    */
   async verifyAccessToken(token: string): Promise<JwtPayload> {
     try {
@@ -154,6 +190,7 @@ export class JwtService implements OnModuleInit {
 
       this.logger.debug('Access token verified', undefined, {
         userId: payload.sub,
+        orgId: payload.orgId,
       });
 
       return payload;
@@ -175,6 +212,8 @@ export class JwtService implements OnModuleInit {
 
   /**
    * Verify refresh token
+   *
+   * Returns minimal payload. Caller must re-resolve permissions and org context.
    */
   async verifyRefreshToken(token: string): Promise<JwtPayload> {
     try {
@@ -232,24 +271,25 @@ export class JwtService implements OnModuleInit {
 
   /**
    * Refresh token pair using a valid refresh token
+   *
+   * NOTE: This only refreshes the tokens. The caller must provide
+   * the full payload with updated permissions and org context.
+   * The refresh token only contains user identity, not permissions.
    */
-  async refreshTokenPair(refreshToken: string): Promise<TokenPair> {
+  async refreshTokenPair(refreshToken: string): Promise<{
+    payload: JwtPayload;
+    tokens: TokenPair;
+  }> {
     this.logger.log('Refreshing token pair');
 
-    const payload = await this.verifyRefreshToken(refreshToken);
+    // Verify refresh token (returns minimal payload)
+    const refreshPayload = await this.verifyRefreshToken(refreshToken);
 
-    // Generate new token pair
-    const newPayload: JwtPayload = {
-      sub: payload.sub,
-      email: payload.email,
-      phoneNumber: payload.phoneNumber,
-      role: payload.role,
+    // Return the minimal payload so caller can re-resolve permissions
+    // and org context before generating new tokens
+    return {
+      payload: refreshPayload,
+      tokens: await this.generateTokenPair(refreshPayload),
     };
-
-    this.logger.log('Token pair refreshed successfully', undefined, {
-      userId: payload.sub,
-    });
-
-    return this.generateTokenPair(newPayload);
   }
 }

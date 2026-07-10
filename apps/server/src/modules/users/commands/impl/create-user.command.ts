@@ -1,8 +1,0 @@
-import { CreateUserDto } from '../../dto/create-user.dto';
-
-export class CreateUserCommand {
-  constructor(
-    public readonly dto: CreateUserDto,
-    public readonly adminId: string,
-  ) {}
-}

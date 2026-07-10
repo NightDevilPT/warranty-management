@@ -2,24 +2,19 @@ import { PrismaClient } from '../../generated/prisma/client';
 import * as bcrypt from 'bcrypt';
 
 export async function seedUsers(prisma: PrismaClient) {
-  console.log('🌱 Seeding Users...\n');
+  console.log('┌─────────────────────────────────────────────┐');
+  console.log('│  👤 Step 1/8: Seeding Users                  │');
+  console.log('└─────────────────────────────────────────────┘\n');
 
   const adminEmail = 'pawankumartadagsingh@gmail.com';
   const adminPassword = 'Admin@123';
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-  // Check if admin already exists
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
 
   if (existingAdmin) {
-    console.log('⚠️  Admin user already exists!');
-    console.log(`   Email: ${existingAdmin.email}`);
-    console.log(`   Role: ${existingAdmin.role}`);
-    console.log(`   ID: ${existingAdmin.id}`);
-
-    // Update password and ensure correct role
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
     const updatedAdmin = await prisma.user.update({
       where: { id: existingAdmin.id },
       data: {
@@ -33,23 +28,10 @@ export async function seedUsers(prisma: PrismaClient) {
         fullName: 'Pawan Kumar',
       },
     });
-
-    console.log('✅ Admin user updated successfully!');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📧 Email:    ', adminEmail);
-    console.log('🔑 Password: ', adminPassword);
-    console.log('👤 Role:     ADMIN');
-    console.log('🆔 ID:       ', updatedAdmin.id);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-    // Return array for consistency
+    console.log('   ✅ Admin user updated successfully\n');
     return [updatedAdmin];
   }
 
-  // Hash password
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
-
-  // Create admin user
   const admin = await prisma.user.create({
     data: {
       email: adminEmail,
@@ -65,14 +47,6 @@ export async function seedUsers(prisma: PrismaClient) {
     },
   });
 
-  console.log('✅ Admin user created successfully!');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📧 Email:    ', admin.email);
-  console.log('🔑 Password: ', adminPassword);
-  console.log('👤 Role:     ', admin.role);
-  console.log('🆔 ID:       ', admin.id);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-  // Return array for consistency
+  console.log('   ✅ Admin user created successfully\n');
   return [admin];
 }

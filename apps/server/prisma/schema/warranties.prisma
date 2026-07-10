@@ -2,80 +2,101 @@
 
 model WarrantyTemplate {
   // Primary key - auto-generated UUID
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization this warranty template belongs to
-  orgId           String    @db.Uuid
+  orgId String @db.Uuid
 
   // Form schema this warranty template is linked to (Product or Part schema)
-  formSchemaId    String    @db.Uuid
+  formSchemaId String @db.Uuid
 
   // Display name of the warranty (e.g., "Standard 1-Year Coverage")
-  name            String
+  name String
 
   // Warranty category type - FULL_REPLACEMENT, PARTS_ONLY, LABOR_ONLY, EXTENDED, etc.
-  warrantyType    String
+  warrantyType String
 
   // JSON array with AND/OR conditions for claim validation against registration data
-  validationRules Json      @db.JsonB
+  validationRules Json @db.JsonB
 
   // Version number for tracking iterations without invalidating past warranties
-  version         Int       @default(1)
+  version Int @default(1)
 
   // Master switch to activate/deactivate this warranty template
-  isActive        Boolean   @default(true)
+  isActive Boolean @default(true)
+
+  // Soft-delete timestamp - when set, template is considered deleted
+  deletedAt DateTime? @db.Timestamptz
+
+  // User ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Relations ---
 
   // Organization this template belongs to
-  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // Form schema this template is linked to
-  formSchema      FormSchema   @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+  formSchema FormSchema @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+
+  // User who deleted this template
+  deleter User? @relation("WarrantyTemplateDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Warranty records created from this template
-  warranties      Warranty[]
+  warranties Warranty[]
 
-  // Unique constraint per organization, schema, name, and version
+  // Unique constraint per organization, schema, name, and version (for non-deleted records via partial index)
   @@unique([orgId, formSchemaId, name, version])
+  @@index([deletedAt])
 }
 
 model Warranty {
   // Primary key - auto-generated UUID
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Registration form data that triggered this warranty creation
-  registrationFormDataId String    @db.Uuid
+  registrationFormDataId String @db.Uuid
 
   // Warranty template used to evaluate and create this warranty
-  warrantyTemplateId     String    @db.Uuid
+  warrantyTemplateId String @db.Uuid
 
   // Product form data being covered by this warranty
-  productFormDataId      String    @db.Uuid
+  productFormDataId String @db.Uuid
 
   // Optional - Part form data if this warranty covers a specific part only
-  partFormDataId         String?   @db.Uuid
+  partFormDataId String? @db.Uuid
 
   // Whether the product/part passed the warranty validation rules
-  isApplicable           Boolean   @default(false)
+  isApplicable Boolean @default(false)
 
   // Immutable snapshot of the warranty template at creation time (prevents retroactive changes)
-  templateSnapshot       Json      @db.JsonB
+  templateSnapshot Json @db.JsonB
 
   // Current warranty status - ACTIVE, EXPIRED, VOID, CLAIMED
-  status                 String    @default("ACTIVE")
+  status String @default("ACTIVE")
+
+  // Soft-delete timestamp - when set, warranty is considered deleted
+  deletedAt DateTime? @db.Timestamptz
+
+  // User ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Relations ---
 
   // Registration that created this warranty
-  registrationFormData   FormData         @relation("RegistrationWarranty", fields: [registrationFormDataId], references: [id], onDelete: Cascade)
+  registrationFormData FormData @relation("RegistrationWarranty", fields: [registrationFormDataId], references: [id], onDelete: Cascade)
 
   // Warranty template used for evaluation
-  warrantyTemplate       WarrantyTemplate @relation(fields: [warrantyTemplateId], references: [id], onDelete: Restrict)
+  warrantyTemplate WarrantyTemplate @relation(fields: [warrantyTemplateId], references: [id], onDelete: Restrict)
 
   // Product covered by this warranty
-  productFormData        FormData         @relation("WarrantyToProduct", fields: [productFormDataId], references: [id], onDelete: Cascade)
+  productFormData FormData @relation("WarrantyToProduct", fields: [productFormDataId], references: [id], onDelete: Cascade)
 
   // Part covered by this warranty (optional - null if covers whole product)
-  partFormData           FormData?        @relation("WarrantyToPart", fields: [partFormDataId], references: [id], onDelete: Cascade)
+  partFormData FormData? @relation("WarrantyToPart", fields: [partFormDataId], references: [id], onDelete: Cascade)
+
+  // User who deleted this warranty
+  deleter User? @relation("WarrantyDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([deletedAt])
 }

@@ -2,140 +2,161 @@
 
 model FormSchema {
   // Primary key - auto-generated UUID
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization this schema belongs to
-  orgId                  String    @db.Uuid
+  orgId String @db.Uuid
 
   // Form type - PRODUCT, PART, BRAND, CATEGORY, REGISTRATION, CLAIM, etc.
-  type                   String
+  type String
 
   // Display name of the form schema
-  name                   String
+  name String
 
   // Version number for tracking schema iterations without breaking existing data
-  version                Int       @default(1)
+  version Int @default(1)
 
   // JSON payload defining form fields, types, validation rules, and layout
-  schema                 Json      @db.JsonB
+  schema Json @db.JsonB
 
   // Whether this schema is active and available for form submissions
-  isActive               Boolean   @default(true)
+  isActive Boolean @default(true)
 
   // --- Schema Hierarchy Links ---
 
   // Links to Brand schema (for Product schemas that require brand selection)
-  linkedBrandSchemaId    String?   @db.Uuid
+  linkedBrandSchemaId String? @db.Uuid
 
   // Links to Category schema (for Product schemas that require category selection)
-  linkedCategorySchemaId String?   @db.Uuid
+  linkedCategorySchemaId String? @db.Uuid
 
   // Links to parent Product schema (for Part schemas that belong to a product)
-  parentProductSchemaId  String?   @db.Uuid
+  parentProductSchemaId String? @db.Uuid
+
+  // Soft-delete timestamp - when set, schema is considered deleted
+  deletedAt DateTime? @db.Timestamptz
+
+  // User ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Relations ---
 
   // Organization this schema belongs to
-  organization           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // Linked brand schema reference
-  linkedBrandSchema      FormSchema?  @relation("BrandToProduct", fields: [linkedBrandSchemaId], references: [id], onDelete: SetNull)
+  linkedBrandSchema FormSchema? @relation("BrandToProduct", fields: [linkedBrandSchemaId], references: [id], onDelete: SetNull)
 
   // Linked category schema reference
-  linkedCategorySchema   FormSchema?  @relation("CategoryToProduct", fields: [linkedCategorySchemaId], references: [id], onDelete: SetNull)
+  linkedCategorySchema FormSchema? @relation("CategoryToProduct", fields: [linkedCategorySchemaId], references: [id], onDelete: SetNull)
 
   // Parent product schema reference (for parts)
-  parentProductSchema    FormSchema?  @relation("PartToProduct", fields: [parentProductSchemaId], references: [id], onDelete: SetNull)
+  parentProductSchema FormSchema? @relation("PartToProduct", fields: [parentProductSchemaId], references: [id], onDelete: SetNull)
 
   // Reverse relations
   productSchemasWithBrand    FormSchema[] @relation("BrandToProduct")
   productSchemasWithCategory FormSchema[] @relation("CategoryToProduct")
   partSchemas                FormSchema[] @relation("PartToProduct")
 
+  // User who deleted this schema
+  deleter User? @relation("FormSchemaDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+
   // Form data submitted using this schema
-  formData               FormData[]
+  formData FormData[]
 
   // Warranty templates linked to this schema
-  warrantyTemplates      WarrantyTemplate[]
+  warrantyTemplates WarrantyTemplate[]
 
-  // Unique constraint per organization, type, name, and version
+  // Unique constraint per organization, type, name, and version (for non-deleted records via partial index)
   @@unique([orgId, type, name, version])
+  @@index([deletedAt])
 }
 
 model FormData {
   // Primary key - auto-generated UUID
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization this form data belongs to
-  orgId               String    @db.Uuid
+  orgId String @db.Uuid
 
   // Schema that defines the structure of this form data
-  formSchemaId        String    @db.Uuid
+  formSchemaId String @db.Uuid
 
   // Denormalized form type for faster queries (copied from schema)
-  formType            String
+  formType String
 
   // JSON payload containing the actual submitted data
-  data                Json      @db.JsonB
+  data Json @db.JsonB
 
   // Lifecycle status - DRAFT, ACTIVE, ARCHIVED, SUBMITTED, APPROVED, REJECTED
-  status              String    @default("ACTIVE")
+  status String @default("ACTIVE")
 
   // --- Data Hierarchy Links ---
 
   // If this is a Part, links to the parent Product record it belongs to
-  parentProductDataId String?   @db.Uuid
+  parentProductDataId String? @db.Uuid
 
   // If this is a Registration, links to the Product being registered
-  registeredProductId String?   @db.Uuid
+  registeredProductId String? @db.Uuid
 
   // Links to the Brand record this product belongs to
-  brandFormDataId     String?   @db.Uuid
+  brandFormDataId String? @db.Uuid
 
   // User who originally submitted this data
-  createdBy           String?   @db.Uuid
+  createdBy String? @db.Uuid
 
   // User who most recently edited this data
-  updatedBy           String?   @db.Uuid
+  updatedBy String? @db.Uuid
+
+  // Soft-delete timestamp - when set, form data is considered deleted
+  deletedAt DateTime? @db.Timestamptz
+
+  // User ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Relations ---
 
   // Organization this data belongs to
-  organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // Schema blueprint that defines this data structure
-  formSchema          FormSchema   @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
+  formSchema FormSchema @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
 
   // User who created this record
-  creator             User?        @relation("FormDataCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  creator User? @relation("FormDataCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   // User who last updated this record
-  updater             User?        @relation("FormDataUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  updater User? @relation("FormDataUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // User who deleted this record
+  deleter User? @relation("FormDataDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Parent product data (for parts belonging to a product)
-  parentProductData   FormData?    @relation("ProductToPart", fields: [parentProductDataId], references: [id], onDelete: Cascade)
+  parentProductData FormData? @relation("ProductToPart", fields: [parentProductDataId], references: [id], onDelete: Cascade)
 
   // Child part records under this product
-  partData            FormData[]   @relation("ProductToPart")
+  partData FormData[] @relation("ProductToPart")
 
   // Product being registered
-  registeredProduct   FormData?    @relation("RegistrationToProduct", fields: [registeredProductId], references: [id], onDelete: Restrict)
+  registeredProduct FormData? @relation("RegistrationToProduct", fields: [registeredProductId], references: [id], onDelete: Restrict)
 
   // Registration records for this product
-  registrations       FormData[]   @relation("RegistrationToProduct")
+  registrations FormData[] @relation("RegistrationToProduct")
 
   // Brand form data this product links to
-  brandFormData       FormData?    @relation("ProductToBrand", fields: [brandFormDataId], references: [id], onDelete: SetNull)
+  brandFormData FormData? @relation("ProductToBrand", fields: [brandFormDataId], references: [id], onDelete: SetNull)
 
   // Products linked to this brand
-  formsLinkedToBrand  FormData[]   @relation("ProductToBrand")
+  formsLinkedToBrand FormData[] @relation("ProductToBrand")
 
   // Warranty records created from this registration
-  warranties          Warranty[] @relation("RegistrationWarranty")
+  warranties Warranty[] @relation("RegistrationWarranty")
 
   // Warranty records for this product
-  productWarranties   Warranty[] @relation("WarrantyToProduct")
+  productWarranties Warranty[] @relation("WarrantyToProduct")
 
   // Warranty records for this part
-  partWarranties      Warranty[] @relation("WarrantyToPart")
+  partWarranties Warranty[] @relation("WarrantyToPart")
+
+  @@index([deletedAt])
 }

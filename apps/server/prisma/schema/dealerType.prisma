@@ -1,17 +1,17 @@
 // prisma/schema/dealerType.prisma
 
 // DealerType - Company-defined role templates
-// Used to group users by their function and auto-assign features
+// Used to group users by their function and define their permissions
 // Example: SupportAgent, WarrantyManager, Dealer, Retailer, Installer
 model DealerType {
   // Primary key - auto-generated UUID
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization this dealer type belongs to
-  orgId       String    @db.Uuid
+  orgId String @db.Uuid
 
   // Display name of the role (e.g., "SupportAgent", "Dealer", "Installer")
-  name        String
+  name String
 
   // Defines if this role is for INTERNAL staff or EXTERNAL partners
   // INTERNAL = COMPANY_STAFF (same org employees)
@@ -22,19 +22,26 @@ model DealerType {
   description String?
 
   // Whether this dealer type is active and can be assigned to users
-  isActive    Boolean   @default(true)
+  isActive Boolean @default(true)
 
   // User ID who created this dealer type
-  createdBy   String?   @db.Uuid
+  createdBy String? @db.Uuid
 
   // User ID who last updated this dealer type
-  updatedBy   String?   @db.Uuid
+  updatedBy String? @db.Uuid
 
   // Timestamp when dealer type was created
-  createdAt   DateTime  @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   // Timestamp automatically updated on changes
-  updatedAt   DateTime  @updatedAt @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Soft-delete timestamp - when set, dealer type is considered deleted
+  // Allows re-creating a dealer type with the same name after deletion
+  deletedAt DateTime? @db.Timestamptz
+
+  // User ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Relations ---
 
@@ -42,16 +49,22 @@ model DealerType {
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // User who created this dealer type
-  creator      User?        @relation("DealerTypeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  creator User? @relation("DealerTypeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   // User who last updated this dealer type
-  updater      User?        @relation("DealerTypeUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  updater User? @relation("DealerTypeUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // User who deleted this dealer type
+  deleter User? @relation("DealerTypeDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  // Feature access records - what features this dealer type has
+  featureAccess FeatureAccess[]
 
   // Users assigned to this dealer type via UserAccess
   userAccesses UserAccess[]
 
-  // Unique name per organization
+  // Unique name per organization (for non-deleted records via partial index)
   @@unique([orgId, name])
-
   @@index([orgId])
+  @@index([deletedAt])
 }

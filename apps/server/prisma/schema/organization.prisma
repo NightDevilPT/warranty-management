@@ -2,96 +2,106 @@
 
 model Organization {
   // Primary key - auto-generated UUID for security
-  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Display name shown in UI (e.g., "Acme North America")
-  name            String
+  name String
 
   // Official registered business name for legal documents
-  companyName     String
+  companyName String
 
   // URL-friendly unique identifier for path-based routing - Example: "acme" → domain.com/acme/login
-  slug            String           @unique
+  slug String @unique
 
   // Organization logo URL stored in S3 bucket
-  logo            String?
+  logo String?
 
   // Organization hierarchy type - ROOT (top-level parent) or BRANCH (child organization)
-  type            OrganizationType @default(ROOT)
+  type OrganizationType @default(ROOT)
 
   // Master switch to activate/deactivate entire organization - false locks out ALL users
-  isActive        Boolean          @default(true)
+  isActive Boolean @default(true)
 
   // Admin user ID who onboarded/created this organization
-  createdBy       String?          @db.Uuid
+  createdBy String? @db.Uuid
 
   // Admin user ID who last modified this organization
-  updatedBy       String?          @db.Uuid
+  updatedBy String? @db.Uuid
 
   // Timestamp when organization was first created/onboarded
-  createdAt       DateTime         @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   // Timestamp automatically updated on every modification
-  updatedAt       DateTime         @updatedAt @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Soft-delete timestamp - when set, organization is considered deleted
+  // Slug becomes available for reuse after deletion
+  deletedAt DateTime? @db.Timestamptz
+
+  // Admin user ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Hierarchy Relations ---
 
   // Points to the ultimate top-level root organization for data isolation - null for ROOT, set for BRANCH
-  rootId          String?          @db.Uuid
+  rootId String? @db.Uuid
 
   // Reference to the root organization (top-level parent)
-  root            Organization?    @relation("RootToNode", fields: [rootId], references: [id])
+  root Organization? @relation("RootToNode", fields: [rootId], references: [id])
 
   // All branches/children under this root organization
-  nodesUnderRoot  Organization[]   @relation("RootToNode")
+  nodesUnderRoot Organization[] @relation("RootToNode")
 
   // Points to the immediate parent organization - null for ROOT, set for BRANCH
-  parentId        String?          @db.Uuid
+  parentId String? @db.Uuid
 
   // Reference to the immediate parent organization
-  parent          Organization?    @relation("ParentToChild", fields: [parentId], references: [id])
+  parent Organization? @relation("ParentToChild", fields: [parentId], references: [id])
 
   // All immediate child organizations under this parent
-  children        Organization[]   @relation("ParentToChild")
+  children Organization[] @relation("ParentToChild")
 
   // --- Audit Relations ---
 
   // Admin user who created this organization
-  creator         User?            @relation("OrganizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  creator User? @relation("OrganizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   // Admin user who last updated this organization
-  updater         User?            @relation("OrganizationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  updater User? @relation("OrganizationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // Admin user who deleted this organization
+  deleter User? @relation("OrganizationDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // --- Feature Access ---
 
   // All feature access records for users in this organization
-  featureAccess   FeatureAccess[]
+  featureAccess FeatureAccess[]
 
   // --- User Access ---
 
   // All users and their access profiles within this organization
-  userAccesses    UserAccess[]
+  userAccesses UserAccess[]
 
   // --- Categories & Brands ---
 
   // Product categories defined for this organization
-  categories      Category[]
+  categories Category[]
 
   // Product brands defined for this organization
-  brands          Brand[]
+  brands Brand[]
 
   // --- Dealer Types ---
 
   // Role templates created by this organization's admins
-  dealerTypes     DealerType[]
+  dealerTypes DealerType[]
 
   // --- Forms & Data ---
 
   // Custom form structures (Product, Claim schemas) built for this organization
-  formSchemas     FormSchema[]
+  formSchemas FormSchema[]
 
   // Actual form data records belonging to this organization
-  formData        FormData[]
+  formData FormData[]
 
   // --- Warranty ---
 
@@ -100,4 +110,5 @@ model Organization {
 
   // Index for fast tenant resolution from URL slug
   @@index([slug])
+  @@index([deletedAt])
 }

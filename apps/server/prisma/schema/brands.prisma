@@ -5,40 +5,47 @@
 // Example: Samsung, Apple, LG, Sony
 model Brand {
   // Primary key - auto-generated UUID
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization this brand belongs to
-  orgId       String    @db.Uuid
+  orgId String @db.Uuid
 
   // Brand name (e.g., "Samsung", "Apple", "Sony")
-  name        String
+  name String
 
   // URL-friendly slug (e.g., "samsung", "apple")
-  slug        String
+  slug String
 
   // Optional description of this brand
   description String?
 
   // Brand logo URL stored in S3
-  logo        String?
+  logo String?
 
   // Brand official website URL
-  website     String?
+  website String?
 
   // Active status - false hides this brand from UI
-  isActive    Boolean   @default(true)
+  isActive Boolean @default(true)
 
   // User ID who created this brand
-  createdBy   String?   @db.Uuid
+  createdBy String? @db.Uuid
 
   // User ID who last updated this brand
-  updatedBy   String?   @db.Uuid
+  updatedBy String? @db.Uuid
 
   // Timestamp when brand was created
-  createdAt   DateTime  @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   // Timestamp automatically updated on changes
-  updatedAt   DateTime  @updatedAt @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Soft-delete timestamp - when set, brand is considered deleted
+  // Allows re-creating a brand with the same slug after deletion
+  deletedAt DateTime? @db.Timestamptz
+
+  // User ID who performed the soft-delete
+  deletedBy String? @db.Uuid
 
   // --- Relations ---
 
@@ -46,13 +53,16 @@ model Brand {
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // User who created this brand
-  creator      User?        @relation("BrandCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  creator User? @relation("BrandCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   // User who last updated this brand
-  updater      User?        @relation("BrandUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  updater User? @relation("BrandUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // Unique slug per organization
+  // User who deleted this brand
+  deleter User? @relation("BrandDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  // Unique slug per organization (only enforced for non-deleted records via partial index)
   @@unique([orgId, slug])
-
   @@index([orgId])
+  @@index([deletedAt])
 }

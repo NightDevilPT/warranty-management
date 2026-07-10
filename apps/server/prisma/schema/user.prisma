@@ -45,6 +45,7 @@ model User {
   updatedAt     DateTime  @updatedAt @db.Timestamptz
 
   // Soft-delete timestamp for historical audit trails - when set, user is considered deleted
+  // Email and phone become available for reuse after deletion
   deletedAt     DateTime? @db.Timestamptz
 
   // Admin user ID who performed the soft-delete
@@ -76,9 +77,6 @@ model User {
   // Features/modules last updated by this admin user
   updatedFeatures       Feature[]        @relation("FeatureUpdater")
 
-  // Feature access records for this user - what they can access in each organization
-  featureAccess         FeatureAccess[]  @relation("UserFeatureAccess")
-
   // Feature access records last modified by this user (as admin/superadmin)
   updatedFeatureAccess  FeatureAccess[]  @relation("FeatureAccessUpdater")
 
@@ -100,8 +98,38 @@ model User {
   // DealerTypes last updated by this user
   updatedDealerTypes    DealerType[] @relation("DealerTypeUpdater")
 
+  // --- Soft Delete Relations (User who performed deletions) ---
+
+  // Brands deleted by this user
+  deletedBrands         Brand[]    @relation("BrandDeleter")
+
+  // Categories deleted by this user
+  deletedCategories     Category[] @relation("CategoryDeleter")
+
+  // DealerTypes deleted by this user
+  deletedDealerTypes    DealerType[] @relation("DealerTypeDeleter")
+
+  // Organizations deleted by this user
+  deletedOrganizations  Organization[] @relation("OrganizationDeleter")
+
+  // Form schemas deleted by this user
+  deletedFormSchemas    FormSchema[] @relation("FormSchemaDeleter")
+
+  // Form data records deleted by this user
+  deletedFormData       FormData[] @relation("FormDataDeleter")
+
+  // Warranty templates deleted by this user
+  deletedWarrantyTemplates WarrantyTemplate[] @relation("WarrantyTemplateDeleter")
+
+  // Warranties deleted by this user
+  deletedWarranties     Warranty[] @relation("WarrantyDeleter")
+
+  // UserAccess records removed by this user
+  removedUserAccesses   UserAccess[] @relation("UserAccessRemover")
+
   // Indexes for fast lookups during login and user search
   @@index([email])
   @@index([phoneNumber])
   @@index([role])
+  @@index([deletedAt])
 }

@@ -1,4 +1,5 @@
 // src/middleware/guards/jwt-auth.guard.ts
+
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { ErrorService } from 'services/errors/error.service';
 import { JwtService } from 'services/jwt/jwt.service';
@@ -12,6 +13,13 @@ declare global {
         email?: string;
         phoneNumber?: string;
         role: string;
+        orgId?: string;
+        orgSlug?: string;
+        portalType?: string;
+        permissions?: string[];
+        partnerType?: string;
+        dealerTypeId?: string;
+        isAdminView?: boolean;
       };
     }
   }
@@ -43,7 +51,6 @@ export class JwtAuthGuard implements CanActivate {
         return true;
       }
 
-      // Decode without throwing errors to identify user for logs
       if (accessToken) {
         const decoded = this.jwtService.decodeToken(accessToken);
         if (decoded?.sub) {
@@ -69,11 +76,16 @@ export class JwtAuthGuard implements CanActivate {
     if (accessToken) {
       try {
         const payload = await this.jwtService.verifyAccessToken(accessToken);
+        // Attach full user context from JWT
         request.user = {
           id: payload.sub,
           email: payload.email,
           phoneNumber: payload.phoneNumber,
           role: payload.role,
+          orgId: payload.orgId,
+          orgSlug: payload.orgSlug,
+          portalType: payload.portalType,
+          permissions: payload.permissions || [],
         };
         return true;
       } catch (accessError) {

@@ -1,20 +1,6 @@
 import { PrismaClient } from '../../generated/prisma/client';
 
-interface FeatureSeedData {
-  name: string;
-  code: string;
-  description: string;
-  icon: string;
-  sortOrder: number;
-  children?: FeatureSeedData[];
-}
-
-/**
- * Complete feature hierarchy for the warranty management system
- * Codes are globally unique by using parent_code + child_code pattern
- * Example: DASHBOARD_READ, ORGANIZATION_CREATE, USER_UPDATE
- */
-const featureHierarchy: FeatureSeedData[] = [
+const featureHierarchy: any[] = [
   {
     name: 'Dashboard',
     code: 'DASHBOARD',
@@ -500,89 +486,49 @@ const featureHierarchy: FeatureSeedData[] = [
   },
 ];
 
-/**
- * Recursively create features with their children
- * All codes are already globally unique (prefixed with parent code)
- */
 async function createFeatureTree(
   prisma: PrismaClient,
-  features: FeatureSeedData[],
+  features: any[],
   adminUserId: string,
   parentId: string | null = null,
-  depth: number = 0,
 ): Promise<number> {
   let count = 0;
-  const indent = '  '.repeat(depth);
-
-  for (const featureData of features) {
+  for (const f of features) {
     try {
-      const { children, ...featureWithoutChildren } = featureData;
-
-      const feature = await prisma.feature.create({
+      const { children, ...rest } = f;
+      await prisma.feature.create({
         data: {
-          ...featureWithoutChildren,
+          ...rest,
           parentId,
           status: 'ENABLED',
           createdBy: adminUserId,
           updatedBy: adminUserId,
         },
       });
-
-      console.log(`${indent}✅ ${feature.code} - ${feature.name}`);
       count++;
-
-      // Create children recursively
-      if (children && children.length > 0) {
+      if (children)
         count += await createFeatureTree(
           prisma,
           children,
           adminUserId,
-          feature.id,
-          depth + 1,
+          (await prisma.feature.findFirst({ where: { code: rest.code } }))!.id,
         );
-      }
-    } catch (error: any) {
-      console.error(
-        `${indent}❌ Failed to create ${featureData.code} - ${featureData.name}: ${error.message}`,
-      );
+    } catch (e: any) {
+      /* skip */
     }
   }
-
   return count;
 }
 
-/**
- * Seed all features in the hierarchy
- * @param prisma - Prisma client instance
- * @param adminUserId - Admin user ID
- * @returns Total number of created features
- */
 export async function seedFeatures(prisma: PrismaClient, adminUserId: string) {
-  console.log('🔑 Seeding Features...\n');
+  console.log('┌─────────────────────────────────────────────┐');
+  console.log('│  🔑 Step 3/8: Seeding Features               │');
+  console.log('└─────────────────────────────────────────────┘\n');
 
-  // Validate admin user
-  const admin = await prisma.user.findUnique({
-    where: { id: adminUserId },
-  });
-
-  if (!admin) {
-    throw new Error(`Admin user not found with ID: ${adminUserId}`);
-  }
-
-  // Clear existing features
   await prisma.featureAccess.deleteMany();
   await prisma.feature.deleteMany();
 
-  console.log('🧹 Cleared existing features\n');
-  console.log('📁 Creating feature hierarchy...\n');
-
-  const totalCreated = await createFeatureTree(
-    prisma,
-    featureHierarchy,
-    adminUserId,
-  );
-
-  console.log(`\n✅ Successfully created ${totalCreated} features\n`);
-
-  return totalCreated;
+  const total = await createFeatureTree(prisma, featureHierarchy, adminUserId);
+  console.log(`   ✅ ${total} features created (14 modules + actions)\n`);
+  return total;
 }

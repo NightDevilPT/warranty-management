@@ -7,7 +7,6 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { MailModule } from 'services/mail/mail.module';
 import { PrismaModule } from 'services/prisma/prisma.module';
-import { OrgUserModule } from './modules/org-user/org-user.module';
 
 @Module({
   imports: [
@@ -19,7 +18,6 @@ import { OrgUserModule } from './modules/org-user/org-user.module';
     MailModule,
     ...AllModules,
     ...CommonModules,
-    OrgUserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,704 +1,465 @@
 # Warranty Management System (WMS) - Product & Admin Flow Spec
 
-This document defines the portals, roles, permissions model, and onboarding flows for building the Warranty Management System.
+## Updated with Soft Delete, Multi-Role Users & Complete Database Design
+
+This document defines the portals, roles, permissions model, onboarding flows, soft delete strategy, and multi-role user handling for building the Warranty Management System.
+
+---
 
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [Portals](#portals)
-   - [Admin Portal (SYSTEM_ADMIN)](#admin-portal-system_admin)
-   - [Company Portal (Company Users)](#company-portal-company-users)
-   - [Consumer Portal (End Customers)](#consumer-portal-end-customers)
 3. [Core Concepts](#core-concepts)
-   - [User Data Model](#user-data-model)
-   - [Organizations & Hierarchy](#organizations--hierarchy)
-   - [Partner Creation: Internal vs External](#partner-creation-internal-vs-external)
-   - [DealerType (Company-Defined Partner Categories)](#dealertype-company-defined-partner-categories)
-   - [Hierarchical Branch Creation](#hierarchical-branch-creation)
-   - [Partner Creation Flow Diagram](#partner-creation-flow-diagram)
-   - [Real-World Examples](#real-world-examples)
-   - [DealerType and Permission Auto-Assignment](#dealertype-and-permission-auto-assignment)
-   - [Roles vs. DealerType vs. Permissions](#roles-vs-dealertype-vs-permissions)
-   - [Company Feature/Module Visibility (UI Access)](#company-featuremodule-visibility-ui-access)
 4. [Key Features](#key-features)
-   - [Dynamic Forms](#dynamic-forms)
-   - [Dynamic Warranty Templates](#dynamic-warranty-templates)
-   - [Custom Email Templates](#custom-email-templates)
 5. [Flows](#flows)
-   - [Company Onboarding (SYSTEM_ADMIN)](#company-onboarding-system_admin)
-   - [User & Partner Invitation](#user--partner-invitation)
-   - [Consumer Registration & Claims](#consumer-registration--claims)
 6. [Roles & Access Rules](#roles--access-rules)
+7. [Permission Resolution](#permission-resolution)
+8. [Soft Delete & Data Integrity](#soft-delete--data-integrity)
+9. [Multi-Role User Handling](#multi-role-user-handling)
+10. [Database Tables Reference](#database-tables-reference)
+11. [Missing / Recommended Features](#missing--recommended-features)
 
 ---
 
 ## Overview
 
-The Warranty Management System is a multi-tenant platform that lets companies manage warranty workflows through configurable portals. Each company can have:
+The Warranty Management System is a multi-tenant platform that lets companies manage warranty workflows through configurable portals. Each company operates in complete data isolation with its own users, products, brands, categories, and warranty rules.
 
-- custom form schemas (for products, claims, registrations, brands, categories, etc.) - configured by ADMIN,
-- custom warranty templates and validation rules - configured by ADMIN,
-- custom partner types (dealer/retailer/installer/repairer/etc.) - configured by Company Super Admin,
-- custom user permissions and UI module visibility.
+**What each company can have:**
 
-**Key distinction**: Form schemas and warranty templates are "Core Configuration" managed only by SYSTEM_ADMIN. Company Super Admin uses these schemas to add data but cannot modify the schema structure itself.
+- Custom form schemas for products, claims, registrations, and other entity types, configured exclusively by ADMIN
+- Custom warranty templates with automated validation rules, configured exclusively by ADMIN
+- Custom partner types (DealerTypes) for both internal staff and external business partners, configured by Company Super Admin
+- Custom user permissions and UI module visibility, controlled through DealerType assignments
 
-The onboarding starts with the platform admin team (SYSTEM_ADMIN) creating the company, enabling required modules, and creating form schemas + warranty templates. After handover, the company’s COMPANY_SUPER_ADMIN manages day-to-day operations: adding products, handling registrations/claims, creating partner types, and managing users/partners.
+**Key distinction**: Form schemas and warranty templates are "Core Configuration" managed only by SYSTEM_ADMIN. Company Super Admin uses these schemas daily to add data but cannot modify their structure. This separation ensures consistency across the platform while giving companies flexibility in their operations.
+
+**Soft Delete Philosophy**: The system never physically deletes records. Instead, every major table includes `deletedAt` and `deletedBy` fields. When a record is "deleted", the timestamp is set but the record remains for audit purposes. Unique constraints use PostgreSQL partial indexes with `WHERE "deletedAt" IS NULL`, allowing deleted records to be recreated with the same unique identifiers. This preserves complete audit trails and allows data recovery.
+
+**Multi-Role User Philosophy**: A person has exactly one User record for their entire lifetime on the platform, identified by their unique email address. Through multiple UserAccess records, the same person can be an employee at one company, a consumer at another, and a partner at a third. The UserAccess table's unique constraint includes `userId`, `orgId`, and `portalType`, allowing the same user to have both COMPANY and CONSUMER access to the same organization simultaneously.
+
+---
 
 ## Portals
 
 ### Admin Portal (SYSTEM_ADMIN)
 
-Purpose: platform-wide administration and company onboarding.
+**URL Pattern**: `/admin`
 
-System Admin can:
+**Purpose**: Platform-wide administration and company onboarding. This portal is accessible only to users with the ADMIN role.
 
-- **Onboard companies**: create the company root organization and base configuration (logo, currency, address, etc.).
-- **Configure company modules/features**: enable what the company should see/use in the UI (examples: Claims, Products, Warranty Registration, Partner Types).
-- **Create and manage form schemas** for each company (Core Configuration):
-  - Product Form Schema (defines what fields a product has)
-  - Claim Form Schema (defines what fields a claim has)
-  - Registration Form Schema (defines what fields a product registration has)
-  - Category/Brand/Fault/Issue schemas (as needed)
-  - Maybe in future we will add more form schema as per requirement to support all company types (like : Cars, Toys, Cloths, etc companies)
-- **Create and manage warranty templates** for each company (Core Configuration):
-  - Define warranty rules and conditions
-  - Map rules to registration form schema fields
-  - Set warranty terms, periods, and validation logic
-- **Version control schemas and templates** when changes are needed
-- **Invite the company’s COMPANY_SUPER_ADMIN** and optionally create additional initial company users.
-- **View & manage onboarded companies**: list companies, inspect their configuration and records (admin visibility into system data).
+**System Admin capabilities**:
 
-**Important**: Form schemas and warranty templates are "Core Configuration" items managed only by SYSTEM_ADMIN. Company Super Admin cannot create, edit, or modify these - they can only USE them to add data (products, registrations, claims). The Admin Portal is the only place where system-level company configuration is created (modules, schemas, templates).
+- **Onboard companies**: Create root organizations with base configuration including company name, URL-friendly slug, official business name, and logo. The slug is unique across all non-deleted organizations.
+
+- **Configure company features**: Enable which modules and features each company can access by creating FeatureAccess records with a reference DealerType. This defines the maximum permissions any user in that company can ever have. Features can be enabled or disabled per organization at any time, with changes taking effect on the next permission resolution.
+
+- **Create and manage form schemas** for each company as Core Configuration. These schemas define the structure of data entry forms. Supported types include Product Schema (defines product fields), Claim Schema (defines claim fields), Registration Schema (defines registration fields), and others as needed. Each schema has a version number for tracking changes without breaking existing data. Company Super Admin cannot create, edit, or delete form schemas.
+
+- **Create and manage warranty templates** for each company as Core Configuration. These templates define warranty types, coverage periods, and JSON validation rules with AND/OR conditions. Templates are linked to form schemas to indicate which entity type they apply to. Company Super Admin cannot create, edit, or delete warranty templates.
+
+- **Version control schemas and templates**: When changes are needed, new versions are created while existing data continues to reference the version used at the time of creation.
+
+- **Invite the company's COMPANY_SUPER_ADMIN**: Create the initial user account and UserAccess record that establishes them as the organization's administrator. An invitation email is sent for account setup.
+
+- **View and manage onboarded companies**: List all companies, inspect their configuration and records. ADMIN has global visibility into all system data for support and oversight purposes.
+
+- **Soft delete organizations**: When a company leaves the platform, set deletedAt on the organization rather than physically removing it. The slug becomes available for reuse. All child organizations and data records are preserved for audit.
 
 ### Company Portal (Company Users)
 
-Purpose: tenant-specific operations and configuration (within a single company context).
+**URL Pattern**: `/{companySlug}/app` for the main application, `/{companySlug}/login` for authentication.
 
-Company users include COMPANY_SUPER_ADMIN and COMPANY_PARTNER.
+**Purpose**: Tenant-specific operations and configuration within a single company context. Users include COMPANY_SUPER_ADMIN, COMPANY_STAFF, and COMPANY_PARTNER.
 
-Suggested path-based tenant routing (single domain):
+**Company Super Admin capabilities**:
 
-- Company Portal: `/{companySlug}/login` and `/{companySlug}/app/...`
-- Consumer Portal: `/{companySlug}/consumer/...`
-- Admin Portal: `/admin/...` (global)
+- **Add products** using the product form schema defined by ADMIN. The system renders form fields matching the schema, and the admin fills in the values.
 
-Company Super Admin can:
+- **Add product registrations** using the registration form schema. Registrations track purchase details and trigger automated warranty evaluation.
 
-- **Add products** (using the product form schema defined by ADMIN).
-- **Add product registrations** (using the registration form schema defined by ADMIN).
-- **Handle consumer claims** (using the claim form schema defined by ADMIN).
-- **Manage brands, categories, faults, issues** (using respective schemas defined by ADMIN).
-- **Create DealerTypes** for both Internal and External (e.g., SupportAgent, Dealer, Retailer, Installer) with specific permissions.
-- **Add partners/staff**:
-  - **Internal** (partnerType: Internal): employees who belong to the same company org + DealerType.
-  - **External** (partnerType: External): partners who act as a new child organization + DealerType.
-- Both Internal and External use **DealerType for permissions**. UI shown based on DealerType permissions when user logs in.
-- **Control UI visibility for company roles**: only show permission toggles and modules that were enabled for that company by SYSTEM_ADMIN. The same restriction applies to child organizations: when creating partner types or personas, only permissions currently assigned to that organization can be toggled for new partners.
+- **Handle consumer claims** using the claim form schema. Claims go through defined status workflows from submission to resolution.
 
-**Important**: Company Super Admin does NOT manage form schemas or warranty templates. These are "core configuration" items created and managed by SYSTEM_ADMIN during company onboarding.
+- **Manage brands, categories, and other business data**. These are scoped to the organization through orgId.
 
-**Partner Types (see Core Concepts for details):**
+- **Create DealerTypes** for both Internal and External users with specific permissions. When creating a DealerType, the system shows only features that the Company Super Admin themselves has access to. This enforces the permission inheritance ceiling.
 
-- **Internal** (partnerType: Internal): employees who belong to the same company org + DealerType for permissions.
-- **External** (partnerType: External): partners who act as a new child organization (branch) + DealerType for permissions. Can have their own Internal staff and External partners.
-- Both use **DealerType** for permissions. UI shown based on DealerType permissions.
+- **Add Internal staff** (COMPANY_STAFF) who stay in the same organization. The user is invited with partnerType INTERNAL and a selected DealerType. No new organization is created.
+
+- **Add External partners** (COMPANY_PARTNER) who get their own branch organization. The user is invited with partnerType EXTERNAL and a selected DealerType. A new BRANCH organization is automatically created with rootId pointing to the top-level ROOT and parentId pointing to the inviting organization.
+
+- **Control UI visibility for company roles**: Only features enabled by ADMIN appear as toggleable permissions when creating or editing DealerTypes.
+
+**Company Super Admin restrictions**:
+
+- Cannot create, edit, or delete form schemas (ADMIN only)
+- Cannot create, edit, or delete warranty templates (ADMIN only)
+- Cannot assign features they themselves do not have (permission ceiling)
+
+**Partner Types**:
+
+- **Internal** (partnerType: INTERNAL): Employees who belong to the same organization. They get a UserAccess record with the same orgId and a DealerType for permissions.
+
+- **External** (partnerType: EXTERNAL): Business partners who get their own branch organization. A new BRANCH organization is created. They can manage their own branch by adding internal staff and external sub-partners.
+
+- Both types use DealerType for permissions. The UI shown to the user is based on their DealerType's assigned features.
 
 ### Consumer Portal (End Customers)
 
-Purpose: end-customer self-service.
+**URL Pattern**: `/{companySlug}/consumer`
 
-Consumers can:
+**Purpose**: End-customer self-service for warranty management.
 
-- **Sign up / log in**
-- **Register products** (depending on company configuration/workflow)
-- **Initiate claims** for products they own/purchased, within the claim rules and form schema defined by the company
-- **Track their claims** (status/history, as enabled by product scope)
+**Consumer capabilities**:
 
-Consumer registration for branch/partner sales (recommended):
+- **Sign up and log in** using OTP sent to email or phone. No password is required. If the consumer already has a User account from another company, the existing account is used.
 
-- Registration should be scoped to the tenant (`rootOrgId`) and can optionally store `sellerOrgId` (branch/partner org) for routing and reporting.
-- Best UX: the seller shares a registration link/QR like `/{companySlug}/consumer/register?code=XXXX` so the system can auto-resolve tenant + product + seller org.
+- **Register products** by filling in the registration form schema fields. The system automatically evaluates warranty rules and creates applicable warranty records.
+
+- **View their warranties** and coverage details including warranty type, coverage period, and status. Consumers see only their own registrations and warranties.
+
+- **Initiate claims** for products they own, within the claim rules and form schema defined by the company. Claims follow defined status workflows.
+
+- **Track their claims** through status updates and history.
+
+- **Use the same account across multiple companies**: If a consumer buys products from different companies on the platform, they use the same email and account. Each company's consumer data is completely isolated.
+
+**Consumer registration for branch sales**: Registration can optionally store the selling organization ID for tracking which branch or partner made the sale. The consumer can be directed to the right portal through QR codes or links that auto-resolve the tenant and product context.
+
+---
 
 ## Core Concepts
 
 ### User Data Model
 
-**Single User Table for All Roles:**
+**Single User Table for All Roles**: Every person on the platform has exactly one User record identified by their unique email address. This record is created the first time they interact with any part of the system and is never duplicated. The global `role` field on the User record defaults to CONSUMER, but the actual power a user has is determined entirely by their UserAccess records.
 
-- All users are stored in a single **User** table regardless of role.
-- User roles: `ADMIN`, `COMPANY_SUPER_ADMIN`, `COMPANY_STAFF`, `COMPANY_PARTNER`, `CONSUMER`
-- The difference is defined by **relationships** to organizations.
+**Soft Delete for Users**: When a user account needs to be deactivated, the `deletedAt` timestamp is set rather than physically removing the record. The email and phone number become available for reuse through PostgreSQL partial unique indexes (`WHERE "deletedAt" IS NULL`). All historical data, form submissions, and audit trails remain intact.
 
-**Role Definitions:**
-| Role | Description | partnerType |
-|------|-------------|-------------|
-| `ADMIN` | Platform admin (global access) | - |
-| `COMPANY_SUPER_ADMIN` | Organization admin (root company or branch) | - |
-| `COMPANY_STAFF` | Internal workers/employees | Internal |
-| `COMPANY_PARTNER` | External business partners who sell/manage warranties | External |
-| `CONSUMER` | End customers who register products and file claims | - |
+**Role Definitions**:
 
-**User-Organization Relationship:**
+| Role                  | Portal          | partnerType | DealerType Needed | Permission Source                      |
+| --------------------- | --------------- | ----------- | ----------------- | -------------------------------------- |
+| `ADMIN`               | Admin Portal    | -           | No                | Full system access                     |
+| `COMPANY_SUPER_ADMIN` | Company Portal  | -           | No                | All FeatureAccess for the organization |
+| `COMPANY_STAFF`       | Company Portal  | INTERNAL    | Yes               | FeatureAccess filtered by dealerTypeId |
+| `COMPANY_PARTNER`     | Company Portal  | EXTERNAL    | Yes               | FeatureAccess filtered by dealerTypeId |
+| `CONSUMER`            | Consumer Portal | -           | No                | Hardcoded basic permissions            |
 
-- `ADMIN`: No organization relationship (global access)
-- `COMPANY_SUPER_ADMIN`: Connected to an organization (root or branch) as admin
-- `COMPANY_STAFF`: Connected to an organization + DealerType (partnerType: Internal)
-- `COMPANY_PARTNER`: Connected to an organization + DealerType (partnerType: External)
-- `CONSUMER`: Connected to registrations/claims per company (not directly to org)
+**User-Organization Relationship**: The UserAccess table connects users to organizations. Each record represents one way a user can access an organization with a specific portal type and role. The unique constraint includes `userId`, `orgId`, and `portalType`, allowing the same user to have both COMPANY and CONSUMER access to the same organization.
 
-**One User, Multiple Contexts:**
-
-- A user can be COMPANY_SUPER_ADMIN of **multiple organizations** (manages multiple companies/branches).
-- A user can be COMPANY_STAFF in **multiple organizations** (works for multiple branches).
-- A user can be COMPANY_PARTNER in **multiple organizations** (partner with multiple companies).
-- A consumer can register products across **multiple company portals** (same account, different company contexts).
+**UserAccess Creation Timing**: UserAccess records are created at the moment a user first interacts with a company, not when they log in. Creation happens during company onboarding when ADMIN invites the Company Super Admin, when a Company Super Admin invites staff or partners, or when a consumer signs up on a consumer portal to register a product. When a user logs in, the system retrieves existing UserAccess records and presents them as available profiles.
 
 ### Organizations & Hierarchy
 
-**Organization Data Model:**
+**Organization Data Model**: Organizations have a type of ROOT for top-level parent companies or BRANCH for child organizations. The hierarchy uses two fields: `rootId` always points to the top-level ROOT organization and never changes down the hierarchy, while `parentId` points to the immediate parent organization.
 
-Each organization has three key fields for hierarchy:
-
-- **`root`**: Always points to the **main root organization** (top-level company)
-- **`parentRoot`**: Points to the **immediate parent organization**
-- **`children`**: List of **child organizations** under this org
-
-**Hierarchy Example:**
+**Hierarchy Example**:
 
 ```
-Company A (Root) → Company B (Branch 1) → Company C (Branch 1.1)
+Acme Electronics (ROOT)
+  └── Best Buy Electronics (BRANCH)
+        └── City Electronics (BRANCH)
 ```
 
-**Organization Records:**
-| Organization | root | parentRoot | children |
-|--------------|------|------------|----------|
-| Company A | Company A (self) | null | [Company B] |
-| Company B | Company A | Company A | [Company C] |
-| Company C | Company A | Company B | [] |
+**Organization Records**:
 
-**Key Rules:**
+| Organization         | type   | rootId | parentId |
+| -------------------- | ------ | ------ | -------- |
+| Acme Electronics     | ROOT   | null   | null     |
+| Best Buy Electronics | BRANCH | Acme   | Acme     |
+| City Electronics     | BRANCH | Acme   | Best Buy |
 
-- `root` always points to the **top-level company** (never changes down the hierarchy)
-- `parentRoot` points to the **immediate parent** (one level up)
-- Root organization has `parentRoot = null`
-- A branch's `root` is always the same as its parent's `root`
+**Key Rules**:
 
-**User-Organization Connection:**
+- `rootId` always points to the top-level ROOT organization for all organizations in the hierarchy
+- `parentId` points to the immediate parent one level up
+- ROOT organizations have both `rootId` and `parentId` as null
+- A branch's `rootId` is always the same as its parent's `rootId`
 
-- Users connect to organizations through a **Membership** relation
-- Membership includes: `userId`, `orgId`, `dealerTypeId`, `role`
-- This allows:
-  - One user to belong to multiple organizations
-  - Same user to have different DealerTypes in different orgs
-  - Tracking which org a user belongs to
+**Soft Delete for Organizations**: When an organization is soft deleted, all user accesses become inaccessible. The slug becomes available for reuse due to the partial unique index. Child organizations and all data records are preserved but also become inaccessible through normal queries.
 
-**Internal vs External Staff:**
-
-- **Internal staff (COMPANY_STAFF)**: User's `orgId` = same as company org (no new org created)
-- **External partners (COMPANY_PARTNER)**: New organization created, user's `orgId` = new branch org
-- **Both use DealerType** for permissions. UI shown based on DealerType.
+**User-Organization Connection**: Users connect to organizations through UserAccess records. This allows one user to belong to multiple organizations, have different roles in different organizations, and be tracked for audit purposes.
 
 ### Partner Creation: Internal vs External
 
-When Company Super Admin creates a partner/staff, they must specify:
+When Company Super Admin creates a partner or staff member, they specify the partnerType, the role, and the DealerType. Both COMPANY_STAFF and COMPANY_PARTNER use DealerType for permissions. The key difference is whether a new organization is created.
 
-1. **partnerType** (system-level): `Internal` or `External`
-2. **Role**: `COMPANY_STAFF` (Internal) or `COMPANY_PARTNER` (External)
-3. **DealerType** (company-defined): applies to both (e.g., SupportAgent, Dealer, Retailer)
+**Internal (partnerType = INTERNAL) → Role: COMPANY_STAFF**: Internal workers who belong to the same company organization. No new organization is created. The UserAccess record uses the same orgId as the inviting admin. The user's permissions come from the assigned DealerType. Examples include SupportAgent, WarrantyManager, and SalesStaff.
 
-**Both COMPANY_STAFF and COMPANY_PARTNER use DealerType for permissions.** The key difference:
+**External (partnerType = EXTERNAL) → Role: COMPANY_PARTNER**: External business partners who get their own branch organization. A new BRANCH organization is automatically created with rootId pointing to the top-level ROOT and parentId pointing to the inviting organization. The UserAccess record uses the new branch's orgId. The user's permissions come from the assigned DealerType. They can manage their own branch by adding internal staff and external sub-partners. Examples include AuthorizedDealer, Retailer, Installer, and ServiceCenter.
 
-- **COMPANY_STAFF** = Internal workers, same org, no new org created
-- **COMPANY_PARTNER** = External business partners, new branch org created
+**Soft Delete for UserAccess**: When a user is removed from an organization, the UserAccess record gets a deletedAt timestamp. The user can be re-added later with a new UserAccess record because the partial unique index only applies to non-deleted records.
 
-#### Internal (partnerType = Internal) → Role: COMPANY_STAFF
+### DealerType (Company-Defined Role Templates)
 
-- Internal workers/employees who belong to the same company org.
-- **No new organization created**.
-- User belongs to the same org (`orgId` = company root org or parent branch org).
-- Assign a **DealerType** → permissions auto-assigned.
-- UI shown based on DealerType permissions.
-- Example DealerTypes: SupportAgent, WarrantyManager, QualityAuditor, SalesStaff.
+Company Super Admin creates DealerTypes for both Internal and External users with specific permissions. DealerTypes are company-defined role templates that control what users can see and do.
 
-#### External (partnerType = External) → Role: COMPANY_PARTNER = Branch Organization
+**How it works**:
 
-- External business partners who **act as a new child organization** (branch).
-- Linked to parent via `rootOrgId`.
-- Assign a **DealerType** → permissions auto-assigned to the branch org.
-- UI shown based on DealerType permissions.
-- Can have their own **Internal staff** and **External partners** (sub-branches).
-- Example DealerTypes: Dealer, Retailer, Installer, Repairer, ServiceCenter.
+1. Company Super Admin navigates to the Dealer Types section in the Company Portal.
+2. Creates a DealerType with a name, partnerType (INTERNAL or EXTERNAL), and description.
+3. Toggles permissions from the features ADMIN enabled for the organization. The admin can only toggle features they themselves possess.
+4. When inviting a user, selects the appropriate DealerType.
+5. Permissions are automatically resolved from the DealerType when the user logs in.
 
-### DealerType (Company-Defined Partner Categories)
+**Example DealerTypes for Internal Staff**:
 
-Company Super Admin creates DealerTypes for **both Internal and External** partners with specific permissions:
+- **SupportAgent**: Claims (view, update), Products (view) — 3 features
+- **WarrantyManager**: Claims (view, update, approve), Registration (view), Products (view) — 5 features
+- **QualityAuditor**: Claims (view), Products (view) — 2 features
 
-**How it works:**
+**Example DealerTypes for External Partners**:
 
-1. Company Super Admin goes to "Partner Types" / "Dealer Types" section.
-2. Creates DealerTypes for Internal staff (e.g., "SupportAgent", "WarrantyManager").
-3. Creates DealerTypes for External partners (e.g., "Dealer", "Retailer", "Installer").
-4. Toggles permissions for each DealerType (from modules enabled by SYSTEM_ADMIN).
-5. When creating a partner (Internal or External), selects the appropriate DealerType.
-6. Permissions and persona auto-assigned from DealerType.
-7. UI shown based on DealerType permissions when user logs in.
+- **AuthorizedDealer**: Products (view), Registration (create, view), Claims (view) — 4 features
+- **Retailer**: Products (view), Registration (create) — 2 features
+- **Installer**: Products (view), Registration (create), Claims (create) — 3 features
 
-**Example DealerTypes for Internal Staff:**
-
-- **SupportAgent**: Claims (view, update), Products (view)
-- **WarrantyManager**: Claims (view, update, approve), Registration (view), Products (view)
-- **QualityAuditor**: Claims (view), Products (view), Reports (view)
-
-**Example DealerTypes for External Partners:**
-
-- **Dealer**: Products (view), Registration (create, view), Claims (view)
-- **Retailer**: Products (view), Registration (create, view)
-- **Installer**: Products (view), Registration (create, view), Claims (create)
-- **ServiceCenter**: Claims (view, update), Products (view)
+**Soft Delete for DealerTypes**: When a DealerType is soft deleted, it can no longer be assigned to new users. Existing users with that DealerType continue to function normally. A new DealerType with the same name can be created after deletion.
 
 ### Hierarchical Branch Creation
 
-External partners act as branch organizations. Each branch can have its own Internal staff and External partners:
+External partners act as branch organizations. Each branch can have its own internal staff and external partners, creating a hierarchical tree structure.
 
-**Flow:**
+**Flow**:
 
-1. Company A adds External partner "Metro Dealers" with DealerType = "Dealer".
-2. Metro Dealers acts as a **branch organization** under Company A.
-3. Metro Dealers can now add their own partners:
-   - **Internal** (Metro employees - belong to Metro org)
-   - **External** (sub-branches under Metro - new child org)
-4. Metro Dealers creates their own DealerTypes (e.g., "Sub-Dealer", "Local Installer").
-5. Metro Dealers toggles permissions for their DealerTypes (subset of what Metro has).
-6. Metro Dealers adds External partner "City Electronics" with DealerType = "Sub-Dealer".
-7. City Electronics acts as a **sub-branch organization** under Metro Dealers.
+1. Company A adds External partner "Metro Dealers" with DealerType "Dealer"
+2. Metro Dealers becomes a BRANCH organization under Company A
+3. Metro Dealers can add Internal staff to their own organization
+4. Metro Dealers can create their own DealerTypes from features they possess
+5. Metro Dealers can add External sub-partners, creating deeper branches
 
-**Hierarchy Diagram:**
+**Permission Inheritance Rule**: A child partner cannot have more permissions than its parent. When a branch admin creates DealerTypes, they can only toggle features they themselves have. This creates a natural chain where permissions narrow down: 22 features at the top level might become 5 features at the dealer level, then 2 features at the sub-dealer level.
 
-```
-Company A (Root Organization)
-├── Internal (employees in Company A org)
-└── Metro Dealers (External, DealerType: Dealer) - BRANCH
-    ├── Internal (employees in Metro org)
-    └── City Electronics (External, DealerType: Sub-Dealer) - SUB-BRANCH
-        └── Internal (employees in City Electronics org)
-```
+### Company Feature/Module Visibility
 
-**Organization Records (root/parentRoot structure):**
-| Organization | root | parentRoot | children |
-|--------------|------|------------|----------|
-| Company A | Company A | null | [Metro Dealers] |
-| Metro Dealers | Company A | Company A | [City Electronics] |
-| City Electronics | Company A | Metro Dealers | [] |
+Each company sees only what ADMIN has enabled for them. This is controlled through FeatureAccess records created with a reference DealerType.
 
-**Key Points:**
+**Layer 1 - ADMIN enables features**: ADMIN creates FeatureAccess records that define the organization's maximum permission set. If a feature is not enabled at this level, it does not appear anywhere in the Company Portal.
 
-- `root` is always **Company A** (the top-level company) for all organizations in this hierarchy
-- `parentRoot` is the **immediate parent** (one level up)
-- This structure allows easy traversal: find all orgs under a root, find parent chain, etc.
+**Layer 2 - Company Super Admin assigns features**: Within enabled features, Company Super Admin creates DealerTypes and assigns subsets of features to each. The UI shows only features that are enabled for the organization.
 
-**Permission Inheritance Rule:**
-
-- A child partner cannot have more permissions than its parent.
-- DealerTypes at lower levels can only toggle permissions that the parent has.
-
-### Partner Creation Flow Diagram
-
-```mermaid
-flowchart TD
-  subgraph AdminPortal
-    sysAdmin[SYSTEM_ADMIN]
-    sysAdmin --> onboard[Onboard Company]
-    onboard --> createOrg[Create Root Org]
-    onboard --> createSchemas[Create Form Schemas]
-    onboard --> createTemplates[Create Warranty Templates]
-    onboard --> inviteCSA[Invite Company Super Admin]
-  end
-
-  subgraph CompanyPortal
-    csa[COMPANY_SUPER_ADMIN]
-    csa --> createDealerType[Create DealerTypes with Permissions]
-    csa --> addInternal[Add Internal Staff]
-    csa --> addExternal[Add External Partner]
-    addExternal --> selectDealerType[Select DealerType]
-    selectDealerType --> actAsBranch[Acts as Branch Org]
-    actAsBranch --> assignPerms[Auto-assign Permissions]
-  end
-
-  subgraph BranchPortal[External Partner / Branch Portal]
-    extPartner[Branch Admin]
-    extPartner --> createSubDealerType[Create Sub-DealerTypes]
-    extPartner --> addSubInternal[Add Internal Staff]
-    extPartner --> addSubExternal[Add External Partner]
-    addSubExternal --> selectSubDealerType[Select Sub-DealerType]
-    selectSubDealerType --> actAsSubBranch[Acts as Sub-Branch Org]
-  end
-
-  inviteCSA --> csa
-  assignPerms --> extPartner
-```
-
-### Real-World Examples
-
-**Example 1: Simple Company with Internal and External Staff**
-
-Admin onboards "Acme Electronics" (a TV manufacturer):
-
-1. **ADMIN** creates Acme Electronics company, form schemas, warranty templates.
-2. **ADMIN** invites User "John" as Company Super Admin (role: `COMPANY_SUPER_ADMIN`).
-3. **John** logs into Acme Electronics Company Portal.
-4. **John** creates DealerTypes with permissions:
-   - **For COMPANY_STAFF:** "SupportAgent" → Claims (view, update), Products (view)
-   - **For COMPANY_STAFF:** "WarrantyManager" → Claims (view, update, approve), Products (view)
-   - **For COMPANY_PARTNER:** "Dealer" → Products (view), Registration (create, view), Claims (view)
-   - **For COMPANY_PARTNER:** "Retailer" → Products (view), Registration (create, view)
-5. **John** adds **COMPANY_STAFF** (Internal workers):
-   - Alice as "SupportAgent" → role: `COMPANY_STAFF`, sees Claims and Products in UI
-   - Bob as "WarrantyManager" → role: `COMPANY_STAFF`, sees Claims (with approve) and Products in UI
-6. **John** adds **COMPANY_PARTNER** (External partner):
-   - Partner Name: "Best Buy Store"
-   - DealerType: "Dealer"
-   - Best Buy Store acts as a branch organization under Acme
-   - Best Buy admin gets role: `COMPANY_SUPER_ADMIN` of Best Buy org
-   - Best Buy workers get role: `COMPANY_STAFF` with appropriate DealerType
-
-**Example 2: External Partner Creating Sub-Partners (Hierarchical)**
-
-Acme Electronics has a major dealer "Metro Dealers":
-
-1. **John** (Acme Super Admin) adds External partner "Metro Dealers" with DealerType = "Dealer".
-2. Metro Dealers acts as a branch organization under Acme.
-3. **John** invites User "Sarah" as admin of Metro Dealers (role: `COMPANY_SUPER_ADMIN` of Metro).
-4. **Sarah** logs into Metro Dealers portal.
-5. **Sarah** creates her own DealerTypes (subset of Metro's permissions):
-   - **For Internal:** "MetroStaff" → Products (view), Registration (view)
-   - **For External:** "Sub-Dealer" → Products (view), Registration (create)
-6. **Sarah** adds **Internal** staff with DealerType = "MetroStaff" (Metro employees).
-7. **Sarah** adds **External** partner "City Electronics" with DealerType = "Sub-Dealer".
-8. City Electronics acts as a sub-branch organization under Metro Dealers.
-
-**Resulting Hierarchy:**
-
-```
-Acme Electronics (Root Company)
-├── Internal (DealerType: SupportAgent, WarrantyManager)
-├── Best Buy Store (External, DealerType: Dealer)
-│   └── Internal (Best Buy employees with DealerType)
-└── Metro Dealers (External, DealerType: Dealer)
-    ├── Internal (DealerType: MetroStaff)
-    └── City Electronics (External, DealerType: Sub-Dealer)
-        └── Internal (City Electronics employees with DealerType)
-```
-
-**Organization Records (root/parentRoot):**
-| Organization | root | parentRoot | children |
-|--------------|------|------------|----------|
-| Acme Electronics | Acme Electronics | null | [Best Buy, Metro Dealers] |
-| Best Buy Store | Acme Electronics | Acme Electronics | [] |
-| Metro Dealers | Acme Electronics | Acme Electronics | [City Electronics] |
-| City Electronics | Acme Electronics | Metro Dealers | [] |
-
-**User-Organization Memberships:**
-| User | Organization | DealerType | Role | partnerType |
-|------|--------------|------------|------|-------------|
-| John | Acme Electronics | - | COMPANY_SUPER_ADMIN | - |
-| Alice | Acme Electronics | SupportAgent | COMPANY_STAFF | Internal |
-| Bob | Acme Electronics | WarrantyManager | COMPANY_STAFF | Internal |
-| Sarah | Metro Dealers | - | COMPANY_SUPER_ADMIN | - (branch admin) |
-| (Metro worker) | Metro Dealers | MetroStaff | COMPANY_STAFF | Internal |
-| (City admin) | City Electronics | - | COMPANY_SUPER_ADMIN | - (sub-branch admin) |
-| (City worker) | City Electronics | CityStaff | COMPANY_STAFF | Internal |
-
-**Example 3: User Managing Multiple Companies**
-
-User "John" owns two businesses:
-
-- ADMIN onboards "Acme Electronics" and assigns John as Company Super Admin.
-- ADMIN onboards "Acme Home Appliances" and assigns John as Company Super Admin.
-- John can switch between companies in the Company Portal.
-- Each company has its own DealerTypes, permissions, products, etc. (using schemas created by ADMIN).
-- John manages both businesses from the same user account.
-
-**Example 4: Consumer Across Multiple Companies**
-
-Consumer "Mike" buys products from multiple companies:
-
-- Mike buys a TV from Acme Electronics dealer.
-- Mike registers TV on Acme Electronics consumer portal (`/acme-electronics/register`).
-- Mike buys a washing machine from another company "HomeAppliance Co".
-- Mike registers washing machine on HomeAppliance Co consumer portal (`/homeappliance-co/register`).
-- Mike uses the same email/account for both.
-- Mike can view his registrations and claims per company.
-
-### DealerType and Permission Auto-Assignment
-
-**Permission Flow:**
-
-1. **SYSTEM_ADMIN** enables modules for the company (Claims, Products, Registration, etc.).
-2. **Company Super Admin** sees only enabled modules in permission toggles.
-3. **Company Super Admin** creates DealerTypes for **both Internal and External** (e.g., "SupportAgent", "Dealer", "Retailer").
-4. When **Company Super Admin** creates a partner (Internal or External), selects a DealerType.
-5. Permissions auto-assigned from DealerType. UI shown based on these permissions.
-
-**Example Flow - Internal Staff:**
-
-1. Acme has modules enabled by ADMIN: Products, Claims, Registration.
-2. John creates DealerType "SupportAgent" with permissions: Claims (view, update), Products (view).
-3. John adds Internal staff "Alice" with DealerType = "SupportAgent".
-4. Alice belongs to Acme org and sees UI based on SupportAgent permissions.
-
-**Example Flow - External Partner:**
-
-1. John creates DealerType "Dealer" with permissions: Products (view), Registration (create, view).
-2. John adds External partner "Best Buy Store" with DealerType = "Dealer".
-3. Best Buy Store acts as a branch org with auto-assigned permissions.
-4. All users in Best Buy Store see UI based on Dealer permissions.
-
-**Key Terms:**
-
-- **partnerType**: System-level field with two values: `Internal` or `External`
-- **Role**: `COMPANY_STAFF` (Internal) or `COMPANY_PARTNER` (External)
-- **DealerType**: Company-defined category with permissions (applies to both roles)
-- **Internal (COMPANY_STAFF)**: employees belonging to same org + DealerType for permissions
-- **External (COMPANY_PARTNER)**: partners acting as branch org + DealerType for permissions
+**Example**: If ADMIN enables Claims and Products but not Partner Management for a company, the Company Super Admin sees only Claims and Products features when creating DealerTypes. Partner Management features are not visible and cannot be assigned.
 
 ### Roles vs. DealerType vs. Permissions
 
-This system separates three ideas:
+The system separates three distinct concepts:
 
-- **Role**: system-level classification that determines portal access and partnerType:
-  - `ADMIN` - Platform admin
-  - `COMPANY_SUPER_ADMIN` - Organization admin
-  - `COMPANY_STAFF` - Internal workers (partnerType: Internal)
-  - `COMPANY_PARTNER` - External partners (partnerType: External)
-  - `CONSUMER` - End customers
-- **DealerType**: company-defined category with specific permissions (e.g., SupportAgent, Dealer, Installer).
-- **Permission**: granular capability flags that drive API access and UI visibility (examples: `CLAIMS`, `PRODUCTS`, `REGISTRATION`, `PARTNER_TYPES`, `CAN_INVITE_PARTNER`).
+- **Role**: System-level classification that determines portal access. ADMIN has global access. COMPANY_SUPER_ADMIN has full organization access. COMPANY_STAFF and COMPANY_PARTNER have DealerType-based access. CONSUMER has basic self-service access.
 
-A practical model is:
+- **DealerType**: Company-defined role template with a specific set of permissions. Created by Company Super Admin for both internal and external users. Examples include SupportAgent, WarrantyManager, and AuthorizedDealer.
 
-- **Role** decides which portal(s) a user can access and whether they are Internal or External.
-- **DealerType** decides what permissions they have and what UI they see inside the Company Portal.
-- Both `COMPANY_STAFF` and `COMPANY_PARTNER` use DealerType for permissions.
+- **Permission**: Granular capability flags that drive API access and UI visibility. Stored as Feature records with unique codes like PRODUCT_CREATE, CLAIM_VIEW, and REGISTRATION_APPROVE.
 
-### Company Feature/Module Visibility (UI Access)
+**Practical Model**: Role determines which portal a user accesses and whether they are internal or external. DealerType determines what permissions they have and what they see in the UI. Staff and partners both use DealerType for permissions. Company Super Admin has full access to all organization-enabled features without needing a DealerType.
 
-Each company should only see what they purchased/require. This is controlled in two layers:
-
-1. **Company Modules (enabled by SYSTEM_ADMIN)**
-
-- Defines which modules exist for that tenant (e.g., Claims module ON/OFF, Product Schema Builder ON/OFF).
-- If a module is disabled at the tenant level, it must not appear in the UI and must not be assignable via permissions.
-
-2. **Company Permissions (managed by COMPANY_SUPER_ADMIN)**
-
-- Within enabled modules, the company can create personas and assign permissions.
-- UI shows permission toggles only for modules enabled for that company.
-
-Example: if SYSTEM_ADMIN enabled `CLAIMS` and `CLAIM_FORM_SCHEMA`, then the Company Super Admin can decide which personas can access Claims and the claim schema builder. If `PRODUCT_FORM_SCHEMA` is not enabled, it should not appear anywhere in the Company Portal permission UI.
+---
 
 ## Key Features
 
-### Dynamic Forms
+### Dynamic Forms (Core Configuration)
 
-- Generate custom schemas tailored to company requirements.
-- Supported schema types can include (based on enabled modules):
-  - Product
-  - Warranty/Registration
-  - Claim
-  - Brand / Category / Fault / Issue
-  - Partner Types / Partner onboarding forms (if needed)
+Form schemas are dynamic form definitions created by ADMIN. They define the structure of data entry forms as JSON blueprints with fields, types, validation rules, and UI layout.
 
-NOTE: may be we add more form schema to manage warranty management properly.
+**Supported schema types**: Product, Part, Registration, Claim, and others as needed. Each schema has a version number for tracking changes without breaking existing data. Schemas can be linked to each other, such as Part schemas linking to Product schemas.
 
-### Dynamic Warranty Templates
+**Company usage**: Company users fill out forms based on these schemas daily but cannot modify the schema structure. If a company needs a new field, they must request ADMIN to update the schema. FormData records store the actual submissions and reference the schema version used.
 
-- Companies can define multiple warranty types and templates.
-- Product selection determines which warranty template is attached/available.
-- Templates support terms + rule validations at registration/claim time.
+**Soft delete**: When a schema is soft deleted, existing FormData records referencing it remain intact. New submissions cannot use the deleted schema.
+
+### Dynamic Warranty Templates (Core Configuration)
+
+Warranty templates define warranty terms and automated validation rules. Created by ADMIN and linked to form schemas.
+
+**Template structure**: Each template has a name, warranty type, version, and JSON validation rules with AND/OR conditions. Rules can reference fields from the registration, product, parts, brand, and categories.
+
+**Automated evaluation**: When a product is registered, the warranty engine evaluates all active templates linked to the product's form schema. For each applicable template, a Warranty record is created with an immutable `templateSnapshot` that captures the complete template at that moment. This prevents retroactive changes from affecting existing warranties.
+
+**Soft delete**: Deleted templates are not evaluated for new registrations, but existing warranties created from them remain valid with their snapshots intact.
 
 ### Custom Email Templates
 
-- Company admins can customize emails for system events.
-- Example events: `REGISTRATION_CREATED`, `CLAIM_CREATED`, `CLAIM_UPDATED`, `REGISTRATION_UPDATED`.
-- Templates support dynamic variables in subject and body (HTML/text).
+Company admins can customize email templates for system events such as registration created, claim created, claim updated, and registration updated. Templates support dynamic variables in subject and body for personalization.
+
+---
 
 ## Flows
 
 ### Company Onboarding (SYSTEM_ADMIN)
 
-1. **Requirement Gathering**
-   - Identify which modules are needed for the company (Claims, Products, Registration, Partner Types, schemas, etc.).
+**Step 1 - Requirement Gathering**: ADMIN identifies which modules and features the company needs based on their business requirements.
 
-2. **Create Root Organization**
-   - Create company org + base info (logo/currency/address/etc.).
+**Step 2 - Create Root Organization**: ADMIN creates the ROOT organization with name, slug, company name, logo, and other base configuration. The slug is unique across all non-deleted organizations.
 
-3. **Enable Company Modules**
-   - Persist which modules are enabled for that tenant (this drives UI visibility + permission options).
+**Step 3 - Enable Company Features**: ADMIN creates a reference DealerType (named something like "OrgFeatures_CompanyName") and FeatureAccess records linking this DealerType to the features selected for the company. These records define the maximum permissions any user in the company can ever have.
 
-4. **Create Form Schemas (Core Configuration)**
-   - Create and configure form schemas (product, claim, registration, brand/category/fault/issue as required).
-   - These schemas define what fields the company uses for each entity type.
-   - Only SYSTEM_ADMIN can create/edit these.
+**Step 4 - Create Form Schemas**: ADMIN creates form schemas for Product, Part, Registration, Claim, and any other needed types. These are Core Configuration that Company Admin cannot modify.
 
-5. **Create Warranty Templates (Core Configuration)**
-   - Create warranty templates with rules and validation logic.
-   - Map rules to registration form schema fields.
-   - Only SYSTEM_ADMIN can create/edit these.
+**Step 5 - Create Warranty Templates**: ADMIN creates warranty templates with validation rules linked to the appropriate form schemas.
 
-6. **Invite COMPANY_SUPER_ADMIN**
-   - Send onboarding email to complete signup and verify account.
+**Step 6 - Invite Company Super Admin**: ADMIN creates a User record for the Company Super Admin and a UserAccess record with role COMPANY_SUPER_ADMIN, portalType COMPANY, and no dealerTypeId. An invitation email is sent.
 
-7. **Handover**
-   - After signup, the COMPANY_SUPER_ADMIN can:
-     - Add products (using the product schema created by ADMIN)
-     - Add registrations, handle claims (using respective schemas)
-     - Create **DealerTypes** for both Internal and External (e.g., SupportAgent, Dealer, Retailer)
-     - Add **COMPANY_STAFF** (Internal workers - same org + DealerType)
-     - Add **COMPANY_PARTNER** (External partners - branch org + DealerType)
-     - UI shown based on DealerType permissions when staff logs in
-   - **COMPANY_SUPER_ADMIN cannot**: create/edit form schemas or warranty templates.
+**Step 7 - Handover**: After the Company Super Admin accepts the invitation and sets up their account, they take over day-to-day operations including adding products, handling registrations and claims, creating DealerTypes, and managing users and partners.
 
 ### User & Partner Invitation
 
-1. **Invitation Created**
-   - An admin (SYSTEM_ADMIN or COMPANY_SUPER_ADMIN) invites a user with name/email + target organization context.
-   - For partners, specify: **partnerType** (Internal/External) and **DealerType** (for both Internal and External).
+**Invitation Created**: An admin invites a user with their name, email, target organization context, role, partnerType, and DealerType.
 
-2. **Email Trigger**
-   - COMPANY_SUPER_ADMIN onboarding email (initial company/branch admin).
-   - COMPANY_STAFF invitation email (internal workers).
-   - COMPANY_PARTNER invitation email (external partner users).
+**For Internal Staff (partnerType: INTERNAL)**: The system checks if the user already has a User account. If not, creates one. Then creates a UserAccess record with the same organization ID as the inviter, role COMPANY_STAFF, partnerType INTERNAL, and the selected DealerType. No new organization is created.
 
-3. **Account + Organization Linking**
-   - User account is created/activated on signup.
-   - For **External** (partnerType: External):
-     - Partner acts as a new child organization (branch) with selected DealerType.
-     - Link to parent via `rootOrgId`.
-   - For **Internal** (partnerType: Internal):
-     - User belongs to the same company org (no new org created).
+**For External Partners (partnerType: EXTERNAL)**: The system creates a new BRANCH organization with rootId pointing to the top-level ROOT and parentId pointing to the inviter's organization. The system checks if the user already has a User account. If not, creates one. Then creates a UserAccess record with the new branch organization ID, role COMPANY_PARTNER, partnerType EXTERNAL, and the selected DealerType.
 
-4. **Permission Assignment**
-   - **Both Internal and External** get permissions from assigned DealerType.
-   - UI shown based on DealerType permissions when user logs in.
+**Account Linking**: If the invited email already has a User record on the platform, the existing record is used. The system checks for existing UserAccess records (where deletedAt is null) to prevent duplicate active accesses.
 
-Note: a single user can be associated with multiple organizations (multi-org memberships), enabling the same user to operate under different company contexts if allowed.
+**Permission Assignment**: Both internal and external users get permissions from their assigned DealerType. The UI they see is based on these permissions.
 
 ### Consumer Registration & Claims
 
-1. Consumer signs up / logs in.
-2. Consumer registers a product (if the workflow requires registration first).
-3. Consumer initiates a claim for an owned/registered product.
-4. Claim fields/validation follow the company’s claim schema and warranty rules.
+**Consumer Signup**: Consumer visits the consumer portal and enters their email. System checks if User exists. If not, creates one. System checks if UserAccess exists for this user, organization, and CONSUMER portal type. If not, auto-creates one with portalType CONSUMER. An OTP is sent for authentication.
 
-## Roles & Access Rules
+**Product Registration**: Consumer fills in registration form fields defined by the Registration FormSchema. System creates a FormData record and runs the warranty evaluation engine to generate Warranty records.
 
-| Role                  | Portal          | partnerType | Description                         |
-| --------------------- | --------------- | ----------- | ----------------------------------- |
-| `ADMIN`               | Admin Portal    | -           | Platform admin with global access   |
-| `COMPANY_SUPER_ADMIN` | Company Portal  | -           | Organization admin (root or branch) |
-| `COMPANY_STAFF`       | Company Portal  | Internal    | Internal workers/employees          |
-| `COMPANY_PARTNER`     | Company Portal  | External    | External business partners          |
-| `CONSUMER`            | Consumer Portal | -           | End customers                       |
-
-- **ADMIN** (SUPER_ADMIN)
-  - Portals: Admin Portal (and can be granted visibility into Company/Consumer views if required for support)
-  - Scope: global across all companies
-  - Responsibilities: onboarding companies, enabling modules, **creating/managing form schemas and warranty templates** (core configuration), system-level oversight
-
-- **COMPANY_SUPER_ADMIN**
-  - Portals: Company Portal
-  - Scope: full access within their organization (root company or branch)
-  - Can be admin of root company OR admin of a branch organization
-  - Responsibilities: add products, add registrations, handle claims, manage brands/categories/faults/issues, create **DealerTypes**, add Internal staff (COMPANY_STAFF) and External partners (COMPANY_PARTNER)
-  - **Cannot do**: create/edit form schemas or warranty templates (managed by ADMIN)
-
-- **COMPANY_STAFF** (partnerType: Internal)
-  - Portals: Company Portal (restricted)
-  - Scope: permission-based within their organization context
-  - Internal workers/employees who belong to the same org
-  - Permissions from assigned DealerType (e.g., SupportAgent, WarrantyManager)
-  - UI shown based on DealerType permissions
-
-- **COMPANY_PARTNER** (partnerType: External)
-  - Portals: Company Portal (restricted)
-  - Scope: permission-based within their organization context
-  - External business partners who sell/manage warranties
-  - Belong to a branch organization
-  - Permissions from assigned DealerType (e.g., Dealer, Retailer, Installer)
-  - UI shown based on DealerType permissions
-
-- **CONSUMER**
-  - Portals: Consumer Portal
-  - Scope: only their own registrations/products/claims
+**Claim Filing**: Consumer selects a warranty, fills in claim form fields defined by the Claim FormSchema. System creates a FormData record with status SUBMITTED. Staff with appropriate permissions process the claim through status transitions.
 
 ---
 
-## Missing / Recommended Features to Add (Before Development)
+## Roles & Access Rules
 
-These items are commonly needed in real warranty systems and help you avoid redesign later. You can mark them as **MVP** vs **Phase 2** based on timeline.
+| Role                  | Portal          | partnerType | DealerType | Permission Source                                  |
+| --------------------- | --------------- | ----------- | ---------- | -------------------------------------------------- |
+| `ADMIN`               | Admin Portal    | -           | No         | Full system access                                 |
+| `COMPANY_SUPER_ADMIN` | Company Portal  | -           | No         | All FeatureAccess for org (no dealerTypeId filter) |
+| `COMPANY_STAFF`       | Company Portal  | INTERNAL    | Yes        | FeatureAccess filtered by dealerTypeId             |
+| `COMPANY_PARTNER`     | Company Portal  | EXTERNAL    | Yes        | FeatureAccess filtered by dealerTypeId             |
+| `CONSUMER`            | Consumer Portal | -           | No         | Hardcoded basic permissions                        |
 
-### Cross-cutting (All Portals)
+**ADMIN**: Platform admin with global access across all companies. Onboards companies, enables features, manages core configuration including form schemas and warranty templates. Has visibility into all system data.
 
-- **Authentication & Security**
-  - Cookie/JWT strategy, password policy, optional MFA, account lockout, refresh token rotation.
-  - Role-based guards + permission checks (server-side enforcement, not only UI hiding).
-- **Audit Logs (Highly Recommended)**
-  - Track “who did what” for: module enablement, schema changes, permission changes, claim status changes, product edits.
-  - Include timestamp, actor userId, orgId, action, before/after.
-- **Notifications**
-  - Email + optional in-app notifications; event-driven triggers (claim created/updated, registration approved, invitation sent/accepted).
-- **File Uploads / Attachments**
-  - Claim attachments (invoice, photos), registration documents, warranty PDFs.
-- **Reporting & Dashboards**
-  - KPIs by company/org: claims count by status, average resolution time, registrations over time, partner performance.
-- **Search & Filters**
-  - Global search for claims/registrations/products with pagination and export.
-- **Data Ownership & Isolation**
-  - Clear tenant boundary rules: root org vs child org access, consumer data visibility, cross-org access restrictions.
-- **Standard Status Workflows**
-  - Define allowed claim status transitions (e.g., SUBMITTED → IN_REVIEW → APPROVED/REJECTED → CLOSED).
-- **Versioning Strategy**
-  - Schema versioning (draft/published), warranty template versions, backward compatibility for existing registrations/claims.
+**COMPANY_SUPER_ADMIN**: Organization administrator for root company or branch. Full access to all features ADMIN enabled for the organization. Manages products, registrations, claims, brands, categories, DealerTypes, and users. Cannot create or modify form schemas or warranty templates.
 
-### Admin Portal (SYSTEM_ADMIN) — Suggested Additions
+**COMPANY_STAFF**: Internal employees with permission-based access. Stays in the same organization. Permissions from assigned DealerType.
 
-- **Company Lifecycle**
-  - Enable/disable company, suspend access, view tenant health/status.
-- **Module Catalog / Plans**
-  - Central list of available modules; enable/disable per company; (optional) plan/billing mapping.
-- **Support Tools**
-  - Impersonate company admin (read-only or controlled), reset company admin account, resend invitations.
-- **System Templates**
-  - Default schemas/templates that can be copied into a new company during onboarding.
+**COMPANY_PARTNER**: External business partners with permission-based access. Gets their own branch organization. Permissions from assigned DealerType.
 
-### Company Portal — Suggested Additions
+**CONSUMER**: End customers with access only to their own registrations, warranties, and claims within a specific company's consumer portal.
 
-- **Partner Management Enhancements**
-  - Partner onboarding workflow (invite → accept → complete profile), partner status (active/suspended).
-- **Persona/Permission UX**
-  - Permission groups by module, “select all”, copy persona, export/import role configuration.
-- **Branch Management**
-  - Branch org creation, assignment of staff, data scope rules (what parent can see from branches).
-- **Claim Operations**
-  - Assignment to staff, internal notes, SLA dates, escalation, comment timeline.
-- **Email Template Testing**
-  - Preview templates with sample data, test send, template versioning.
+---
 
-### Consumer Portal — Suggested Additions
+## Permission Resolution
 
-- **Product Ownership Verification**
-  - OTP/email verification, invoice upload, serial number validation, purchase date validation rules.
-- **Claim Tracking**
-  - Timeline view, status notifications, messaging/comments with support (optional).
-- **Self-service Tools**
-  - Resubmit missing info, edit profile, view registered products, download warranty certificate (optional).
+### How Permissions Are Resolved
 
-### Module/Permission List (Recommend Defining Early)
+When a user accesses any protected route, the system resolves their permissions through role-based logic.
 
-To avoid ambiguity later, define a canonical list for:
+**For COMPANY_SUPER_ADMIN**: The system queries all FeatureAccess records where orgId matches the user's organization and isActive is true. No dealerTypeId filter is applied. This returns all features ADMIN enabled for the organization. The Company Super Admin gets the full organization permission set.
 
-- **Company modules** (tenant enable/disable): e.g., `PRODUCTS`, `CLAIMS`, `PARTNER_TYPES`, `PRODUCT_FORM_SCHEMA`, `CLAIM_FORM_SCHEMA`, `REGISTRATION`, `EMAIL_TEMPLATES`, `WARRANTY_TEMPLATES`
-- **Permissions** (within enabled modules): module access + actions like `CAN_INVITE_USER`, `CAN_INVITE_PARTNER`, `CAN_MANAGE_PERSONAS`, `CAN_MANAGE_SCHEMAS`, `CAN_MANAGE_TEMPLATES`
+**For COMPANY_STAFF and COMPANY_PARTNER**: The system checks if the user has a dealerTypeId. If not, returns no permissions. If yes, queries FeatureAccess where orgId matches, dealerTypeId matches the user's assigned DealerType, and isActive is true. Returns only those features.
 
-Rule: **Permissions shown in Company Portal UI must be a subset of modules enabled by SYSTEM_ADMIN for that company.**
+**For CONSUMER**: The system returns hardcoded basic permissions without querying FeatureAccess. These include product registration, warranty viewing, claim creation, claim viewing, and registration viewing.
+
+### Permission Inheritance Ceiling
+
+When Company Super Admin creates a DealerType, the system shows only features they themselves have access to. Branch admins can only assign features they possess. This creates a natural chain where permissions only narrow down. No one can grant permissions they do not have.
+
+---
+
+## Soft Delete & Data Integrity
+
+### Soft Delete Design
+
+Every major table includes `deletedAt` (timestamp) and `deletedBy` (user reference) fields. When a record is "deleted", the `deletedAt` timestamp is set to the current time. The record remains in the database for audit purposes. All normal application queries filter by `WHERE "deletedAt" IS NULL` to show only active records.
+
+### Unique Constraints with Partial Indexes
+
+PostgreSQL partial unique indexes use the condition `WHERE "deletedAt" IS NULL`. This means uniqueness is only enforced among active, non-deleted records. A deleted record with a particular slug or name does not block a new active record with the same values.
+
+**Tables with partial unique indexes**: User (email and phone), Organization (slug), Brand (orgId + slug), Category (orgId + slug), DealerType (orgId + name), FormSchema (orgId + type + name + version), WarrantyTemplate (orgId + formSchemaId + name + version), UserAccess (userId + orgId + portalType).
+
+### Audit Trail
+
+Every table tracks who created, updated, and deleted each record. The User model has reverse relations for all delete operations, enabling queries like "find all brands deleted by John" or "show all deletions performed by ADMIN in the last month."
+
+### Soft Delete Examples
+
+**Brand Deletion and Recreation**: Acme deletes "Samsung" brand by setting deletedAt. The brand no longer appears in active lists. Acme can create a new "Samsung" brand because the partial unique index ignores the deleted record. The old record remains for historical reference.
+
+**User Removal and Re-addition**: Alice leaves Acme. Her UserAccess gets deletedAt. Later she returns. A new UserAccess is created because the partial unique index only applies to non-deleted records. Her previous access history is preserved in the old record.
+
+**Organization Deletion**: A company leaves the platform. ADMIN sets deletedAt on the organization. The slug becomes available for a new company. All child organizations and data are preserved for audit.
+
+---
+
+## Multi-Role User Handling
+
+### One User, Multiple Contexts
+
+A single User record can have multiple UserAccess records connecting them to different organizations with different roles and portal types. This enables a person to be an employee at one company, a consumer at another, and a partner at a third, all with the same email and login credentials.
+
+### Same Organization, Both Portals
+
+The UserAccess unique constraint includes portalType, allowing the same user to have both COMPANY and CONSUMER access to the same organization. This handles the case where an employee also purchases their employer's products for personal use.
+
+### Login Profile Selection
+
+When a user logs in, the system retrieves all their UserAccess records where deletedAt is null and presents them as available profiles. Each profile shows the organization name, portal type, and role. The user selects which context to use. The system generates a JWT token with that specific organization, portal, role, and permissions.
+
+### Data Isolation
+
+Data is isolated through two mechanisms. All queries filter by orgId to ensure users only see data from their current organization context. Consumer queries additionally filter by createdBy (userId) to ensure consumers only see their own personal data. When a user switches contexts, they get a new JWT with the new context, and all subsequent queries are scoped accordingly.
+
+---
+
+## Database Tables Reference
+
+| #   | Table            | Purpose                              | Soft Delete | Unique Constraint Type                    |
+| --- | ---------------- | ------------------------------------ | ----------- | ----------------------------------------- |
+| 1   | User             | Global user accounts                 | deletedAt   | Partial (email, phone)                    |
+| 2   | Organization     | Companies with hierarchy             | deletedAt   | Partial (slug)                            |
+| 3   | UserAccess       | User-Organization connection         | deletedAt   | Partial (userId+orgId+portalType)         |
+| 4   | DealerType       | Role templates for Internal/External | deletedAt   | Partial (orgId+name)                      |
+| 5   | Feature          | Global permission tree               | None        | Full (code, parentId+code)                |
+| 6   | FeatureAccess    | Features assigned to DealerTypes     | None        | Full (orgId+dealerTypeId+featureId)       |
+| 7   | Category         | Product categories                   | deletedAt   | Partial (orgId+slug)                      |
+| 8   | Brand            | Product brands                       | deletedAt   | Partial (orgId+slug)                      |
+| 9   | FormSchema       | Dynamic form blueprints              | deletedAt   | Partial (orgId+type+name+version)         |
+| 10  | FormData         | Form submissions                     | deletedAt   | None                                      |
+| 11  | WarrantyTemplate | Warranty rules                       | deletedAt   | Partial (orgId+formSchemaId+name+version) |
+| 12  | Warranty         | Generated warranties                 | deletedAt   | None                                      |
+| 13  | OtpVerification  | OTP codes                            | None        | None                                      |
+
+---
+
+## Missing / Recommended Features
+
+### Cross-cutting Concerns
+
+- JWT-based authentication with refresh token rotation and optional MFA
+- Comprehensive audit logging for all significant actions with before/after values
+- Email and in-app notifications for key events
+- File uploads and attachments for claims and registrations
+- Reporting dashboards with KPIs per organization
+- Global search with filtering, pagination, and export
+- Standard claim status workflow definitions with allowed transitions
+
+### Admin Portal Additions
+
+- Company lifecycle management (enable, disable, suspend)
+- Module catalog with enable/disable per company
+- Support tools for impersonation and account management
+- Default schema and template libraries for faster onboarding
+
+### Company Portal Additions
+
+- Enhanced partner onboarding workflows
+- Improved permission management UX with select all and copy functionality
+- Branch data scope controls for parent visibility
+- Claim assignment, SLA tracking, and internal notes
+- Email template preview and testing
+
+### Consumer Portal Additions
+
+- Product ownership verification methods
+- Claim timeline and status tracking
+- Self-service profile management
+- Warranty certificate downloads

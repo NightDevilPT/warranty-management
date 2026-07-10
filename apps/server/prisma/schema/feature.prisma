@@ -55,7 +55,7 @@ model Feature {
 
   // --- Access Relations ---
 
-  // All access records linking this feature to users in organizations
+  // All feature access records for dealer types in organizations
   featureAccess FeatureAccess[]
 
   // Unique constraint: same code cannot exist twice under same parent
@@ -67,58 +67,59 @@ model Feature {
   @@index([parentId])   // Find all children of a parent feature
 }
 
-// Single table for managing feature access at User level
-// Each record = one feature assigned to one user in one organization
+// FeatureAccess links features to DealerTypes (role templates), NOT users
+// Each record = one feature assigned to one dealer type in one organization
+// Users inherit features through their UserAccess.dealerTypeId
 model FeatureAccess {
   // Primary key - auto-generated UUID
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization ID - which organization this access belongs to
-  orgId       String    @db.Uuid
+  orgId        String    @db.Uuid
 
-  // User ID - which user this feature is assigned to (ALWAYS set, never null)
-  userId      String    @db.Uuid
+  // DealerType ID - which dealer type (role template) this feature is assigned to
+  dealerTypeId String    @db.Uuid
 
   // Feature ID - which feature/module/permission this access controls
-  featureId   String    @db.Uuid
+  featureId    String    @db.Uuid
 
-  // Whether this feature is active/accessible for this user - true = accessible, false = blocked
-  isActive    Boolean   @default(true)
+  // Whether this feature is active for this dealer type - true = accessible, false = blocked
+  isActive     Boolean   @default(true)
 
-  // Timestamp when the feature was enabled - set when isActive changes from false to true
-  enabledAt   DateTime? @db.Timestamptz
+  // Timestamp when the feature was enabled
+  enabledAt    DateTime? @db.Timestamptz
 
-  // Timestamp when the feature was disabled - set when isActive changes from true to false
-  disabledAt  DateTime? @db.Timestamptz
+  // Timestamp when the feature was disabled
+  disabledAt   DateTime? @db.Timestamptz
 
   // Admin/SuperAdmin user ID who last modified this access record
-  updatedBy   String?   @db.Uuid
+  updatedBy    String?   @db.Uuid
 
   // Timestamp when this access record was created
-  createdAt   DateTime  @default(now()) @db.Timestamptz
+  createdAt    DateTime  @default(now()) @db.Timestamptz
 
   // Timestamp automatically updated on every modification
-  updatedAt   DateTime  @updatedAt @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @db.Timestamptz
 
   // --- Relations ---
 
-  // Organization this access belongs to (deleted if org is deleted)
+  // Organization this access belongs to
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // User this feature is assigned to (deleted if user is deleted)
-  user         User         @relation("UserFeatureAccess", fields: [userId], references: [id], onDelete: Cascade)
+  // DealerType this feature is assigned to
+  dealerType   DealerType  @relation(fields: [dealerTypeId], references: [id], onDelete: Cascade)
 
-  // Feature this access controls (deleted if feature is deleted)
-  feature      Feature      @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  // Feature this access controls
+  feature      Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
 
   // Admin/SuperAdmin who last modified this access
-  updater      User?        @relation("FeatureAccessUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  updater      User?       @relation("FeatureAccessUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // Unique constraint: one access record per user+org+feature combination
-  @@unique([orgId, userId, featureId])
+  // Unique constraint: one access record per org + dealerType + feature combination
+  @@unique([orgId, dealerTypeId, featureId])
 
   // Indexes for faster lookups
-  @@index([orgId])        // Find all features for an organization
-  @@index([userId])       // Find all features for a specific user
-  @@index([featureId])    // Find all access records for a feature
+  @@index([orgId])          // Find all features for an organization
+  @@index([dealerTypeId])   // Find all features for a specific dealer type
+  @@index([featureId])      // Find all access records for a feature
 }
