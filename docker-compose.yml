@@ -37,6 +37,33 @@ services:
     #     networks:
     #         - app-network
 
+    # redis:
+    #     container_name: redis
+    #     image: redis:7-alpine
+    #     ports:
+    #         - "6379:6379"
+    #     # Tells redis-server to use the mounted ACL configuration file
+    #     command: redis-server --appendonly yes --aclfile /etc/redis/users.acl
+    #     volumes:
+    #         - redis_data:/data
+    #         - ./users.acl:/etc/redis/users.acl:ro
+    #     restart: unless-stopped
+    #     networks:
+    #         - app-network
+
+    # redisinsight:
+    #     container_name: redisinsight
+    #     image: redis/redisinsight:latest
+    #     ports:
+    #         - "8001:5540"
+    #     volumes:
+    #         - redisinsight_data:/data
+    #     restart: unless-stopped
+    #     depends_on:
+    #         - redis
+    #     networks:
+    #         - app-network
+
     postgres:
         container_name: postgreSQL
         image: postgres:15-alpine
@@ -54,32 +81,6 @@ services:
         networks:
             - app-network
 
-    redis:
-        container_name: redis
-        image: redis:7-alpine
-        ports:
-            - "6379:6379"
-        # Tells redis-server to use the mounted ACL configuration file
-        command: redis-server --appendonly yes --aclfile /etc/redis/users.acl
-        volumes:
-            - redis_data:/data
-            - ./users.acl:/etc/redis/users.acl:ro
-        restart: unless-stopped
-        networks:
-            - app-network
-
-    redisinsight:
-        container_name: redisinsight
-        image: redis/redisinsight:latest
-        ports:
-            - "8001:5540"
-        volumes:
-            - redisinsight_data:/data
-        restart: unless-stopped
-        depends_on:
-            - redis
-        networks:
-            - app-network
 
     pgadmin:
         container_name: pgadmin

@@ -22,6 +22,8 @@ model Organization {
   // Master switch to activate/deactivate entire organization - false locks out ALL users
   isActive Boolean @default(true)
 
+  hash          String    @unique    // "a3f2b8c1" (public URL)
+
   // Admin user ID who onboarded/created this organization
   createdBy String? @db.Uuid
 

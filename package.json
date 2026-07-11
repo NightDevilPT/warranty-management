@@ -14,7 +14,8 @@
     "prisma:seed": "pnpm --filter server exec ts-node prisma/seed/seed.ts",
     "prisma:migrate": "pnpm --filter server exec prisma migrate dev",
     "prisma:migrate:deploy": "pnpm --filter server exec prisma migrate deploy",
-    "prisma:migrate:reset": "pnpm --filter server exec prisma migrate reset"
+    "prisma:migrate:reset": "pnpm --filter server exec prisma migrate reset",
+    "prisma:migrate:dev": "pnpm --filter server exec prisma migrate dev"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
