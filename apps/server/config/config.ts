@@ -37,4 +37,14 @@ export default () => ({
       ),
     },
   },
+
+  // Redis Configuration
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    username: process.env.REDIS_USER || '',
+    password: process.env.REDIS_PASSWORD || '',
+    db: parseInt(process.env.REDIS_DB || '0', 10),
+    url: process.env.REDIS_URL || 'redis://localhost:6379/0',
+  },
 });

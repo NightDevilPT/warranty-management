@@ -1,4 +1,3 @@
-version: "3.8"
 services:
     # server:
     #     container_name: server
@@ -21,6 +20,7 @@ services:
     #     environment:
     #         - NODE_ENV=development
     #         - DATABASE_URL=postgresql://postgres:postgres@postgres:5433/warranty_system
+    #         - REDIS_URL=redis://:warranty_pass@redis:6379/0
     #         - CHOKIDAR_USEPOLLING=true
     #         - WATCHPACK_POLLING=true
     #         - WDS_SOCKET_PORT=0
@@ -32,6 +32,7 @@ services:
     #     depends_on:
     #         - postgres
     #         - floci
+    #         - redis
     #     restart: unless-stopped
     #     networks:
     #         - app-network
@@ -53,36 +54,59 @@ services:
         networks:
             - app-network
 
+    redis:
+        container_name: redis
+        image: redis:7-alpine
+        ports:
+            - "6379:6379"
+        # Tells redis-server to use the mounted ACL configuration file
+        command: redis-server --appendonly yes --aclfile /etc/redis/users.acl
+        volumes:
+            - redis_data:/data
+            - ./users.acl:/etc/redis/users.acl:ro
+        restart: unless-stopped
+        networks:
+            - app-network
+
+    redisinsight:
+        container_name: redisinsight
+        image: redis/redisinsight:latest
+        ports:
+            - "8001:5540"
+        volumes:
+            - redisinsight_data:/data
+        restart: unless-stopped
+        depends_on:
+            - redis
+        networks:
+            - app-network
+
     pgadmin:
         container_name: pgadmin
         image: dpage/pgadmin4:latest
         ports:
-            - "5050:80"  # Access pgAdmin at http://localhost:5050
+            - "5050:80"
         environment:
-            - PGADMIN_DEFAULT_EMAIL=admin@warranty.com  # Change this email
-            - PGADMIN_DEFAULT_PASSWORD=admin123         # Change this password
-            - PGADMIN_CONFIG_SERVER_MODE=False          # Allows saving passwords
+            - PGADMIN_DEFAULT_EMAIL=admin@warranty.com
+            - PGADMIN_DEFAULT_PASSWORD=admin123
+            - PGADMIN_CONFIG_SERVER_MODE=False
             - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
         volumes:
-            - pgadmin_data:/var/lib/pgadmin  # Persist pgAdmin settings
-            - ./servers.json:/pgadmin4/servers.json  # Optional: Pre-configure server
+            - pgadmin_data:/var/lib/pgadmin
+            - ./servers.json:/pgadmin4/servers.json
         restart: unless-stopped
         depends_on:
             - postgres
         networks:
             - app-network
 
-    # Floci (Local AWS Emulator)
     floci:
         container_name: floci
         image: floci/floci:latest-compat
         ports:
             - "4566:4566"
         volumes:
-            # Mount a local folder for persisting S3, SQS, etc.
             - ./floci-data:/app/data
-            # Optional: Uncomment if you eventually use Lambda, ECS, etc.
-            # - /var/run/docker.sock:/var/run/docker.sock
         restart: unless-stopped
         networks:
             - app-network
@@ -90,6 +114,8 @@ services:
 volumes:
     postgres_data:
     pgadmin_data:
+    redis_data:
+    redisinsight_data:
 
 networks:
     app-network:
