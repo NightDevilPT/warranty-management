@@ -15,7 +15,7 @@ export const SidebarRoutes: ISidebarRoutes[] = [
     id: "dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
-    href: "/admin",
+    href: "/dashboard",
   },
   {
     id: "organizations",
