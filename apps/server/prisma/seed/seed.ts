@@ -1,7 +1,10 @@
+// prisma/seed/seed.ts
+
 import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { seedUsers } from './user.seed';
+import { seedUsers } from './user/index';
+import { seedLogger } from './utils/logger';
 
 const pool = new Pool({
   connectionString:
@@ -31,14 +34,7 @@ async function clearDatabase() {
   console.log('✅ Done\n');
 }
 
-function printDivider(title: string) {
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  ${title}`);
-  console.log(`${'═'.repeat(60)}\n`);
-}
-
 async function main() {
-  console.clear();
   console.log('\n╔══════════════════════════════════════════════════════╗');
   console.log('║     🚀 Warranty Management System - Seed             ║');
   console.log('╚══════════════════════════════════════════════════════╝\n');
@@ -47,20 +43,27 @@ async function main() {
 
   const admin = await seedUsers(prisma);
 
-  printDivider('📊 SEED COMPLETE');
-  console.log(`  Administrator:  ${admin.fullName}`);
-  console.log(`  Email:          ${admin.email}`);
-  console.log(`  Phone:          ${admin.phoneNumber}`);
-  console.log(`  Role:           ${admin.role}`);
-  console.log(`  ID:             ${admin.id}\n`);
+  console.log(`${'═'.repeat(60)}`);
+  console.log('  📊 SEED COMPLETE');
+  console.log(`${'═'.repeat(60)}`);
+  console.log(`  Administrator:    ${admin.fullName}`);
+  console.log(`  Email:            ${admin.email}`);
+  console.log(`  Role:             ${admin.role}`);
+  console.log(`  Portal Type:      ${admin.portalType}`);
+  console.log(`  System Org Hash:  ${admin.organizationHash}\n`);
 
-  printDivider('🔑 LOGIN CREDENTIALS');
+  console.log(`${'═'.repeat(60)}`);
+  console.log('  🔑 LOGIN CREDENTIALS');
+  console.log(`${'═'.repeat(60)}`);
+  console.log(`  Method:    OTP (Passwordless Login)`);
   console.log(`  Email:     ${admin.email}`);
-  console.log(`  Password:  Admin@123\n`);
+  console.log(`  Endpoint:  POST /api/auth/admin/send-otp\n`);
 
   console.log(`${'═'.repeat(60)}`);
   console.log('  ✅ Database seeded successfully!');
   console.log(`${'═'.repeat(60)}\n`);
+
+  seedLogger.info('Database seed completed successfully');
 }
 
 main()
@@ -70,6 +73,7 @@ main()
   })
   .catch(async (e) => {
     console.error('❌ Seed failed:', e);
+    seedLogger.error('Seed failed', e);
     await prisma.$disconnect();
     await pool.end();
     process.exit(1);
