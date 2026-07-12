@@ -2,8 +2,6 @@ import "@workspace/ui/globals.css";
 import type { Metadata } from "next";
 import { RootProvider } from "@/components/index";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/components/context/auth-context";
-import { Toaster } from "sonner";
 import { ThemeContextProvider } from "@workspace/ui/context/theme-context";
 
 const fontSans = Geist({
@@ -27,14 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased w-full h-screen overflow-hidden`}
       >
-        <AuthProvider>
-          <ThemeContextProvider>{children}</ThemeContextProvider>
-        </AuthProvider>
-        <Toaster />
+        <ThemeContextProvider>{children}</ThemeContextProvider>
       </body>
     </html>
   );
