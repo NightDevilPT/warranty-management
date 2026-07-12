@@ -1,4 +1,10 @@
-import { ApiError, ApiResponse } from "../types/api.types";
+import {
+  ApiError,
+  ApiMeta,
+  ApiResponse,
+  PaginatedResponse,
+  PaginationMeta,
+} from "../types/api.types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -19,7 +25,12 @@ class ApiClient {
     path: string,
     params?: Record<string, string | number | boolean | undefined>,
   ): string {
-    const url = new URL(`${this.baseUrl}${path}`);
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : undefined;
+    const base = this.baseUrl.startsWith("http")
+      ? this.baseUrl
+      : `${origin ?? ""}${this.baseUrl}`;
+    const url = new URL(`${base}${path}`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") {
@@ -30,42 +41,54 @@ class ApiClient {
     return url.toString();
   }
 
-  private async request<T>(
+  // Returns the full envelope { success, statusCode, message, data, meta }
+  private async requestRaw<T>(
     path: string,
     config: RequestConfig = {},
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const { params, body, ...fetchConfig } = config;
     const url = this.buildUrl(path, params);
 
     const headers: HeadersInit = {};
-
-    // Only set Content-Type for non-FormData requests
-    if (!(body instanceof FormData)) {
+    const isFormData = body instanceof FormData;
+    if (!isFormData && body !== undefined) {
       headers["Content-Type"] = "application/json";
     }
 
     const response = await fetch(url, {
       ...fetchConfig,
-      credentials: "include", // Sends cookies (accessToken, refreshToken)
-      headers: {
-        ...headers,
-        ...fetchConfig.headers,
-      },
-      body:
-        body instanceof FormData
-          ? body
-          : body
-            ? JSON.stringify(body)
-            : undefined,
+      credentials: "include",
+      headers: { ...headers, ...fetchConfig.headers },
+      body: isFormData
+        ? body
+        : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
     });
 
-    const data: ApiResponse<T> = await response.json();
+    // Guard against empty bodies (e.g. 204 No Content) or non-JSON responses
+    const text = await response.text();
+    const json: ApiResponse<T> = text
+      ? JSON.parse(text)
+      : ({} as ApiResponse<T>);
 
-    if (!data.success) {
-      throw new ApiError(data.message, data.statusCode, data.meta);
+    if (!response.ok || !json.success) {
+      throw new ApiError(
+        json.message ?? response.statusText,
+        json.statusCode ?? response.status,
+        json.meta as ApiMeta | undefined,
+      );
     }
 
-    return data.data;
+    return json;
+  }
+
+  private async request<T>(
+    path: string,
+    config: RequestConfig = {},
+  ): Promise<T> {
+    const json = await this.requestRaw<T>(path, config);
+    return json.data;
   }
 
   async get<T>(
@@ -73,6 +96,18 @@ class ApiClient {
     params?: Record<string, string | number | boolean | undefined>,
   ): Promise<T> {
     return this.request<T>(path, { method: "GET", params });
+  }
+
+  // For list endpoints whose payload is { items, meta: PaginationMeta }
+  // e.g. GET /admin/organizations -> ListOrganizationsHandler
+  async getPaginated<T>(
+    path: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ): Promise<PaginatedResponse<T>> {
+    return this.request<PaginatedResponse<T>>(path, {
+      method: "GET",
+      params,
+    });
   }
 
   async post<T>(path: string, body?: unknown): Promise<T> {
@@ -94,21 +129,7 @@ class ApiClient {
   async upload<T>(path: string, file: File): Promise<T> {
     const formData = new FormData();
     formData.append("file", file);
-
-    const url = `${this.baseUrl}${path}`;
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-
-    const data: ApiResponse<T> = await response.json();
-
-    if (!data.success) {
-      throw new ApiError(data.message, data.statusCode, data.meta);
-    }
-
-    return data.data;
+    return this.request<T>(path, { method: "POST", body: formData });
   }
 }
 
