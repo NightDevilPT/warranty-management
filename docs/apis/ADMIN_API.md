@@ -31,14 +31,6 @@ req.user = {
 | 6   | `/api/admin/organizations/:orgId/invite-super-admin` | POST   | `{ email*, firstName*, lastName*, phoneNumber? }`      | -                                   | `id` → createdBy            | `orgId`  | InviteSuperAdminResponseDto                   | 404, 409      | ✅ DONE |
 | 7   | `/api/admin/organizations/:orgId/logo`               | POST   | multipart `file`                                       | -                                   | `id` → updatedBy            | `orgId`  | OrganizationResponseDto                       | 404, 400, 413 | ✅ DONE |
 
-**Key Features:**
-
-- Auto-generates `hash` via `uuidv4().substring(0, 8)`
-- Slug uniqueness validation (among non-deleted orgs)
-- Logo upload with old file deletion before new upload
-- System organization excluded from list
-- Super admin invitation creates User + UserAccess with COMPANY_SUPER_ADMIN role
-
 ---
 
 ## Phase 2: Feature Management ✅ DONE
@@ -55,14 +47,6 @@ req.user = {
 | 12  | `/api/admin/features/:featureId`        | PATCH  | `{ name?, description?, icon?, parentId?, sortOrder? }`        | -                                       | `id` → updatedBy            | `featureId` | FeatureResponseDto                                 | 404, 409 | ✅ DONE |
 | 13  | `/api/admin/features/:featureId/status` | PATCH  | `{ status*: "ENABLED"\|"DISABLED"\|"COMING_SOON" }`            | -                                       | `id` → updatedBy            | `featureId` | FeatureResponseDto                                 | 404, 400 | ✅ DONE |
 
-**Key Features:**
-
-- ⚠️ `code` is NOT updatable (used in `@RequiredFeature()` decorator)
-- Parent validation prevents circular references
-- Feature tree returns nested hierarchy (modules → permissions)
-- Status change affects all organizations globally
-- Seeds 30 default features across 5 modules
-
 ---
 
 ## Phase 3: Brand Management ✅ DONE
@@ -77,13 +61,6 @@ req.user = {
 | 16  | `/api/admin/organizations/:orgId/brands/:id` | GET    | -                                                     | -                             | -                           | `orgId`, `id` | BrandDetailDto (productCount) | 404           | ✅ DONE |
 | 17  | `/api/admin/organizations/:orgId/brands/:id` | PATCH  | `{ name?, description?, logo?, website?, isActive? }` | -                             | `id` → updatedBy            | `orgId`, `id` | BrandResponseDto              | 404, 409      | ✅ DONE |
 | 18  | `/api/admin/organizations/:orgId/brands/:id` | DELETE | -                                                     | -                             | `id` → deletedBy            | `orgId`, `id` | void                          | 404           | ✅ DONE |
-
-**Key Features:**
-
-- Slug auto-generated from name (unique per org)
-- Soft delete with reusable slug
-- Product count via FormData.brandFormDataId
-- Status filter: active, inactive, deleted
 
 ---
 
@@ -101,13 +78,6 @@ req.user = {
 | 23  | `/api/admin/organizations/:orgId/categories/:id`  | PATCH  | `{ name?, description?, image?, parentId?, sortOrder? }` | -                                       | `id` → updatedBy            | `orgId`, `id` | CategoryResponseDto                              | 404, 409      | ✅ DONE |
 | 24  | `/api/admin/organizations/:orgId/categories/:id`  | DELETE | -                                                        | -                                       | `id` → deletedBy            | `orgId`, `id` | void                                             | 404           | ✅ DONE |
 
-**Key Features:**
-
-- Hierarchical tree with nested children
-- Breadcrumb path from root
-- Circular reference prevention on parent move
-- Soft delete: children become root-level (parentId = null)
-
 ---
 
 ## Phase 5: Dealer Type Management ✅ DONE
@@ -115,23 +85,15 @@ req.user = {
 **Controller:** `src/modules/admin/dealer-types/dealer-types.controller.ts`
 **Base Path:** `/api/admin/organizations/:orgId/dealer-types`
 
-| #   | Endpoint                                                       | Method | Request Body                                                    | Query Params                       | From Token                  | From URL      | Response                                                     | Errors        | Status  |
-| --- | -------------------------------------------------------------- | ------ | --------------------------------------------------------------- | ---------------------------------- | --------------------------- | ------------- | ------------------------------------------------------------ | ------------- | ------- |
-| 25  | `/api/admin/organizations/:orgId/dealer-types`                 | POST   | `{ name*, partnerType*: "INTERNAL"\|"EXTERNAL", description? }` | -                                  | `id` → createdBy, updatedBy | `orgId`       | DealerTypeResponseDto                                        | 400, 409, 404 | ✅ DONE |
-| 26  | `/api/admin/organizations/:orgId/dealer-types`                 | GET    | -                                                               | `page, limit, search, partnerType` | -                           | `orgId`       | Paginated DealerTypes (featuresCount, usersCount)            | 404           | ✅ DONE |
-| 27  | `/api/admin/organizations/:orgId/dealer-types/:id`             | GET    | -                                                               | -                                  | -                           | `orgId`, `id` | DealerTypeDetailDto (features grouped by module, users list) | 404           | ✅ DONE |
-| 28  | `/api/admin/organizations/:orgId/dealer-types/:id`             | PATCH  | `{ name?, description?, partnerType? }`                         | -                                  | `id` → updatedBy            | `orgId`, `id` | DealerTypeResponseDto                                        | 404, 409      | ✅ DONE |
-| 29  | `/api/admin/organizations/:orgId/dealer-types/:id`             | DELETE | -                                                               | -                                  | `id` → deletedBy            | `orgId`, `id` | void                                                         | 404           | ✅ DONE |
-| 30  | `/api/admin/organizations/:orgId/dealer-types/:id/permissions` | GET    | -                                                               | -                                  | -                           | `orgId`, `id` | PermissionsResponseDto (grouped by module)                   | 404           | ✅ DONE |
-| 31  | `/api/admin/organizations/:orgId/dealer-types/:id/permissions` | PUT    | `{ featureIds*: string[] }`                                     | -                                  | `id` → updatedBy            | `orgId`, `id` | UpdatePermissionsResponseDto                                 | 404, 400      | ✅ DONE |
-
-**Key Features:**
-
-- Features grouped by parent module in response
-- Users count and list per dealer type
-- Permission update: enable existing, create new, disable removed (no bulk delete)
-- Only `ENABLED` features can be assigned
-- Uses `FeatureStatus.ENABLED` Prisma enum
+| #   | Endpoint                                                       | Method | Request Body                            | Query Params                       | From Token                  | From URL      | Response                                                     | Errors        | Status  |
+| --- | -------------------------------------------------------------- | ------ | --------------------------------------- | ---------------------------------- | --------------------------- | ------------- | ------------------------------------------------------------ | ------------- | ------- |
+| 25  | `/api/admin/organizations/:orgId/dealer-types`                 | POST   | `{ name*, partnerType*, description? }` | -                                  | `id` → createdBy, updatedBy | `orgId`       | DealerTypeResponseDto                                        | 400, 409, 404 | ✅ DONE |
+| 26  | `/api/admin/organizations/:orgId/dealer-types`                 | GET    | -                                       | `page, limit, search, partnerType` | -                           | `orgId`       | Paginated DealerTypes (featuresCount, usersCount)            | 404           | ✅ DONE |
+| 27  | `/api/admin/organizations/:orgId/dealer-types/:id`             | GET    | -                                       | -                                  | -                           | `orgId`, `id` | DealerTypeDetailDto (features grouped by module, users list) | 404           | ✅ DONE |
+| 28  | `/api/admin/organizations/:orgId/dealer-types/:id`             | PATCH  | `{ name?, description?, partnerType? }` | -                                  | `id` → updatedBy            | `orgId`, `id` | DealerTypeResponseDto                                        | 404, 409      | ✅ DONE |
+| 29  | `/api/admin/organizations/:orgId/dealer-types/:id`             | DELETE | -                                       | -                                  | `id` → deletedBy            | `orgId`, `id` | void                                                         | 404           | ✅ DONE |
+| 30  | `/api/admin/organizations/:orgId/dealer-types/:id/permissions` | GET    | -                                       | -                                  | -                           | `orgId`, `id` | PermissionsResponseDto (grouped by module)                   | 404           | ✅ DONE |
+| 31  | `/api/admin/organizations/:orgId/dealer-types/:id/permissions` | PUT    | `{ featureIds*: string[] }`             | -                                  | `id` → updatedBy            | `orgId`, `id` | UpdatePermissionsResponseDto                                 | 404, 400      | ✅ DONE |
 
 ---
 
@@ -150,43 +112,50 @@ req.user = {
 | 37  | `/api/admin/organizations/:orgId/users/:id/permissions` | GET    | -                                                                                     | -                                                              | -                | `orgId`, `id` | UserPermissionsResponseDto                        | 404           | ✅ DONE |
 | 38  | `/api/admin/organizations/:orgId/users/:id/dealer-type` | PATCH  | `{ dealerTypeId* }`                                                                   | -                                                              | `id` → updatedBy | `orgId`, `id` | ChangeDealerTypeResponseDto                       | 404, 400      | ✅ DONE |
 
-**Key Features:**
-
-- Uses `UserRole` Prisma enum for role validation
-- `COMPANY_SUPER_ADMIN` shows `"FULL_ACCESS"` in permissions
-- Dealer type change preserves history (previous and new names returned)
-- Soft delete: UserAccess removed, global User remains
-- Invitation email skipped in development mode
-- UserAccess has NO `createdBy` field (unlike other models)
-
 ---
 
-## Error Response Reference
+## Phase 7: Dashboard ✅ DONE
 
-| Status | Common Messages                                                                                                                                                                                                                                                                 |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 400    | `"Validation failed"`, `"Invalid status value"`, `"Some features are invalid or not enabled"`                                                                                                                                                                                   |
-| 401    | `"Authentication required"`, `"Session expired"`                                                                                                                                                                                                                                |
-| 403    | `"Account is deactivated"`, `"Insufficient permissions"`                                                                                                                                                                                                                        |
-| 404    | `"Organization not found"`, `"Feature not found"`, `"Brand not found"`, `"Category not found"`, `"Dealer type not found"`, `"User not found"`, `"Parent category not found"`                                                                                                    |
-| 409    | `"Organization with this slug already exists"`, `"Feature with this code already exists"`, `"Brand with this name already exists"`, `"Category with this name already exists"`, `"Dealer type with this name already exists"`, `"User already has access to this organization"` |
-| 413    | `"File too large"`                                                                                                                                                                                                                                                              |
-| 500    | `"Failed to create/update/delete <resource>"`                                                                                                                                                                                                                                   |
+**Controller:** `src/modules/admin/dashboard/dashboard.controller.ts`
+**Base Path:** `/api/admin/dashboard`
 
----
+| #   | Endpoint               | Method | Description                                                | Response             | Errors | Status  |
+| --- | ---------------------- | ------ | ---------------------------------------------------------- | -------------------- | ------ | ------- |
+| 39  | `/api/admin/dashboard` | GET    | Platform overview stats, charts data, recent organizations | DashboardResponseDto | 401    | ✅ DONE |
 
-## Audit Fields Reference
+**Response:**
 
-| Model         | createdBy | updatedBy | deletedBy |
-| ------------- | --------- | --------- | --------- |
-| Organization  | ✅        | ✅        | ✅        |
-| Feature       | ✅        | ✅        | ❌        |
-| Brand         | ✅        | ✅        | ✅        |
-| Category      | ✅        | ✅        | ✅        |
-| DealerType    | ✅        | ✅        | ✅        |
-| FeatureAccess | ❌        | ✅        | ❌        |
-| UserAccess    | ❌        | ❌        | ✅        |
-| User          | ❌        | ❌        | ✅        |
+```json
+{
+  "stats": {
+    "totalOrganizations": 12,
+    "activeOrganizations": 10,
+    "totalUsers": 156,
+    "totalBrands": 89,
+    "totalCategories": 45,
+    "totalDealerTypes": 28
+  },
+  "organizationsByType": [
+    { "label": "ROOT", "count": 8 },
+    { "label": "BRANCH", "count": 4 }
+  ],
+  "organizationsByStatus": [
+    { "label": "Active", "count": 10 },
+    { "label": "Inactive", "count": 1 },
+    { "label": "Deleted", "count": 1 }
+  ],
+  "recentOrganizations": [
+    {
+      "id": "uuid",
+      "name": "TechServe India",
+      "slug": "techserve",
+      "type": "ROOT",
+      "isActive": true,
+      "createdAt": "2024-01-12T00:00:00Z"
+    }
+  ]
+}
+```
 
 ---
 
@@ -200,7 +169,8 @@ req.user = {
 | 4         | Category     | 6      | Organization              | ✅ DONE     |
 | 5         | DealerType   | 7      | Organization + Feature    | ✅ DONE     |
 | 6         | User         | 7      | Organization + DealerType | ✅ DONE     |
-| **Total** |              | **38** |                           | ✅ ALL DONE |
+| 7         | Dashboard    | 1      | All above                 | ✅ DONE     |
+| **Total** |              | **39** |                           | ✅ ALL DONE |
 
 ---
 
@@ -208,7 +178,14 @@ req.user = {
 
 ```
 src/modules/admin/
-├── admin.module.ts
+├── index.ts
+├── dashboard/
+│   ├── queries/handlers/ (1 handler)
+│   ├── queries/impl/ (1 query)
+│   ├── dto/ (1 DTO)
+│   ├── dashboard.service.ts
+│   ├── dashboard.controller.ts
+│   └── dashboard.module.ts
 ├── organizations/
 │   ├── commands/handlers/ (5 handlers)
 │   ├── queries/handlers/ (2 handlers)
