@@ -1,28 +1,51 @@
-# 🚀 Warranty Management System - Backend Developer Rule Book
+# 🚀 Warranty Management System - Backend Developer Rule Book v5.0
 
-## Complete & Final Version v3.0
+## Complete & Final Version - AI-Ready
 
 ---
 
 ## Table of Contents
 
-1. [Folder Structure](#1-folder-structure)
-2. [Portal-Based Module Organization](#2-portal-based-module-organization)
-3. [Global Services](#3-global-services)
-4. [Guards & Decorators](#4-guards--decorators)
-5. [Interceptors](#5-interceptors)
-6. [Complete Request Lifecycle](#6-complete-request-lifecycle)
-7. [Response Patterns](#7-response-patterns)
-8. [Complete File Templates](#8-complete-file-templates)
-9. [Organization-Scoped Operations](#9-organization-scoped-operations)
-10. [Soft Delete Operations](#10-soft-delete-operations)
-11. [Multi-Tenant Data Isolation](#11-multi-tenant-data-isolation)
-12. [Anti-Patterns](#12-anti-patterns-never)
-13. [Quick Checklist](#13-quick-checklist)
+1. [Project Overview](#1-project-overview)
+2. [Folder Structure](#2-folder-structure)
+3. [Portal-Based Module Organization](#3-portal-based-module-organization)
+4. [Global Services - Complete API](#4-global-services---complete-api)
+5. [Guards & Decorators](#5-guards--decorators)
+6. [Interceptors](#6-interceptors)
+7. [Complete Request Lifecycle](#7-complete-request-lifecycle)
+8. [Response Patterns](#8-response-patterns)
+9. [Complete File Templates](#9-complete-file-templates)
+10. [Organization-Scoped Operations](#10-organization-scoped-operations)
+11. [Soft Delete Operations](#11-soft-delete-operations)
+12. [Multi-Tenant Data Isolation](#12-multi-tenant-data-isolation)
+13. [Anti-Patterns](#13-anti-patterns)
+14. [Quick Checklist](#14-quick-checklist)
+15. [Error Response Standards](#15-error-response-standards)
+16. [Current Implementation Reference](#16-current-implementation-reference)
 
 ---
 
-## 1. Folder Structure
+## 1. Project Overview
+
+**Project:** Warranty Management System (WMS)
+**Backend:** NestJS + CQRS + Prisma + PostgreSQL
+**Authentication:** JWT via httpOnly cookies (access + refresh tokens)
+**Multi-tenancy:** Organization-scoped via `orgId` + `orgHash`
+**Soft Delete:** All major entities use `deletedAt` pattern
+
+### Key Design Decisions
+
+- `User` = Global identity (email only)
+- `UserAccess` = Per-organization account (profile, password, role, permissions)
+- Admin has `orgId` linked to system organization (slug: `system`)
+- Company/Consumer login requires `orgHash` to identify organization
+- `orgHash` is used for URL routing (not `slug`)
+- Controller paths do NOT include `api/` prefix (global prefix in main.ts)
+- Tokens returned in response body, ResponseInterceptor extracts to cookies
+
+---
+
+## 2. Folder Structure
 
 ```text
 src/
@@ -75,18 +98,18 @@ src/
 │   └── api.interface.ts
 │
 └── modules/
-    ├── auth/          # api/auth/*
-    ├── admin/         # api/admin/*
-    ├── company/       # api/:slug/*
-    ├── consumer/      # api/:slug/consumer/*
-    └── files/         # api/files/*
+    ├── auth/          # auth/*
+    ├── admin/         # admin/*
+    ├── company/       # :orgHash/*
+    ├── consumer/      # :orgHash/consumer/*
+    └── files/         # files/*
 ```
 
 ---
 
-## 2. Portal-Based Module Organization
+## 3. Portal-Based Module Organization
 
-### 2.1 Feature Module Internal Structure
+### 3.1 Feature Module Internal Structure
 
 Every feature follows this EXACT structure:
 
@@ -119,17 +142,17 @@ modules/<portal>/<feature-name>/
 └── <feature>.module.ts
 ```
 
-### 2.2 Portal Definitions
+### 3.2 Portal Definitions
 
-| Portal       | API Prefix           | Guard Requirements         | Example                            |
-| ------------ | -------------------- | -------------------------- | ---------------------------------- |
-| **auth**     | `api/auth`           | @Public() (no guards run)  | `POST api/auth/otp/send`           |
-| **admin**    | `api/admin`          | JwtAuthGuard + TenantGuard | `GET api/admin/features`           |
-| **company**  | `api/:slug`          | JwtAuthGuard + TenantGuard | `POST api/acme/brands`             |
-| **consumer** | `api/:slug/consumer` | JwtAuthGuard + TenantGuard | `GET api/acme/consumer/warranties` |
-| **files**    | `api/files`          | JwtAuthGuard only          | `POST api/files/upload`            |
+| Portal       | API Prefix          | Guard Requirements         | Example                            |
+| ------------ | ------------------- | -------------------------- | ---------------------------------- |
+| **auth**     | `auth`              | Mixed                      | `POST auth/:portalType/send-otp`   |
+| **admin**    | `admin`             | JwtAuthGuard + TenantGuard | `GET admin/features`               |
+| **company**  | `:orgHash`          | JwtAuthGuard + TenantGuard | `POST a3f2b8c1/brands`             |
+| **consumer** | `:orgHash/consumer` | JwtAuthGuard + TenantGuard | `GET a3f2b8c1/consumer/warranties` |
+| **files**    | `files`             | JwtAuthGuard only          | `POST files/upload`                |
 
-### 2.3 Feature Name Mapping
+### 3.3 Feature Name Mapping
 
 | Portal       | Features                                                                     |
 | ------------ | ---------------------------------------------------------------------------- |
@@ -141,96 +164,151 @@ modules/<portal>/<feature-name>/
 
 ---
 
-## 3. Global Services
+## 4. Global Services - Complete API
 
-> **CRITICAL: All services are @Global() - NEVER import their modules. Just inject the service.**
+> **CRITICAL: All services are @Global() - NEVER import their modules. Just inject the service directly.**
 
-### 3.1 PrismaService
+### 4.1 PrismaService
 
 ```typescript
 import { PrismaService } from 'services/prisma/prisma.service';
 
-// Inject
+// Inject in constructor
 constructor(private readonly prisma: PrismaService) {}
 
-// Methods
-prisma.<model>.findUnique(args)
-prisma.<model>.findFirst(args)
-prisma.<model>.findMany(args)
-prisma.<model>.create(args)
-prisma.<model>.update(args)
-prisma.<model>.count(args)
-prisma.<model>.upsert(args)
-prisma.$transaction([...])
-prisma.$transaction(async (tx) => { ... })
+// Available Methods:
+prisma.user.findUnique(args)
+prisma.user.findFirst(args)
+prisma.user.findMany(args)
+prisma.user.create(args)
+prisma.user.update(args)
+prisma.user.upsert(args)
+prisma.user.count(args)
+prisma.user.delete(args)  // ⚠️ NEVER use - always soft delete
 
-// ⚠️ GOLDEN RULE: Every query MUST include orgId + deletedAt: null
+prisma.userAccess.findUnique(args)
+prisma.userAccess.findFirst(args)
+prisma.userAccess.findMany(args)
+prisma.userAccess.create(args)
+prisma.userAccess.update(args)
+prisma.userAccess.upsert(args)
+prisma.userAccess.count(args)
+
+prisma.organization.findUnique(args)
+prisma.organization.findFirst(args)
+prisma.organization.findMany(args)
+prisma.organization.create(args)
+prisma.organization.update(args)
+prisma.organization.upsert(args)
+prisma.organization.count(args)
+
+prisma.brand.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.category.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.dealerType.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.feature.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.featureAccess.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.formSchema.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.formData.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.warrantyTemplate.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.warranty.findUnique / findFirst / findMany / create / update / upsert / count
+prisma.otpVerification.findUnique / findFirst / findMany / create / update / upsert / count
+
+// Transaction support
+prisma.$transaction([prisma.user.create(...), prisma.userAccess.create(...)])
+prisma.$transaction(async (tx) => {
+  const user = await tx.user.create(...);
+  const access = await tx.userAccess.create(...);
+  return { user, access };
+})
+
+// ⚠️ GOLDEN RULES:
+// 1. Every query MUST include orgId + deletedAt: null
+// 2. NEVER use .delete() - always use .update() with deletedAt
+// 3. For admin-only queries where orgId is system org, still filter by orgId
 ```
 
-### 3.2 ErrorService
+### 4.2 ErrorService
 
 ```typescript
 import { ErrorService } from 'services/errors/error.service';
 
-// Inject
+// Inject in constructor
 constructor(private readonly errorService: ErrorService) {}
 
-// Methods (all throw immediately with never return type)
-errorService.badRequest(message?, options?)              // 400
-errorService.unauthorized(message?, options?)            // 401
-errorService.forbidden(message?, options?)               // 403
-errorService.notFound(message?, options?)                // 404
-errorService.conflict(message?, options?)                // 409
-errorService.unprocessableEntity(message?, options?)     // 422
-errorService.internalServerError(message?, options?)     // 500
-errorService.serviceUnavailable(message?, options?)      // 503
-errorService.payloadTooLarge(message?, options?)         // 413
-errorService.notImplemented(message?, options?)          // 501
-errorService.gatewayTimeout(message?, options?)          // 504
+// Methods (all throw immediately, return type is 'never'):
+errorService.badRequest(message: string, options?: ErrorOptions)       // 400
+errorService.unauthorized(message: string, options?: ErrorOptions)     // 401
+errorService.forbidden(message: string, options?: ErrorOptions)        // 403
+errorService.notFound(message: string, options?: ErrorOptions)         // 404
+errorService.conflict(message: string, options?: ErrorOptions)         // 409
+errorService.unprocessableEntity(message: string, options?: ErrorOptions) // 422
+errorService.internalServerError(message: string, options?: ErrorOptions) // 500
+errorService.serviceUnavailable(message: string, options?: ErrorOptions)  // 503
+errorService.payloadTooLarge(message: string, options?: ErrorOptions)     // 413
+errorService.notImplemented(message: string, options?: ErrorOptions)      // 501
+errorService.gatewayTimeout(message: string, options?: ErrorOptions)      // 504
 
-// ErrorOptions
+// ErrorOptions interface:
 interface ErrorOptions {
-  description?: string;
-  cause?: Error;
+  description?: string;  // Additional error details for logs
+  cause?: Error;         // Original error for stack trace
 }
+
+// Usage examples:
+throw this.errorService.notFound('Organization not found');
+throw this.errorService.unauthorized('Invalid or expired OTP');
+throw this.errorService.conflict('Phone number already in use');
+throw this.errorService.internalServerError('Failed to create brand', { cause: error });
 ```
 
-### 3.3 LoggerService
+### 4.3 LoggerService
 
 ```typescript
 import { LoggerService } from 'services/logger/logger.service';
 
-// Inject
-constructor(private readonly logger: LoggerService) {}
+// Inject in constructor
+constructor(private readonly logger: LoggerService) {
+  // ⚠️ ALWAYS set context in constructor
+  this.logger.setContext(ClassName.name);
+}
 
-// ⚠️ ALWAYS set context in constructor
-this.logger.setContext(ClassName.name);
+// Methods:
+logger.log(message: string, context?: string, meta?: Record<string, any>): void
+logger.warn(message: string, context?: string, meta?: Record<string, any>): void
+logger.error(message: string, trace?: string, context?: string, meta?: Record<string, any>): void
+logger.debug(message: string, context?: string, meta?: Record<string, any>): void
 
-// Methods
-logger.log(message, context?, meta?): void
-logger.warn(message, context?, meta?): void
-logger.error(message, trace?, context?, meta?): void
-logger.debug(message, context?, meta?): void
+// Usage examples:
+this.logger.log('OTP sent successfully', undefined, { email, portalType, otp });
+this.logger.warn('Feature access denied', undefined, { userId, requiredFeature });
+this.logger.error('Failed to create brand', error.stack, undefined, { orgId, name });
+this.logger.debug('Tenant check passed', undefined, { userId, orgId, role });
+
+// ⚠️ NEVER use console.log() or console.error() - always use logger
 ```
 
-### 3.4 JwtService
+### 4.4 JwtService
 
 ```typescript
 import { JwtService } from 'services/jwt/jwt.service';
 
-// Inject
+// Inject in constructor
 constructor(private readonly jwtService: JwtService) {}
 
-// Key Interfaces
+// Key Interfaces:
 interface JwtPayload {
-  sub: string;           // userId
+  sub: string;           // UserAccess ID (primary subject)
+  userId?: string;       // User ID (global identity)
   email?: string;
   phoneNumber?: string;
   orgId?: string;
+  orgHash?: string;
   orgSlug?: string;
   portalType?: string;
   role: string;
-  permissions?: string[];  // Embedded in access token to avoid DB queries
+  permissions?: string[];
+  fullName?: string;
+  profile?: string | null;
   type?: 'access' | 'refresh';
 }
 
@@ -239,105 +317,165 @@ interface TokenPair {
   refreshToken: string;   // 7 days expiry
 }
 
-// Methods
+// Methods:
 jwtService.generateTokenPair(payload: JwtPayload): Promise<TokenPair>
+  // Generates both access and refresh tokens
+  // Access token contains full payload including permissions
+  // Refresh token contains minimal payload (sub, userId, type)
+
 jwtService.generateAccessToken(payload: JwtPayload): Promise<string>
+  // Generates only access token (15 min expiry)
+
 jwtService.generateRefreshToken(payload: JwtPayload): Promise<string>
+  // Generates only refresh token (7 day expiry)
+
 jwtService.verifyAccessToken(token: string): Promise<JwtPayload>
+  // Verifies and decodes access token
+  // Throws if expired or invalid
+
 jwtService.verifyRefreshToken(token: string): Promise<JwtPayload>
+  // Verifies and decodes refresh token
+  // Throws if expired or invalid
+
 jwtService.decodeToken(token: string): JwtPayload | null
-jwtService.refreshTokenPair(refreshToken: string): Promise<{ payload, tokens }>
+  // Decodes token without verification (for reading payload)
+  // Returns null if token is malformed
 
 // ⚠️ CRITICAL: Access tokens contain permissions, refresh tokens do NOT
-// After refresh, TenantGuard re-resolves org context, but permissions will be empty
-// Must re-fetch permissions from DB on refresh
+// After token refresh, permissions array will be empty - must re-fetch from DB
+// Always pass UserAccess ID as 'sub' field
 ```
 
-### 3.5 FileService
+### 4.5 FileService
 
 ```typescript
 import { FileService } from 'services/files/file.service';
 
-// Inject
+// Inject in constructor
 constructor(private readonly fileService: FileService) {}
 
-// Methods
-fileService.uploadFile(file: Express.Multer.File, folder?: string): Promise<UploadedFile>
-fileService.uploadFiles(files: Express.Multer.File[], folder?: string): Promise<UploadedFile[]>
-fileService.getDownloadUrl(key: string): Promise<string>
-fileService.deleteFile(key: string): Promise<void>
-
-// UploadedFile Interface
+// Interfaces:
 interface UploadedFile {
-  key: string;          // S3 path: "brands/1234567890-abc123.jpg"
+  key: string;          // S3 path: "profiles/1234567890-abc123.jpg"
   url: string;          // Presigned URL (or direct URL for local dev)
   fileName: string;     // Generated unique filename
-  originalName: string;
-  mimeType: string;
-  size: number;
+  originalName: string; // Original uploaded filename
+  mimeType: string;     // MIME type
+  size: number;         // File size in bytes
 }
+
+// Methods:
+fileService.uploadFile(file: Express.Multer.File, folder?: string): Promise<UploadedFile>
+  // Uploads a single file to S3
+  // folder: 'profiles' | 'organizations' | 'brands' | 'categories' | 'uploads'
+  // Default folder: 'uploads'
+
+fileService.uploadFiles(files: Express.Multer.File[], folder?: string): Promise<UploadedFile[]>
+  // Uploads multiple files to S3
+
+fileService.getDownloadUrl(key: string): Promise<string>
+  // Generates a presigned URL for downloading/viewing a file
+
+fileService.deleteFile(key: string): Promise<void>
+  // Deletes a file from S3 by its key
 
 // Standard folders: 'profiles', 'organizations', 'brands', 'categories', 'uploads'
 
-// ⚠️ CRITICAL: When replacing files, delete old file BEFORE uploading new
+// ⚠️ CRITICAL: When replacing files (e.g., profile picture), delete old file BEFORE uploading new
+// Example:
+if (userAccess.profile) {
+  const oldKey = userAccess.profile.split('/').pop();
+  if (oldKey) await this.fileService.deleteFile(`profiles/${oldKey}`);
+}
+const uploaded = await this.fileService.uploadFile(file, 'profiles');
 ```
 
-### 3.6 MailService
+### 4.6 MailService
 
 ```typescript
 import { MailService } from 'services/mail/mail.service';
 import { EMAIL_STYLES } from 'services/mail/contants/email-styles.constants';
 
-// Inject
+// Inject in constructor
 constructor(private readonly mailService: MailService) {}
 
-// Methods
-mailService.sendMail(options: SendMailOptions): Promise<any>
-mailService.setProvider(providerType: MailProviderEnum): void
-
-// SendMailOptions
+// Interfaces:
 interface SendMailOptions {
-  to: string;
-  subject: string;
-  html?: string;
-  text?: string;
-  from?: string;
-  cc?: string;
-  bcc?: string;
-  attachments?: any[];
+  to: string;           // Recipient email
+  subject: string;      // Email subject
+  html?: string;        // HTML body (use EMAIL_STYLES for styling)
+  text?: string;        // Plain text body (fallback)
+  from?: string;        // Sender email (optional, uses default)
+  cc?: string;          // CC recipients
+  bcc?: string;         // BCC recipients
+  attachments?: any[];  // File attachments
 }
 
-// Use EMAIL_STYLES constant in HTML emails for consistent styling
+// Methods:
+mailService.sendMail(options: SendMailOptions): Promise<any>
+  // Sends email using configured provider (Gmail, SMTP, etc.)
+
+mailService.setProvider(providerType: MailProviderEnum): void
+  // Switches email provider at runtime
+
+// Usage example:
+await this.mailService.sendMail({
+  to: email,
+  subject: 'Your OTP for Login',
+  html: `<div style="${EMAIL_STYLES.container}">
+           <p>Your OTP is: <strong>${otp}</strong></p>
+           <p>Expires in 10 minutes.</p>
+         </div>`,
+});
+
+// ⚠️ In development (NODE_ENV !== 'production'), skip email sending and return OTP in response
 ```
 
-### 3.7 CommonModules
+### 4.7 CommonModules
 
 ```typescript
-// Always import in feature modules
-import { CommonModules } from 'services';
+// File: src/services/index.ts
 
-// CommonModules = [CqrsModule, LoggerModule, ErrorModule, MailModule, PrismaModule, FileModule, JwtModule]
+import { CqrsModule } from '@nestjs/cqrs';
+import { ErrorModule } from './errors/error.module';
+import { LoggerModule } from './logger/logger.module';
+import { MailModule } from './mail/mail.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { FileModule } from './files/file.module';
+import { JwtModule } from './jwt/jwt.module';
 
-// Usage in module:
+export const CommonModules = [
+  CqrsModule,      // CQRS command/query bus
+  LoggerModule,     // Winston logger
+  ErrorModule,      // HTTP error service
+  MailModule,       // Email service
+  PrismaModule,     // Database ORM
+  FileModule,       // S3 file upload/download
+  JwtModule,        // JWT token generation/verification
+];
+
+// Usage in EVERY module:
 @Module({
   imports: [...CommonModules],
-  // ...
+  controllers: [<Feature>Controller],
+  providers: [<Feature>Service, ...<Feature>CommandHandlers, ...<Feature>QueryHandlers],
 })
+export class <Feature>Module {}
 ```
 
 ---
 
-## 4. Guards & Decorators
+## 5. Guards & Decorators
 
-### 4.1 Guard Overview
+### 5.1 Guard Overview
 
-| Guard            | Scope        | Registration           | What It Does                                                  |
-| ---------------- | ------------ | ---------------------- | ------------------------------------------------------------- |
-| **JwtAuthGuard** | Global       | APP_GUARD in AppModule | Extracts JWT from cookies, verifies, refreshes, attaches user |
-| **TenantGuard**  | Global       | APP_GUARD in AppModule | Validates org from slug, checks UserAccess, checks features   |
-| **RolesGuard**   | Per-endpoint | @UseGuards(RolesGuard) | Checks user.role against @Roles() decorator                   |
+| Guard            | Scope        | Registration           | Purpose                                                             |
+| ---------------- | ------------ | ---------------------- | ------------------------------------------------------------------- |
+| **JwtAuthGuard** | Global       | APP_GUARD in AppModule | Extracts JWT from cookies, verifies, refreshes, attaches `req.user` |
+| **TenantGuard**  | Global       | APP_GUARD in AppModule | Resolves org from `orgHash`, validates UserAccess, checks features  |
+| **RolesGuard**   | Per-endpoint | @UseGuards(RolesGuard) | Checks `req.user.role` against @Roles() decorator                   |
 
-### 4.2 App Module (Global Guard Registration)
+### 5.2 App Module (Global Guard Registration)
 
 ```typescript
 import { Module } from "@nestjs/common";
@@ -354,184 +492,272 @@ import { TenantGuard } from "middleware/guards/tenant.guard";
 export class AppModule {}
 ```
 
-### 4.3 Decorators
-
-| Decorator                  | Metadata Key           | Checked By  | Purpose                                  |
-| -------------------------- | ---------------------- | ----------- | ---------------------------------------- |
-| `@Public()`                | `IS_PUBLIC_KEY`        | TenantGuard | Bypass all guards (login, signup routes) |
-| `@Roles(role1, role2)`     | `ROLES_KEY`            | RolesGuard  | Require specific UserRole(s)             |
-| `@RequiredFeature('CODE')` | `REQUIRED_FEATURE_KEY` | TenantGuard | Require specific permission in JWT       |
-
-### 4.4 Combined Usage Examples
+### 5.3 JwtAuthGuard - Complete Behavior
 
 ```typescript
-// PUBLIC - No guards run
+// File: src/middleware/guards/jwt-auth.guard.ts
+
+// What it does:
+// 1. Extracts accessToken and refreshToken from cookies
+// 2. If accessToken is valid → verifies and attaches req.user
+// 3. If accessToken expired but refreshToken valid → generates new token pair, sets cookies, attaches req.user
+// 4. If both expired → clears cookies, throws 401
+// 5. For logout requests → minimal user attachment, always allows
+
+// req.user structure after JwtAuthGuard:
+request.user = {
+  id: payload.sub, // UserAccess ID
+  email: payload.email,
+  phoneNumber: payload.phoneNumber,
+  role: payload.role,
+  orgId: payload.orgId,
+  orgSlug: payload.orgSlug,
+  portalType: payload.portalType,
+  permissions: payload.permissions || [],
+};
+```
+
+### 5.4 TenantGuard - Complete Behavior
+
+```typescript
+// File: src/middleware/guards/tenant.guard.ts
+
+// Step 0: Skip for @Public() routes
+// Step 1: Skip org resolution for auth routes and file routes
+// Step 2: ADMIN users bypass all checks
+// Step 3: Extract orgHash from URL params → Find organization by hash
+// Step 4: Validate org exists and isActive
+// Step 5: Find UserAccess (userId + orgId + portalType)
+// Step 6: Verify portal type matches route (company vs consumer)
+// Step 7: Attach resolved org context to req.user
+// Step 8: COMPANY_SUPER_ADMIN bypasses feature checks
+// Step 9: Check @RequiredFeature() if present
+
+// Route path detection:
+const routePath = request.route?.path || "";
+const isAuthRoute = routePath.startsWith("/api/auth");
+```
+
+### 5.5 RolesGuard - Complete Behavior
+
+```typescript
+// File: src/middleware/guards/roles.guard.ts
+
+// What it does:
+// 1. Reads @Roles() decorator metadata
+// 2. Compares req.user.role against required roles
+// 3. Throws 403 if role doesn't match
+
+// Must be used with @UseGuards(RolesGuard) on the endpoint
+```
+
+### 5.6 Decorators
+
+```typescript
+// @Public() - Bypass all guards
+import { SetMetadata } from "@nestjs/common";
+export const IS_PUBLIC_KEY = "isPublic";
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+// @Roles() - Require specific roles
+import { SetMetadata } from "@nestjs/common";
+import { UserRole } from "generated/prisma/enums";
+export const ROLES_KEY = "roles";
+export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
+
+// @RequiredFeature() - Require specific permission
+import { SetMetadata } from "@nestjs/common";
+export const REQUIRED_FEATURE_KEY = "requiredFeature";
+export const RequiredFeature = (feature: string) =>
+  SetMetadata(REQUIRED_FEATURE_KEY, feature);
+```
+
+### 5.7 Combined Usage
+
+```typescript
+// PUBLIC - No guards
 @Public()
-@Post('login')
-async login() {}
+@Post(':portalType/send-otp')
 
-// AUTHENTICATED ONLY - JWT + Tenant
-@Get('profile')
-async getProfile() {}
+// PROTECTED - Guards on controller
+@Controller('auth/me')
+@UseGuards(JwtAuthGuard, TenantGuard)
 
-// ROLE PROTECTED - Must add RolesGuard explicitly!
-@Post()
+// SIMPLE LOGIC - No CQRS needed (logout)
+@Post('logout')
+async logout(@Req() req, @Res({ passthrough: true }) res) {
+  res.clearCookie('accessToken', { path: '/' });
+  res.clearCookie('refreshToken', { path: '/' });
+  return { message: 'Logged out successfully' };
+}
+
+// ROLE PROTECTED
 @UseGuards(RolesGuard)
 @Roles(UserRole.COMPANY_SUPER_ADMIN)
-async create() {}
 
-// FEATURE PROTECTED - Checked by TenantGuard
-@Get()
-@RequiredFeature('BRAND_VIEW')
-async findAll() {}
+// FEATURE PROTECTED
+@RequiredFeature('BRAND_CREATE')
 
-// ROLE + FEATURE PROTECTED
-@Post()
+// ROLE + FEATURE
 @UseGuards(RolesGuard)
 @Roles(UserRole.COMPANY_STAFF, UserRole.COMPANY_SUPER_ADMIN)
 @RequiredFeature('BRAND_CREATE')
-async create() {}
 ```
 
-### 4.5 Permission Check Rules
+### 5.8 Permission Check Rules
 
-| User Type               | Tenant Check              | Feature Check                    |
-| ----------------------- | ------------------------- | -------------------------------- |
-| **ADMIN**               | Bypassed (full access)    | Bypassed                         |
-| **COMPANY_SUPER_ADMIN** | Org + UserAccess verified | Bypassed (full org access)       |
-| **COMPANY_STAFF**       | Org + UserAccess verified | Checked if @RequiredFeature used |
-| **COMPANY_PARTNER**     | Org + UserAccess verified | Checked if @RequiredFeature used |
-| **CONSUMER**            | Org + UserAccess verified | Checked if @RequiredFeature used |
+| User Type           | Tenant Check              | Feature Check               |
+| ------------------- | ------------------------- | --------------------------- |
+| ADMIN               | Bypassed                  | Bypassed                    |
+| COMPANY_SUPER_ADMIN | Org + UserAccess verified | Bypassed                    |
+| COMPANY_STAFF       | Org + UserAccess verified | Checked if @RequiredFeature |
+| COMPANY_PARTNER     | Org + UserAccess verified | Checked if @RequiredFeature |
+| CONSUMER            | Org + UserAccess verified | Checked if @RequiredFeature |
 
 ---
 
-## 5. Interceptors
+## 6. Interceptors
 
-### 5.1 ResponseInterceptor (Success)
-
-Automatically wraps ALL success responses:
+### 6.1 ResponseInterceptor (Success)
 
 ```typescript
+// File: src/middleware/interceptors/response.interceptor.ts
+
+// What it does:
+// 1. Wraps all successful responses in standard format
+// 2. Extracts accessToken/refreshToken from response body → sets httpOnly cookies
+// 3. Removes tokens from response body (prevents token leakage)
+// 4. Adds timing and request metadata
+// 5. Auto-generates success messages based on HTTP method
+
 // Standard Response Format:
 {
-  success: true,
-  data: <your-data>,
-  message: "Resource created successfully",  // Auto-generated by HTTP method
-  statusCode: 200,
-  meta: {
-    timings: {
-      processingTime: "123 ms",
-      serverTime: "2024-06-15 10:30:00 AM",
-      requestReceived: "2024-06-15 10:30:00 AM",
-      responseSent: "2024-06-15 10:30:00 AM"
+  "success": true,
+  "data": <your-response-data>,
+  "message": "Request processed successfully",  // Auto-generated
+  "statusCode": 200,
+  "meta": {
+    "timings": {
+      "processingTime": "123 ms",
+      "serverTime": "12/7/2026, 10:30:00 am",
+      "requestReceived": "12/7/2026, 10:30:00 am",
+      "responseSent": "12/7/2026, 10:30:00 am"
     },
-    request: {
-      path: "/api/acme/brands",
-      method: "GET",
-      ip: "127.0.0.1",
-      userAgent: "Mozilla/5.0..."
+    "request": {
+      "path": "/auth/me",
+      "method": "GET",
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0..."
     }
   }
 }
 
 // Auto-Success Messages:
-GET    → "Request processed successfully"
-POST   → "Resource created successfully"
-PUT    → "Resource updated successfully"
-PATCH  → "Resource updated successfully"
-DELETE → "Resource deleted successfully"
+// GET    → "Request processed successfully"
+// POST   → "Resource created successfully"
+// PUT    → "Resource updated successfully"
+// PATCH  → "Resource updated successfully"
+// DELETE → "Resource deleted successfully"
 
-// ⚠️ If response has accessToken/refreshToken, interceptor extracts them to cookies
-// and removes from response body (prevents token leakage)
+// Token Extraction (happens automatically):
+// If handler returns { accessToken, refreshToken, ...user, ...org }
+// → Interceptor extracts tokens to cookies
+// → Response body only contains { user, org, ... }
 ```
 
-### 5.2 ExceptionInterceptor (Error)
-
-Automatically wraps ALL errors:
+### 6.2 ExceptionInterceptor (Error)
 
 ```typescript
+// File: src/middleware/interceptors/exception.interceptor.ts
+
+// What it does:
+// 1. Catches ALL unhandled exceptions
+// 2. Wraps errors in standard format
+// 3. Logs every error with stack trace via LoggerService
+// 4. Unknown errors → 500 "Internal server error"
+
 // Error Response Format:
 {
-  success: false,
-  data: null,
-  message: "Error message here",
-  statusCode: 400,
-  meta: {
-    timings: { ... },
-    request: { ... }
+  "success": false,
+  "data": null,
+  "message": "Error message from exception",
+  "statusCode": 400,
+  "meta": {
+    "timings": { ... },
+    "request": { ... }
   }
 }
-
-// Logs every error with stack trace via LoggerService
-// Unknown errors → 500 "Internal server error"
 ```
 
 ---
 
-## 6. Complete Request Lifecycle
+## 7. Complete Request Lifecycle
 
 ```
-POST /api/acme-electronics/brands
+POST /a3f2b8c1/brands
+Headers: Cookie: accessToken=xxx; refreshToken=yyy
 Body: { name: "Samsung", description: "Electronics" }
 
-┌─────────────────────────────────────────────────────────────────┐
-│ 1. ExceptionInterceptor wraps entire request                    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 2. JwtAuthGuard                                                │
-│    • Extract accessToken from cookie                            │
-│    • Verify JWT → { sub:"user123", role:"COMPANY_STAFF",        │
-│                     permissions:["BRAND_CREATE","BRAND_VIEW"] } │
-│    • Attach: request.user = { id, role, permissions }          │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 3. TenantGuard                                                 │
-│    • Not @Public() → Continue                                   │
-│    • Not admin/auth/file route → Continue                       │
-│    • User is COMPANY_STAFF → Continue                           │
-│    • Extract slug "acme-electronics" → Find org                 │
-│    • Check org exists + isActive                                │
-│    • Find UserAccess (userId + orgId + portalType)              │
-│    • Attach: request.user.orgId = "org456"                      │
-│    • Overwrite: request.user.role = userAccess.role             │
-│    • @RequiredFeature('BRAND_CREATE') → Check permissions → ✅   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 4. RolesGuard (if @UseGuards(RolesGuard) present)              │
-│    • @Roles(COMPANY_SUPER_ADMIN, COMPANY_STAFF)                 │
-│    • user.role = "COMPANY_STAFF" → ✅                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 5. Controller → Service → CQRS Handler → Prisma                │
-│    • Check duplicate slug among active records                  │
-│    • Create brand with orgId, createdBy, updatedBy              │
-│    • Return BrandResponseDto.fromEntity(brand)                  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 6. ResponseInterceptor wraps success response                   │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ 1. ExceptionInterceptor wraps entire request                │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. JwtAuthGuard                                            │
+│    • Extract accessToken from cookie                        │
+│    • Verify JWT → { sub, email, role, orgId, permissions } │
+│    • Attach: req.user = { id, email, role, orgId, perms }  │
+│    • If expired, try refresh token                          │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. TenantGuard                                             │
+│    • Check @Public() → No → Continue                        │
+│    • Check route → Not auth/file → Continue                 │
+│    • Check role → COMPANY_STAFF → Continue                  │
+│    • Extract orgHash "a3f2b8c1" from URL                    │
+│    • Find Organization by hash (must be active)             │
+│    • Find UserAccess (userId + orgId + portalType)          │
+│    • Validate UserAccess is active                          │
+│    • Attach full org context to req.user                    │
+│    • Check @RequiredFeature → verify permissions            │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. RolesGuard (if @UseGuards(RolesGuard) present)          │
+│    • Check req.user.role against @Roles()                   │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 5. Controller → Service → CQRS Handler → Prisma            │
+│    • Handler checks duplicate slug (only active records)    │
+│    • Creates brand with orgId, createdBy, updatedBy         │
+│    • Returns BrandResponseDto.fromEntity(brand)             │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 6. ResponseInterceptor wraps success response               │
+│    • Adds metadata (timings, request info)                  │
+│    • Extracts tokens to cookies if present                  │
+│    • Removes tokens from response body                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 7. Response Patterns
+## 8. Response Patterns
 
-### 7.1 Three Allowed Return Patterns from Handlers
+### 8.1 Three Allowed Return Patterns from Handlers
 
 ```typescript
-// PATTERN 1: Return entity/DTO directly
+// PATTERN 1: Return DTO directly (most common)
 return BrandResponseDto.fromEntity(brand);
-// Interceptor wraps with auto-message: "Resource created successfully"
+// ResponseInterceptor wraps it automatically
 
 // PATTERN 2: Return with custom message
 return {
@@ -553,16 +779,33 @@ return {
 };
 ```
 
-### 7.2 What You Return vs What Client Gets
+### 8.2 Token Handling
 
 ```typescript
-// YOU RETURN (Handler)
-return brand;
+// ✅ CORRECT - Return tokens in response body (interceptor extracts to cookies)
+return {
+  accessToken: tokenPair.accessToken,
+  refreshToken: tokenPair.refreshToken,
+  user: { id, email, fullName, role, profile },
+  org: { id, name, hash },
+  portalType,
+  permissions,
+};
 
-// CLIENT RECEIVES (After ResponseInterceptor)
+// ❌ WRONG - Never manually set cookies in handlers
+res.cookie('accessToken', token, { httpOnly: true, ... });
+```
+
+### 8.3 What You Return vs What Client Gets
+
+```typescript
+// HANDLER RETURNS:
+return ProfileResponseDto.fromEntity({ id, email, fullName, ... });
+
+// CLIENT RECEIVES (after ResponseInterceptor):
 {
   success: true,
-  data: { id: "...", name: "...", ... },
+  data: { id, email, fullName, ... },
   message: "Request processed successfully",
   statusCode: 200,
   meta: { timings: {...}, request: {...} }
@@ -573,9 +816,9 @@ return brand;
 
 ---
 
-## 8. Complete File Templates
+## 9. Complete File Templates
 
-### 8.1 Create DTO (`dto/create-<feature>.dto.ts`)
+### 9.1 Create DTO
 
 ```typescript
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -597,7 +840,7 @@ export class Create<Feature>Dto {
 }
 ```
 
-### 8.2 Update DTO (`dto/update-<feature>.dto.ts`)
+### 9.2 Update DTO
 
 ```typescript
 import { ApiPropertyOptional } from '@nestjs/swagger';
@@ -619,7 +862,7 @@ export class Update<Feature>Dto {
 }
 ```
 
-### 8.3 Response DTO (`dto/<feature>-response.dto.ts`)
+### 9.3 Response DTO
 
 ```typescript
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -656,9 +899,7 @@ export class <Feature>ResponseDto {
   updatedAt: Date;
 
   static fromEntity(entity: any): <Feature>ResponseDto {
-    return plainToInstance(<Feature>ResponseDto, entity, {
-      excludeExtraneousValues: true,
-    });
+    return plainToInstance(<Feature>ResponseDto, entity, { excludeExtraneousValues: true });
   }
 
   static fromEntities(entities: any[]): <Feature>ResponseDto[] {
@@ -667,7 +908,7 @@ export class <Feature>ResponseDto {
 }
 ```
 
-### 8.4 Create Command (`commands/impl/create-<feature>.command.ts`)
+### 9.4 Create Command
 
 ```typescript
 import { Create<Feature>Dto } from '../../dto/create-<feature>.dto';
@@ -681,7 +922,7 @@ export class Create<Feature>Command {
 }
 ```
 
-### 8.5 Update Command (`commands/impl/update-<feature>.command.ts`)
+### 9.5 Update Command
 
 ```typescript
 import { Update<Feature>Dto } from '../../dto/update-<feature>.dto';
@@ -696,7 +937,7 @@ export class Update<Feature>Command {
 }
 ```
 
-### 8.6 Delete Command (`commands/impl/delete-<feature>.command.ts`)
+### 9.6 Delete Command
 
 ```typescript
 export class Delete<Feature>Command {
@@ -708,7 +949,7 @@ export class Delete<Feature>Command {
 }
 ```
 
-### 8.7 Create Command Handler (`commands/handlers/create-<feature>.handler.ts`)
+### 9.7 Create Command Handler
 
 ```typescript
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
@@ -758,26 +999,67 @@ export class Create<Feature>Handler implements ICommandHandler<Create<Feature>Co
       });
 
       this.logger.log('Created <feature>', undefined, { id: result.id, orgId });
-
       return <Feature>ResponseDto.fromEntity(result);
     } catch (error) {
       if (error.status) throw error;
-      this.logger.error('Failed to create <feature>', error.stack, undefined, { orgId });
+      this.logger.error('Failed to create <feature>', error.stack);
       throw this.errorService.internalServerError('Failed to create <feature>');
     }
   }
 }
 ```
 
-### 8.8 Delete Command Handler (`commands/handlers/delete-<feature>.handler.ts`)
+### 9.8 Update Command Handler
 
 ```typescript
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Delete<Feature>Command } from '../impl/delete-<feature>.command';
-import { LoggerService } from 'services/logger/logger.service';
-import { PrismaService } from 'services/prisma/prisma.service';
-import { ErrorService } from 'services/errors/error.service';
+@CommandHandler(Update<Feature>Command)
+export class Update<Feature>Handler implements ICommandHandler<Update<Feature>Command> {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+    private readonly errorService: ErrorService,
+  ) {
+    this.logger.setContext(Update<Feature>Handler.name);
+  }
 
+  async execute(command: Update<Feature>Command): Promise<<Feature>ResponseDto> {
+    const { id, dto, orgId, userId } = command;
+
+    try {
+      const existing = await this.prisma.<model>.findFirst({
+        where: { id, orgId, deletedAt: null },
+      });
+
+      if (!existing) {
+        throw this.errorService.notFound('<Feature> not found');
+      }
+
+      const updateData: any = { updatedBy: userId };
+      if (dto.name !== undefined) {
+        updateData.name = dto.name;
+        updateData.slug = dto.name.toLowerCase().replace(/\s+/g, '-');
+      }
+      if (dto.description !== undefined) updateData.description = dto.description;
+
+      const result = await this.prisma.<model>.update({
+        where: { id },
+        data: updateData,
+      });
+
+      this.logger.log('Updated <feature>', undefined, { id, orgId });
+      return <Feature>ResponseDto.fromEntity(result);
+    } catch (error) {
+      if (error.status) throw error;
+      this.logger.error('Failed to update <feature>', error.stack);
+      throw this.errorService.internalServerError('Failed to update <feature>');
+    }
+  }
+}
+```
+
+### 9.9 Delete Command Handler
+
+```typescript
 @CommandHandler(Delete<Feature>Command)
 export class Delete<Feature>Handler implements ICommandHandler<Delete<Feature>Command> {
   constructor(
@@ -800,7 +1082,7 @@ export class Delete<Feature>Handler implements ICommandHandler<Delete<Feature>Co
         throw this.errorService.notFound('<Feature> not found');
       }
 
-      // Soft delete - NEVER hard delete
+      // SOFT DELETE - NEVER hard delete
       await this.prisma.<model>.update({
         where: { id },
         data: {
@@ -813,14 +1095,14 @@ export class Delete<Feature>Handler implements ICommandHandler<Delete<Feature>Co
       this.logger.log('Soft deleted <feature>', undefined, { id, orgId });
     } catch (error) {
       if (error.status) throw error;
-      this.logger.error('Failed to delete <feature>', error.stack, undefined, { id, orgId });
+      this.logger.error('Failed to delete <feature>', error.stack);
       throw this.errorService.internalServerError('Failed to delete <feature>');
     }
   }
 }
 ```
 
-### 8.9 Commands Index (`commands/index.ts`)
+### 9.10 Commands Index
 
 ```typescript
 import { Create<Feature>Handler } from './handlers/create-<feature>.handler';
@@ -834,7 +1116,7 @@ export const <Feature>CommandHandlers = [
 ];
 ```
 
-### 8.10 Get Query (`queries/impl/get-<feature>.query.ts`)
+### 9.11 Get Query
 
 ```typescript
 export class Get<Feature>Query {
@@ -845,7 +1127,7 @@ export class Get<Feature>Query {
 }
 ```
 
-### 8.11 List Query (`queries/impl/list-<features>.query.ts`)
+### 9.12 List Query
 
 ```typescript
 export class List<Features>Query {
@@ -858,16 +1140,9 @@ export class List<Features>Query {
 }
 ```
 
-### 8.12 Get Query Handler (`queries/handlers/get-<feature>.handler.ts`)
+### 9.13 Get Query Handler
 
 ```typescript
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Get<Feature>Query } from '../impl/get-<feature>.query';
-import { LoggerService } from 'services/logger/logger.service';
-import { PrismaService } from 'services/prisma/prisma.service';
-import { ErrorService } from 'services/errors/error.service';
-import { <Feature>ResponseDto } from '../../dto/<feature>-response.dto';
-
 @QueryHandler(Get<Feature>Query)
 export class Get<Feature>Handler implements IQueryHandler<Get<Feature>Query> {
   constructor(
@@ -900,16 +1175,9 @@ export class Get<Feature>Handler implements IQueryHandler<Get<Feature>Query> {
 }
 ```
 
-### 8.13 List Query Handler (`queries/handlers/list-<features>.handler.ts`)
+### 9.14 List Query Handler
 
 ```typescript
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { List<Features>Query } from '../impl/list-<features>.query';
-import { LoggerService } from 'services/logger/logger.service';
-import { PrismaService } from 'services/prisma/prisma.service';
-import { ErrorService } from 'services/errors/error.service';
-import { <Feature>ResponseDto } from '../../dto/<feature>-response.dto';
-
 @QueryHandler(List<Features>Query)
 export class List<Features>Handler implements IQueryHandler<List<Features>Query> {
   constructor(
@@ -960,19 +1228,16 @@ export class List<Features>Handler implements IQueryHandler<List<Features>Query>
 }
 ```
 
-### 8.14 Queries Index (`queries/index.ts`)
+### 9.15 Queries Index
 
 ```typescript
 import { Get<Feature>Handler } from './handlers/get-<feature>.handler';
 import { List<Features>Handler } from './handlers/list-<features>.handler';
 
-export const <Feature>QueryHandlers = [
-  Get<Feature>Handler,
-  List<Features>Handler,
-];
+export const <Feature>QueryHandlers = [Get<Feature>Handler, List<Features>Handler];
 ```
 
-### 8.15 Service Facade (`<feature>.service.ts`)
+### 9.16 Service Facade
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -1015,14 +1280,11 @@ export class <Feature>Service {
 }
 ```
 
-### 8.16 Company Portal Controller (`<feature>.controller.ts`)
+### 9.17 Company/Consumer Portal Controller
 
 ```typescript
 import { Controller, Post, Get, Patch, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { <Feature>Service } from './<feature>.service';
-import { Create<Feature>Dto } from './dto/create-<feature>.dto';
-import { Update<Feature>Dto } from './dto/update-<feature>.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
 import { TenantGuard } from 'middleware/guards/tenant.guard';
 import { RolesGuard } from 'middleware/guards/roles.guard';
@@ -1031,13 +1293,16 @@ import { RequiredFeature } from 'decorators/required-feature.decorator';
 import { UserRole } from 'generated/prisma/enums';
 
 @ApiTags('<Features>')
-@Controller('api/:slug/<features>')
+@Controller(':orgHash/<features>')
 @UseGuards(JwtAuthGuard, TenantGuard)
 export class <Feature>Controller {
   constructor(private readonly service: <Feature>Service) {}
 
   @Get()
   @ApiOperation({ summary: 'List <features>' })
+  @ApiResponse({ status: 200, description: 'List retrieved' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 403, description: 'Organization context required' })
   async findAll(
     @Req() req: any,
     @Query('page') page: number = 1,
@@ -1049,6 +1314,8 @@ export class <Feature>Controller {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get <feature> by ID' })
+  @ApiResponse({ status: 200, description: 'Retrieved' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   async findById(@Param('id') id: string, @Req() req: any) {
     return this.service.findById(id, req.user.orgId);
   }
@@ -1056,8 +1323,12 @@ export class <Feature>Controller {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.COMPANY_SUPER_ADMIN, UserRole.COMPANY_STAFF)
-  @RequiredFeature('BRAND_CREATE')
+  @RequiredFeature('FEATURE_CREATE')
   @ApiOperation({ summary: 'Create <feature>' })
+  @ApiBody({ type: Create<Feature>Dto })
+  @ApiResponse({ status: 201, description: 'Created' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 409, description: 'Already exists' })
   async create(@Body() dto: Create<Feature>Dto, @Req() req: any) {
     return this.service.create(dto, req.user.orgId, req.user.id);
   }
@@ -1066,6 +1337,9 @@ export class <Feature>Controller {
   @UseGuards(RolesGuard)
   @Roles(UserRole.COMPANY_SUPER_ADMIN)
   @ApiOperation({ summary: 'Update <feature>' })
+  @ApiBody({ type: Update<Feature>Dto })
+  @ApiResponse({ status: 200, description: 'Updated' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   async update(@Param('id') id: string, @Body() dto: Update<Feature>Dto, @Req() req: any) {
     return this.service.update(id, dto, req.user.orgId, req.user.id);
   }
@@ -1073,14 +1347,16 @@ export class <Feature>Controller {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.COMPANY_SUPER_ADMIN)
-  @ApiOperation({ summary: 'Delete <feature> (soft delete)' })
+  @ApiOperation({ summary: 'Delete <feature>' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   async remove(@Param('id') id: string, @Req() req: any) {
     return this.service.remove(id, req.user.orgId, req.user.id);
   }
 }
 ```
 
-### 8.17 Module (`<feature>.module.ts`)
+### 9.18 Module
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -1106,12 +1382,10 @@ export class <Feature>Module {}
 
 ---
 
-## 9. Organization-Scoped Operations
-
-### Golden Rule: Every query MUST filter by orgId + deletedAt: null
+## 10. Organization-Scoped Operations
 
 ```typescript
-// ✅ CORRECT
+// ✅ CORRECT - Always filter by orgId + deletedAt
 const items = await this.prisma.brand.findMany({
   where: { orgId, deletedAt: null },
 });
@@ -1131,10 +1405,10 @@ await this.prisma.brand.delete({ where: { id } });
 
 ---
 
-## 10. Soft Delete Operations
+## 11. Soft Delete Operations
 
 ```typescript
-// ✅ CORRECT - Soft delete
+// ✅ CORRECT - Soft delete pattern
 await this.prisma.<model>.update({
   where: { id },
   data: {
@@ -1144,7 +1418,7 @@ await this.prisma.<model>.update({
   },
 });
 
-// ✅ CORRECT - Duplicate check (only among active records)
+// ✅ CORRECT - Duplicate check only among active records
 const existing = await this.prisma.<model>.findFirst({
   where: { orgId, slug: newSlug, deletedAt: null },
 });
@@ -1152,7 +1426,7 @@ const existing = await this.prisma.<model>.findFirst({
 
 ---
 
-## 11. Multi-Tenant Data Isolation
+## 12. Multi-Tenant Data Isolation
 
 ```typescript
 // Consumer - sees only own data
@@ -1164,36 +1438,45 @@ const data = await this.prisma.formData.findMany({
 const data = await this.prisma.formData.findMany({
   where: { orgId, deletedAt: null },
 });
+
+// Admin - sees all platform data (no orgId filter, but still deletedAt)
+const data = await this.prisma.organization.findMany({
+  where: { deletedAt: null },
+});
 ```
 
 ---
 
-## 12. Anti-Patterns (NEVER)
+## 13. Anti-Patterns (NEVER)
 
-| ❌ Wrong                                          | ✅ Correct                                    |
-| ------------------------------------------------- | --------------------------------------------- |
-| `new PrismaClient()`                              | `this.prisma`                                 |
-| `throw new BadRequestException()`                 | `this.errorService.badRequest()`              |
-| `console.log()` / `console.error()`               | `this.logger.log()` / `this.logger.error()`   |
-| Raw S3/AWS SDK calls                              | `this.fileService.uploadFile()`               |
-| `return { success: true, data: ... }`             | `return data` (interceptors wrap it)          |
-| DB queries in controller/service                  | Only in CQRS handlers                         |
-| Missing `this.logger.setContext()`                | Always set in constructor                     |
-| Empty `catch (e) {}`                              | Log + throw via errorService                  |
-| Query without `orgId` filter                      | Always include `orgId` in where clause        |
-| Query without `deletedAt: null`                   | Always exclude soft-deleted records           |
-| Hard delete with `prisma.delete()`                | Use `prisma.update()` to set `deletedAt`      |
-| Injecting feature services cross-module           | Use QueryBus or CommandBus                    |
-| File upload without old file deletion             | Delete old file before uploading new          |
-| Importing `PrismaModule`/`JwtModule` etc.         | They are `@Global()`, just inject service     |
-| Creating duplicate User for existing email        | Check User table first, reuse existing record |
-| Returning tokens in response body                 | Let ResponseInterceptor extract to cookies    |
-| Using `@Roles()` without `@UseGuards(RolesGuard)` | Always use both together                      |
-| `process.env.*` in handlers                       | Use `ConfigService` (except in PrismaService) |
+| ❌ Wrong                                   | ✅ Correct                                                                                                 |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `new PrismaClient()`                       | `this.prisma` (inject PrismaService)                                                                       |
+| `throw new BadRequestException()`          | `this.errorService.badRequest('message')`                                                                  |
+| `console.log()` / `console.error()`        | `this.logger.log()` / `this.logger.error()`                                                                |
+| Raw S3/AWS SDK calls                       | `this.fileService.uploadFile()`                                                                            |
+| `return { success: true, data: ... }`      | `return data` (interceptors wrap it)                                                                       |
+| DB queries in controller/service           | Only in CQRS handlers                                                                                      |
+| Missing `this.logger.setContext()`         | Always set in constructor of every class                                                                   |
+| Empty `catch (e) {}`                       | `if (error.status) throw error;` + `this.logger.error()` + `throw this.errorService.internalServerError()` |
+| Query without `orgId` filter               | Always include `orgId` in where clause                                                                     |
+| Query without `deletedAt: null`            | Always exclude soft-deleted records                                                                        |
+| Hard delete with `prisma.delete()`         | Use `prisma.update()` to set `deletedAt`                                                                   |
+| Injecting feature services cross-module    | Use QueryBus or CommandBus                                                                                 |
+| File upload without old file deletion      | Delete old file before uploading new                                                                       |
+| Importing `PrismaModule`/`JwtModule` etc.  | They are `@Global()`, just inject the service                                                              |
+| Creating duplicate User for existing email | Check User table first, reuse existing record                                                              |
+| `res.cookie()` in handler                  | Return tokens in response body, interceptor sets cookies                                                   |
+| `@Controller('api/...')`                   | `@Controller('...')` (global prefix handles `api/`)                                                        |
+| CQRS for simple logic (logout)             | Keep in controller                                                                                         |
+| Using `slug` for org URL resolution        | Use `orgHash`                                                                                              |
+| `req.user.userId` for profile              | `req.user.id` (UserAccess ID from JWT `sub`)                                                               |
+| `process.env.*` in handlers                | Use `ConfigService` (except in PrismaService)                                                              |
+| Missing `@ApiResponse` for errors          | Document ALL possible error responses                                                                      |
 
 ---
 
-## 13. Quick Checklist
+## 14. Quick Checklist
 
 - [ ] Module folder: `src/modules/<portal>/<feature-name>/`
 - [ ] Sub-folders: `commands/handlers/`, `commands/impl/`, `queries/handlers/`, `queries/impl/`, `dto/`
@@ -1201,8 +1484,8 @@ const data = await this.prisma.formData.findMany({
 - [ ] `queries/index.ts` exports `QueryHandlers` array
 - [ ] Command class includes `orgId` and `userId` in constructor
 - [ ] Query class includes `orgId` for organization-scoped queries
-- [ ] Handler injects: `PrismaService`, `LoggerService`, `ErrorService`
-- [ ] Handler sets context: `this.logger.setContext(ClassName.name)`
+- [ ] Handler injects: `PrismaService`, `LoggerService`, `ErrorService` (minimum)
+- [ ] Handler sets context: `this.logger.setContext(ClassName.name)` in constructor
 - [ ] All queries include `orgId` AND `deletedAt: null`
 - [ ] Create records with `orgId`, `createdBy`, `updatedBy`
 - [ ] Soft delete uses `update` with `deletedAt`, `deletedBy`, `isActive: false`
@@ -1216,15 +1499,179 @@ const data = await this.prisma.formData.findMany({
 - [ ] Service Facade passes `orgId` to commands/queries
 - [ ] Controller only calls Service Facade methods
 - [ ] Controller extracts `orgId` and `userId` from `req.user`
-- [ ] Company/Consumer controllers use `@Controller('api/:slug/...')` with `JwtAuthGuard` + `TenantGuard`
-- [ ] Admin controllers use `@Controller('api/admin/...')` with `JwtAuthGuard` + `TenantGuard`
-- [ ] Auth controllers use `@Public()` on all endpoints
-- [ ] Feature-protected endpoints use `@RequiredFeature('FEATURE_CODE')`
-- [ ] Role-protected endpoints use `@UseGuards(RolesGuard)` + `@Roles()`
+- [ ] Company/Consumer controllers: `@Controller(':orgHash/...')` + `@UseGuards(JwtAuthGuard, TenantGuard)`
+- [ ] Admin controllers: `@Controller('admin/...')` + `@UseGuards(JwtAuthGuard, TenantGuard)`
+- [ ] Auth public endpoints: `@Public()`
+- [ ] Every endpoint has `@ApiResponse` for ALL error statuses
+- [ ] Feature-protected: `@RequiredFeature('FEATURE_CODE')`
+- [ ] Role-protected: `@UseGuards(RolesGuard)` + `@Roles()`
 - [ ] Module imports `CommonModules` from `services`
 - [ ] Module provides `RolesGuard`
 - [ ] AppModule registers `JwtAuthGuard` and `TenantGuard` as `APP_GUARD`
+- [ ] Controller path does NOT include `api/` prefix
+- [ ] Org resolution uses `orgHash` not `slug`
 
 ---
 
-**End of Rule Book v3.0**
+## 15. Error Response Standards
+
+### 15.1 Rule
+
+**Every handler MUST throw errors using ErrorService. Every controller MUST document ALL possible error responses with @ApiResponse.**
+
+### 15.2 Error Response Format
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Error message from handler",
+  "statusCode": 400,
+  "meta": {
+    "timings": {
+      "processingTime": "15 ms",
+      "serverTime": "...",
+      "requestReceived": "...",
+      "responseSent": "..."
+    },
+    "request": {
+      "path": "/auth/me",
+      "method": "GET",
+      "ip": "::1",
+      "userAgent": "..."
+    }
+  }
+}
+```
+
+### 15.3 Error Method → HTTP Status Mapping
+
+| Error Method            | HTTP Status | When to Use                                                     |
+| ----------------------- | ----------- | --------------------------------------------------------------- |
+| `badRequest()`          | 400         | Validation failed, missing required fields, invalid format      |
+| `unauthorized()`        | 401         | Invalid/expired token, wrong OTP, wrong password                |
+| `forbidden()`           | 403         | No access to org, insufficient permissions, account deactivated |
+| `notFound()`            | 404         | Resource/User/Organization/UserAccess not found                 |
+| `conflict()`            | 409         | Duplicate name/slug/phone/email                                 |
+| `payloadTooLarge()`     | 413         | File too large                                                  |
+| `internalServerError()` | 500         | Unexpected errors, database failures, external service failures |
+
+### 15.4 Handler Error Pattern (Mandatory)
+
+```typescript
+async execute(command: SomeCommand): Promise<SomeResponseDto> {
+  try {
+    // Business logic here
+    // ...
+    return SomeResponseDto.fromEntity(result);
+  } catch (error) {
+    if (error.status) throw error;  // Re-throw known ErrorService errors
+    this.logger.error('Failed to do something', error.stack);
+    throw this.errorService.internalServerError('Failed to do something');
+  }
+}
+```
+
+### 15.5 Standard Error Messages Reference
+
+**Authentication (401):**
+
+- `'Authentication required. Please login.'` - No token present
+- `'Session expired. Please login again.'` - Refresh token expired
+- `'Invalid or expired OTP'` - Wrong/expired/already used OTP
+- `'Current password is incorrect'` - Wrong current password
+
+**Authorization (403):**
+
+- `'Account is deactivated'` - UserAccess.isActive = false
+- `'Organization context is required'` - No orgHash in URL for non-admin
+- `'You do not have access to organization \'X\''` - UserAccess not found for org
+- `'Invalid portal access. Expected X access.'` - Wrong portal type
+- `'You do not have the required permission: X'` - Feature check failed
+
+**Not Found (404):**
+
+- `'Organization not found'` - Invalid orgHash or deleted
+- `'No account found with this email'` - User not found
+- `'No {portalType} access found for this organization'` - UserAccess not found
+- `'Profile not found'` - UserAccess not found for profile endpoint
+- `'System organization not found'` - System org missing (admin login)
+
+**Conflict (409):**
+
+- `'<Feature> with this name already exists'` - Duplicate name
+- `'Phone number already in use'` - Duplicate phone in same org
+
+**Bad Request (400):**
+
+- `'Organization hash is required'` - Missing orgHash for company/consumer
+- `'New password must be at least 8 characters'` - Validation failed
+- `'No password set for this account'` - OTP-only user trying to change password
+- `'File is required'` - No file uploaded
+
+**Internal Server Error (500):**
+
+- `'Failed to send OTP'`
+- `'Failed to verify OTP'`
+- `'Failed to get profile'`
+- `'Failed to update profile'`
+- `'Failed to change password'`
+- `'Failed to upload profile picture'`
+- `'Failed to create <feature>'`
+- `'Failed to update <feature>'`
+- `'Failed to delete <feature>'`
+
+### 15.6 Controller Swagger Documentation Rule
+
+Every endpoint MUST document ALL possible error responses:
+
+```typescript
+@Get()
+@ApiOperation({ summary: 'Get current profile' })
+@ApiResponse({ status: 200, description: 'Profile retrieved', type: ProfileResponseDto })
+@ApiResponse({ status: 401, description: 'Authentication required or session expired' })
+@ApiResponse({ status: 404, description: 'Profile not found' })
+async getProfile(@Req() req: any): Promise<ProfileResponseDto> {
+  return this.profileService.getProfile(req.user.id, req.user.orgId);
+}
+```
+
+---
+
+## 16. Current Implementation Reference
+
+### 16.1 Prisma Models
+
+```
+User, UserAccess, Organization, Brand, Category, DealerType,
+Feature, FeatureAccess, FormSchema, FormData, WarrantyTemplate,
+Warranty, OtpVerification
+```
+
+### 16.2 Enums
+
+```
+UserRole: ADMIN, COMPANY_SUPER_ADMIN, COMPANY_STAFF, COMPANY_PARTNER, CONSUMER
+OrganizationType: ROOT, BRANCH
+OtpType: LOGIN, PASSWORD_RESET, VERIFY_EMAIL, VERIFY_PHONE
+FeatureStatus: COMING_SOON, ENABLED, DISABLED
+```
+
+### 16.3 Database Conventions
+
+- All primary keys: UUID via `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`
+- All timestamps: `@db.Timestamptz`
+- Soft delete fields: `deletedAt DateTime? @db.Timestamptz`, `deletedBy String? @db.Uuid`
+- Audit fields: `createdBy String? @db.Uuid`, `updatedBy String? @db.Uuid`
+- Unique constraints with partial indexes for non-deleted records
+- Indexes on `orgId`, `deletedAt`, and frequently queried fields
+
+### 16.4 Seed Data
+
+- System organization: `{ slug: 'system', hash: 'admin01', type: 'ROOT' }`
+- Admin user: `{ email: 'admin@warranty.com', password: 'Admin@123' }`
+- Admin UserAccess: `{ portalType: 'admin', role: 'ADMIN', orgId: <system-org-id> }`
+
+---
+
+**End of Rule Book v5.0 - AI-Ready**

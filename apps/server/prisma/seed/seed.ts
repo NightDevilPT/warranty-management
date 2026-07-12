@@ -4,6 +4,7 @@ import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { seedUsers } from './user/index';
+import { seedFeatures } from './features/index';
 import { seedLogger } from './utils/logger';
 
 const pool = new Pool({
@@ -41,7 +42,11 @@ async function main() {
 
   await clearDatabase();
 
+  // Seed admin user
   const admin = await seedUsers(prisma);
+
+  // Seed global features
+  await seedFeatures(prisma);
 
   console.log(`${'═'.repeat(60)}`);
   console.log('  📊 SEED COMPLETE');
