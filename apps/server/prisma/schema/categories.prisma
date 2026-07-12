@@ -31,10 +31,10 @@ model Category {
   // Active status - false hides this category from UI
   isActive Boolean @default(true)
 
-  // User ID who created this category
+  // UserAccess ID who created this category
   createdBy String? @db.Uuid
 
-  // User ID who last updated this category
+  // UserAccess ID who last updated this category
   updatedBy String? @db.Uuid
 
   // Timestamp when category was created
@@ -47,7 +47,7 @@ model Category {
   // Allows re-creating a category with the same slug after deletion
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Hierarchy Relations ---
@@ -63,14 +63,14 @@ model Category {
   // Organization this category belongs to
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // User who created this category
-  creator User? @relation("CategoryCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // UserAccess who created this category
+  creator UserAccess? @relation("CategoryCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  // User who last updated this category
-  updater User? @relation("CategoryUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last updated this category
+  updater UserAccess? @relation("CategoryUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // User who deleted this category
-  deleter User? @relation("CategoryDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this category
+  deleter UserAccess? @relation("CategoryDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Unique slug per organization (for non-deleted records via partial index)
   @@unique([orgId, slug])

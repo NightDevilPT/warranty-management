@@ -28,7 +28,7 @@ model WarrantyTemplate {
   // Soft-delete timestamp - when set, template is considered deleted
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Relations ---
@@ -39,8 +39,8 @@ model WarrantyTemplate {
   // Form schema this template is linked to
   formSchema FormSchema @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
 
-  // User who deleted this template
-  deleter User? @relation("WarrantyTemplateDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this template
+  deleter UserAccess? @relation("WarrantyTemplateDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Warranty records created from this template
   warranties Warranty[]
@@ -78,7 +78,7 @@ model Warranty {
   // Soft-delete timestamp - when set, warranty is considered deleted
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Relations ---
@@ -95,8 +95,8 @@ model Warranty {
   // Part covered by this warranty (optional - null if covers whole product)
   partFormData FormData? @relation("WarrantyToPart", fields: [partFormDataId], references: [id], onDelete: Cascade)
 
-  // User who deleted this warranty
-  deleter User? @relation("WarrantyDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this warranty
+  deleter UserAccess? @relation("WarrantyDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   @@index([deletedAt])
 }

@@ -24,10 +24,10 @@ model DealerType {
   // Whether this dealer type is active and can be assigned to users
   isActive Boolean @default(true)
 
-  // User ID who created this dealer type
+  // UserAccess ID who created this dealer type
   createdBy String? @db.Uuid
 
-  // User ID who last updated this dealer type
+  // UserAccess ID who last updated this dealer type
   updatedBy String? @db.Uuid
 
   // Timestamp when dealer type was created
@@ -40,7 +40,7 @@ model DealerType {
   // Allows re-creating a dealer type with the same name after deletion
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Relations ---
@@ -48,14 +48,14 @@ model DealerType {
   // Organization that created this dealer type
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // User who created this dealer type
-  creator User? @relation("DealerTypeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // UserAccess who created this dealer type
+  creator UserAccess? @relation("DealerTypeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  // User who last updated this dealer type
-  updater User? @relation("DealerTypeUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last updated this dealer type
+  updater UserAccess? @relation("DealerTypeUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // User who deleted this dealer type
-  deleter User? @relation("DealerTypeDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this dealer type
+  deleter UserAccess? @relation("DealerTypeDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Feature access records - what features this dealer type has
   featureAccess FeatureAccess[]

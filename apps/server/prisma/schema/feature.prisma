@@ -2,56 +2,56 @@
 
 model Feature {
   // Primary key - auto-generated UUID for security
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Display name shown in UI (e.g., "Product Management", "Create Warranty")
-  name        String
+  name String
 
   // Unique code for backend permission checks - Format: UPPERCASE with underscores, e.g., "PRODUCT_CREATE"
-  code        String        @unique
+  code String @unique
 
   // Optional description explaining what this feature/module allows users to do
   description String?
 
   // Icon identifier for UI rendering (e.g., "package", "shield-check", "users")
-  icon        String?
+  icon String?
 
   // Parent feature ID for building feature hierarchy/tree - null = root level module, set = sub-module
-  parentId    String?       @db.Uuid
+  parentId String? @db.Uuid
 
   // Sort order within the same parent level - lower numbers appear first in UI
-  sortOrder   Int           @default(0)
+  sortOrder Int @default(0)
 
   // Global status controlling feature availability - COMING_SOON, ENABLED, DISABLED
-  status      FeatureStatus @default(COMING_SOON)
+  status FeatureStatus @default(COMING_SOON)
 
-  // Admin user ID who created this feature
-  createdBy   String?       @db.Uuid
+  // UserAccess ID who created this feature
+  createdBy String? @db.Uuid
 
-  // Admin user ID who last modified this feature
-  updatedBy   String?       @db.Uuid
+  // UserAccess ID who last modified this feature
+  updatedBy String? @db.Uuid
 
   // Timestamp when this feature was first created
-  createdAt   DateTime      @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   // Timestamp automatically updated on every modification
-  updatedAt   DateTime      @updatedAt @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   // --- Hierarchy Relations ---
 
   // Parent feature in the hierarchy tree (null for root modules)
-  parent      Feature?      @relation("FeatureHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parent Feature? @relation("FeatureHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
 
   // Child features under this parent (sub-modules, actions, permissions)
-  children    Feature[]     @relation("FeatureHierarchy")
+  children Feature[] @relation("FeatureHierarchy")
 
   // --- Audit Relations ---
 
-  // Admin user who created this feature
-  creator     User?         @relation("FeatureCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // UserAccess who created this feature
+  creator UserAccess? @relation("FeatureCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  // Admin user who last updated this feature
-  updater     User?         @relation("FeatureUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last updated this feature
+  updater UserAccess? @relation("FeatureUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   // --- Access Relations ---
 
@@ -72,34 +72,34 @@ model Feature {
 // Users inherit features through their UserAccess.dealerTypeId
 model FeatureAccess {
   // Primary key - auto-generated UUID
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Organization ID - which organization this access belongs to
-  orgId        String    @db.Uuid
+  orgId String @db.Uuid
 
   // DealerType ID - which dealer type (role template) this feature is assigned to
-  dealerTypeId String    @db.Uuid
+  dealerTypeId String @db.Uuid
 
   // Feature ID - which feature/module/permission this access controls
-  featureId    String    @db.Uuid
+  featureId String @db.Uuid
 
   // Whether this feature is active for this dealer type - true = accessible, false = blocked
-  isActive     Boolean   @default(true)
+  isActive Boolean @default(true)
 
   // Timestamp when the feature was enabled
-  enabledAt    DateTime? @db.Timestamptz
+  enabledAt DateTime? @db.Timestamptz
 
   // Timestamp when the feature was disabled
-  disabledAt   DateTime? @db.Timestamptz
+  disabledAt DateTime? @db.Timestamptz
 
-  // Admin/SuperAdmin user ID who last modified this access record
-  updatedBy    String?   @db.Uuid
+  // UserAccess ID who last modified this access record
+  updatedBy String? @db.Uuid
 
   // Timestamp when this access record was created
-  createdAt    DateTime  @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   // Timestamp automatically updated on every modification
-  updatedAt    DateTime  @updatedAt @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   // --- Relations ---
 
@@ -107,13 +107,13 @@ model FeatureAccess {
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // DealerType this feature is assigned to
-  dealerType   DealerType  @relation(fields: [dealerTypeId], references: [id], onDelete: Cascade)
+  dealerType DealerType @relation(fields: [dealerTypeId], references: [id], onDelete: Cascade)
 
   // Feature this access controls
-  feature      Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
 
-  // Admin/SuperAdmin who last modified this access
-  updater      User?       @relation("FeatureAccessUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last modified this access
+  updater UserAccess? @relation("FeatureAccessUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   // Unique constraint: one access record per org + dealerType + feature combination
   @@unique([orgId, dealerTypeId, featureId])

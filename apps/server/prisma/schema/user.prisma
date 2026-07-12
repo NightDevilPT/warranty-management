@@ -2,134 +2,33 @@
 
 model User {
   // Primary key - auto-generated UUID for security (prevents sequential ID guessing)
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Email address used for global login across all organizations - unique platform-wide
-  email         String?   @unique
-
-  // Phone number used for SMS OTP login - unique platform-wide
-  phoneNumber   String?   @unique
-
-  // User's first/given name for UI display, emails, and greetings
-  firstName     String
-
-  // User's last/family name for UI display and formal communications
-  lastName      String
-
-  // Auto-generated combined name for easier searching and display - Format: "firstName lastName"
-  fullName      String
-
-  // Bcrypt hashed password for email/password login - null if user only uses OTP-based login
-  passwordHash  String?
-
-  // Global platform role - ADMIN has full access, everyone else defaults to CONSUMER
-  // Real role per organization is stored in UserAccess table
-  role          UserRole  @default(CONSUMER)
-
-  // Whether user has verified their email address by clicking verification link
-  emailVerified Boolean   @default(false)
-
-  // Whether user has verified their phone number by entering SMS code
-  phoneVerified Boolean   @default(false)
+  email String @unique
 
   // Master switch to deactivate user across entire platform - false = user cannot login anywhere
-  isActive      Boolean   @default(true)
-
-  // Profile picture URL stored in S3 bucket - Format: "profiles/user-id-timestamp.jpg"
-  profile       String?
+  isActive Boolean @default(true)
 
   // Timestamp when user first signed up/registered
-  createdAt     DateTime  @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
-  // Timestamp automatically updated on every profile change
-  updatedAt     DateTime  @updatedAt @db.Timestamptz
+  // Timestamp automatically updated on any change
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   // Soft-delete timestamp for historical audit trails - when set, user is considered deleted
-  // Email and phone become available for reuse after deletion
-  deletedAt     DateTime? @db.Timestamptz
+  // Email becomes available for reuse after deletion
+  deletedAt DateTime? @db.Timestamptz
 
   // Admin user ID who performed the soft-delete
-  deletedBy     String?
+  deletedBy String?
 
   // --- Relations ---
 
-  // All OTP codes requested by this user (login, password reset, verification)
-  otpRequests           OtpVerification[]
-
   // All organization access profiles - which companies this user belongs to and their roles
-  accessProfiles        UserAccess[]
+  accessProfiles UserAccess[]
 
-  // All form data records originally created by this user
-  createdForms          FormData[] @relation("FormDataCreator")
-
-  // All form data records last modified by this user
-  updatedForms          FormData[] @relation("FormDataUpdater")
-
-  // Organizations created/onboarded by this admin user
-  createdOrganizations  Organization[] @relation("OrganizationCreator")
-
-  // Organizations last updated by this admin user
-  updatedOrganizations  Organization[] @relation("OrganizationUpdater")
-
-  // Features/modules created by this admin user
-  createdFeatures       Feature[]        @relation("FeatureCreator")
-
-  // Features/modules last updated by this admin user
-  updatedFeatures       Feature[]        @relation("FeatureUpdater")
-
-  // Feature access records last modified by this user (as admin/superadmin)
-  updatedFeatureAccess  FeatureAccess[]  @relation("FeatureAccessUpdater")
-
-  // Categories created by this user
-  createdCategories     Category[] @relation("CategoryCreator")
-
-  // Categories last updated by this user
-  updatedCategories     Category[] @relation("CategoryUpdater")
-
-  // Brands created by this user
-  createdBrands         Brand[]    @relation("BrandCreator")
-
-  // Brands last updated by this user
-  updatedBrands         Brand[]    @relation("BrandUpdater")
-
-  // DealerTypes created by this user
-  createdDealerTypes    DealerType[] @relation("DealerTypeCreator")
-
-  // DealerTypes last updated by this user
-  updatedDealerTypes    DealerType[] @relation("DealerTypeUpdater")
-
-  // --- Soft Delete Relations (User who performed deletions) ---
-
-  // Brands deleted by this user
-  deletedBrands         Brand[]    @relation("BrandDeleter")
-
-  // Categories deleted by this user
-  deletedCategories     Category[] @relation("CategoryDeleter")
-
-  // DealerTypes deleted by this user
-  deletedDealerTypes    DealerType[] @relation("DealerTypeDeleter")
-
-  // Organizations deleted by this user
-  deletedOrganizations  Organization[] @relation("OrganizationDeleter")
-
-  // Form schemas deleted by this user
-  deletedFormSchemas    FormSchema[] @relation("FormSchemaDeleter")
-
-  // Form data records deleted by this user
-  deletedFormData       FormData[] @relation("FormDataDeleter")
-
-  // Warranty templates deleted by this user
-  deletedWarrantyTemplates WarrantyTemplate[] @relation("WarrantyTemplateDeleter")
-
-  // Warranties deleted by this user
-  deletedWarranties     Warranty[] @relation("WarrantyDeleter")
-
-  // UserAccess records removed by this user
-  removedUserAccesses   UserAccess[] @relation("UserAccessRemover")
-
-  // Indexes for fast lookups during login and user search
+  // Indexes for fast lookups during login
   @@index([email])
-  @@index([phoneNumber])
-  @@index([role])
   @@index([deletedAt])
 }

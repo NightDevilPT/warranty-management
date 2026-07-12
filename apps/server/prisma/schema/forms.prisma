@@ -36,7 +36,7 @@ model FormSchema {
   // Soft-delete timestamp - when set, schema is considered deleted
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Relations ---
@@ -58,8 +58,8 @@ model FormSchema {
   productSchemasWithCategory FormSchema[] @relation("CategoryToProduct")
   partSchemas                FormSchema[] @relation("PartToProduct")
 
-  // User who deleted this schema
-  deleter User? @relation("FormSchemaDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this schema
+  deleter UserAccess? @relation("FormSchemaDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Form data submitted using this schema
   formData FormData[]
@@ -102,16 +102,16 @@ model FormData {
   // Links to the Brand record this product belongs to
   brandFormDataId String? @db.Uuid
 
-  // User who originally submitted this data
+  // UserAccess who originally submitted this data
   createdBy String? @db.Uuid
 
-  // User who most recently edited this data
+  // UserAccess who most recently edited this data
   updatedBy String? @db.Uuid
 
   // Soft-delete timestamp - when set, form data is considered deleted
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Relations ---
@@ -122,14 +122,14 @@ model FormData {
   // Schema blueprint that defines this data structure
   formSchema FormSchema @relation(fields: [formSchemaId], references: [id], onDelete: Restrict)
 
-  // User who created this record
-  creator User? @relation("FormDataCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // UserAccess who created this record
+  creator UserAccess? @relation("FormDataCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  // User who last updated this record
-  updater User? @relation("FormDataUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last updated this record
+  updater UserAccess? @relation("FormDataUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // User who deleted this record
-  deleter User? @relation("FormDataDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this record
+  deleter UserAccess? @relation("FormDataDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Parent product data (for parts belonging to a product)
   parentProductData FormData? @relation("ProductToPart", fields: [parentProductDataId], references: [id], onDelete: Cascade)

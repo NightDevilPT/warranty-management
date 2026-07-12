@@ -149,6 +149,7 @@ CREATE TABLE "Organization" (
     "logo" TEXT,
     "type" "OrganizationType" NOT NULL DEFAULT 'ROOT',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "hash" TEXT NOT NULL,
     "createdBy" UUID,
     "updatedBy" UUID,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -164,7 +165,7 @@ CREATE TABLE "Organization" (
 -- CreateTable
 CREATE TABLE "OtpVerification" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "userId" UUID NOT NULL,
+    "userAccessId" UUID NOT NULL,
     "code" TEXT NOT NULL,
     "type" "OtpType" NOT NULL,
     "expiresAt" TIMESTAMPTZ NOT NULL,
@@ -177,17 +178,8 @@ CREATE TABLE "OtpVerification" (
 -- CreateTable
 CREATE TABLE "User" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "email" TEXT,
-    "phoneNumber" TEXT,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
-    "fullName" TEXT NOT NULL,
-    "passwordHash" TEXT,
-    "role" "UserRole" NOT NULL DEFAULT 'CONSUMER',
-    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
-    "phoneVerified" BOOLEAN NOT NULL DEFAULT false,
+    "email" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "profile" TEXT,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMPTZ NOT NULL,
     "deletedAt" TIMESTAMPTZ,
@@ -202,9 +194,18 @@ CREATE TABLE "UserAccess" (
     "userId" UUID NOT NULL,
     "orgId" UUID NOT NULL,
     "portalType" TEXT NOT NULL,
+    "passwordHash" TEXT,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "fullName" TEXT NOT NULL,
+    "phoneNumber" TEXT,
+    "profile" TEXT,
+    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
+    "phoneVerified" BOOLEAN NOT NULL DEFAULT false,
     "role" TEXT,
     "partnerType" TEXT,
     "dealerTypeId" UUID,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMPTZ NOT NULL,
     "deletedAt" TIMESTAMPTZ,
@@ -315,13 +316,16 @@ CREATE INDEX "FormData_deletedAt_idx" ON "FormData"("deletedAt");
 CREATE UNIQUE INDEX "Organization_slug_key" ON "Organization"("slug");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Organization_hash_key" ON "Organization"("hash");
+
+-- CreateIndex
 CREATE INDEX "Organization_slug_idx" ON "Organization"("slug");
 
 -- CreateIndex
 CREATE INDEX "Organization_deletedAt_idx" ON "Organization"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "OtpVerification_userId_idx" ON "OtpVerification"("userId");
+CREATE INDEX "OtpVerification_userAccessId_idx" ON "OtpVerification"("userAccessId");
 
 -- CreateIndex
 CREATE INDEX "OtpVerification_code_idx" ON "OtpVerification"("code");
@@ -330,16 +334,7 @@ CREATE INDEX "OtpVerification_code_idx" ON "OtpVerification"("code");
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_phoneNumber_key" ON "User"("phoneNumber");
-
--- CreateIndex
 CREATE INDEX "User_email_idx" ON "User"("email");
-
--- CreateIndex
-CREATE INDEX "User_phoneNumber_idx" ON "User"("phoneNumber");
-
--- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
 
 -- CreateIndex
 CREATE INDEX "User_deletedAt_idx" ON "User"("deletedAt");
@@ -352,6 +347,9 @@ CREATE INDEX "UserAccess_orgId_idx" ON "UserAccess"("orgId");
 
 -- CreateIndex
 CREATE INDEX "UserAccess_portalType_idx" ON "UserAccess"("portalType");
+
+-- CreateIndex
+CREATE INDEX "UserAccess_phoneNumber_idx" ON "UserAccess"("phoneNumber");
 
 -- CreateIndex
 CREATE INDEX "UserAccess_deletedAt_idx" ON "UserAccess"("deletedAt");
@@ -372,13 +370,13 @@ CREATE INDEX "Warranty_deletedAt_idx" ON "Warranty"("deletedAt");
 ALTER TABLE "Brand" ADD CONSTRAINT "Brand_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Brand" ADD CONSTRAINT "Brand_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Brand" ADD CONSTRAINT "Brand_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Brand" ADD CONSTRAINT "Brand_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Brand" ADD CONSTRAINT "Brand_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Brand" ADD CONSTRAINT "Brand_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Brand" ADD CONSTRAINT "Brand_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Category" ADD CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -387,34 +385,34 @@ ALTER TABLE "Category" ADD CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("par
 ALTER TABLE "Category" ADD CONSTRAINT "Category_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Category" ADD CONSTRAINT "Category_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Category" ADD CONSTRAINT "Category_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Category" ADD CONSTRAINT "Category_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Category" ADD CONSTRAINT "Category_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Category" ADD CONSTRAINT "Category_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Category" ADD CONSTRAINT "Category_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "DealerType" ADD CONSTRAINT "DealerType_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Feature" ADD CONSTRAINT "Feature_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Feature"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Feature" ADD CONSTRAINT "Feature_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Feature" ADD CONSTRAINT "Feature_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Feature" ADD CONSTRAINT "Feature_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Feature" ADD CONSTRAINT "Feature_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FeatureAccess" ADD CONSTRAINT "FeatureAccess_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -426,7 +424,7 @@ ALTER TABLE "FeatureAccess" ADD CONSTRAINT "FeatureAccess_dealerTypeId_fkey" FOR
 ALTER TABLE "FeatureAccess" ADD CONSTRAINT "FeatureAccess_featureId_fkey" FOREIGN KEY ("featureId") REFERENCES "Feature"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FeatureAccess" ADD CONSTRAINT "FeatureAccess_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "FeatureAccess" ADD CONSTRAINT "FeatureAccess_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FormSchema" ADD CONSTRAINT "FormSchema_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -441,7 +439,7 @@ ALTER TABLE "FormSchema" ADD CONSTRAINT "FormSchema_linkedCategorySchemaId_fkey"
 ALTER TABLE "FormSchema" ADD CONSTRAINT "FormSchema_parentProductSchemaId_fkey" FOREIGN KEY ("parentProductSchemaId") REFERENCES "FormSchema"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FormSchema" ADD CONSTRAINT "FormSchema_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "FormSchema" ADD CONSTRAINT "FormSchema_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FormData" ADD CONSTRAINT "FormData_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -450,13 +448,13 @@ ALTER TABLE "FormData" ADD CONSTRAINT "FormData_orgId_fkey" FOREIGN KEY ("orgId"
 ALTER TABLE "FormData" ADD CONSTRAINT "FormData_formSchemaId_fkey" FOREIGN KEY ("formSchemaId") REFERENCES "FormSchema"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FormData" ADD CONSTRAINT "FormData_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "FormData" ADD CONSTRAINT "FormData_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FormData" ADD CONSTRAINT "FormData_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "FormData" ADD CONSTRAINT "FormData_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FormData" ADD CONSTRAINT "FormData_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "FormData" ADD CONSTRAINT "FormData_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FormData" ADD CONSTRAINT "FormData_parentProductDataId_fkey" FOREIGN KEY ("parentProductDataId") REFERENCES "FormData"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -474,16 +472,16 @@ ALTER TABLE "Organization" ADD CONSTRAINT "Organization_rootId_fkey" FOREIGN KEY
 ALTER TABLE "Organization" ADD CONSTRAINT "Organization_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Organization" ADD CONSTRAINT "Organization_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Organization" ADD CONSTRAINT "Organization_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Organization" ADD CONSTRAINT "Organization_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Organization" ADD CONSTRAINT "Organization_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Organization" ADD CONSTRAINT "Organization_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Organization" ADD CONSTRAINT "Organization_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "OtpVerification" ADD CONSTRAINT "OtpVerification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "OtpVerification" ADD CONSTRAINT "OtpVerification_userAccessId_fkey" FOREIGN KEY ("userAccessId") REFERENCES "UserAccess"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -495,7 +493,7 @@ ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_orgId_fkey" FOREIGN KEY ("or
 ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_dealerTypeId_fkey" FOREIGN KEY ("dealerTypeId") REFERENCES "DealerType"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "UserAccess" ADD CONSTRAINT "UserAccess_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WarrantyTemplate" ADD CONSTRAINT "WarrantyTemplate_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -504,7 +502,7 @@ ALTER TABLE "WarrantyTemplate" ADD CONSTRAINT "WarrantyTemplate_orgId_fkey" FORE
 ALTER TABLE "WarrantyTemplate" ADD CONSTRAINT "WarrantyTemplate_formSchemaId_fkey" FOREIGN KEY ("formSchemaId") REFERENCES "FormSchema"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WarrantyTemplate" ADD CONSTRAINT "WarrantyTemplate_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "WarrantyTemplate" ADD CONSTRAINT "WarrantyTemplate_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Warranty" ADD CONSTRAINT "Warranty_registrationFormDataId_fkey" FOREIGN KEY ("registrationFormDataId") REFERENCES "FormData"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -519,4 +517,4 @@ ALTER TABLE "Warranty" ADD CONSTRAINT "Warranty_productFormDataId_fkey" FOREIGN 
 ALTER TABLE "Warranty" ADD CONSTRAINT "Warranty_partFormDataId_fkey" FOREIGN KEY ("partFormDataId") REFERENCES "FormData"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Warranty" ADD CONSTRAINT "Warranty_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Warranty" ADD CONSTRAINT "Warranty_deletedBy_fkey" FOREIGN KEY ("deletedBy") REFERENCES "UserAccess"("id") ON DELETE SET NULL ON UPDATE CASCADE;

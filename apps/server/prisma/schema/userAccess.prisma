@@ -10,19 +10,56 @@ model UserAccess {
   // Foreign key - which organization this access is for
   orgId String @db.Uuid
 
-  // Portal type determining login destination - STAFF (internal dashboard) or CONSUMER (public portal)
+  // Portal type determining login destination - company or consumer
   portalType String
+
+  // --- AUTHENTICATION (per organization) ---
+
+  // Bcrypt hashed password for email/password login - different password per org
+  passwordHash String?
+
+  // --- PROFILE (per organization) ---
+
+  // User's first/given name for THIS organization
+  firstName String
+
+  // User's last/family name for THIS organization
+  lastName String
+
+  // Auto-generated combined name - Format: "firstName lastName"
+  fullName String
+
+  // Phone number used for SMS OTP login in THIS organization
+  phoneNumber String?
+
+  // Profile picture URL for THIS organization stored in S3
+  profile String?
+
+  // Whether email has been verified for THIS organization
+  emailVerified Boolean @default(false)
+
+  // Whether phone has been verified for THIS organization
+  phoneVerified Boolean @default(false)
+
+  // --- ROLE & PERMISSIONS ---
 
   // Role within this specific organization - COMPANY_SUPER_ADMIN, COMPANY_STAFF, COMPANY_PARTNER, CONSUMER
   // This is the REAL role that determines what user can do in this organization
   role String?
 
   // Defines if user is INTERNAL employee or EXTERNAL partner in this organization
+  // INTERNAL = COMPANY_STAFF (same org employees)
+  // EXTERNAL = COMPANY_PARTNER (branch organization partners)
   partnerType String?
 
   // Foreign key linking to a company-defined role template (DealerType)
   // When set, features are auto-assigned based on this template
   dealerTypeId String? @db.Uuid
+
+  // --- STATUS ---
+
+  // Whether this user is active in THIS organization
+  isActive Boolean @default(true)
 
   // Timestamp when this user was added to this organization
   createdAt DateTime @default(now()) @db.Timestamptz
@@ -48,8 +85,68 @@ model UserAccess {
   // Link to the specific role template - set to null if role is deleted
   dealerType DealerType? @relation(fields: [dealerTypeId], references: [id], onDelete: SetNull)
 
-  // User who removed this access
-  remover User? @relation("UserAccessRemover", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who removed this access
+  remover UserAccess? @relation("UserAccessRemover", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  // OTP codes requested for this organization access
+  otpRequests OtpVerification[]
+
+  // --- Audit Relations: Records created/updated/deleted by this UserAccess ---
+
+  // Brands created by this user
+  createdBrands Brand[] @relation("BrandCreator")
+  // Brands last updated by this user
+  updatedBrands Brand[] @relation("BrandUpdater")
+  // Brands deleted by this user
+  deletedBrands Brand[] @relation("BrandDeleter")
+
+  // Categories created by this user
+  createdCategories Category[] @relation("CategoryCreator")
+  // Categories last updated by this user
+  updatedCategories Category[] @relation("CategoryUpdater")
+  // Categories deleted by this user
+  deletedCategories Category[] @relation("CategoryDeleter")
+
+  // DealerTypes created by this user
+  createdDealerTypes DealerType[] @relation("DealerTypeCreator")
+  // DealerTypes last updated by this user
+  updatedDealerTypes DealerType[] @relation("DealerTypeUpdater")
+  // DealerTypes deleted by this user
+  deletedDealerTypes DealerType[] @relation("DealerTypeDeleter")
+
+  // Features created by this admin user
+  createdFeatures Feature[] @relation("FeatureCreator")
+  // Features last updated by this admin user
+  updatedFeatures Feature[] @relation("FeatureUpdater")
+
+  // Feature access records last modified by this user (as admin/superadmin)
+  updatedFeatureAccess FeatureAccess[] @relation("FeatureAccessUpdater")
+
+  // Organizations created/onboarded by this admin user
+  createdOrganizations Organization[] @relation("OrganizationCreator")
+  // Organizations last updated by this admin user
+  updatedOrganizations Organization[] @relation("OrganizationUpdater")
+  // Organizations deleted by this user
+  deletedOrganizations Organization[] @relation("OrganizationDeleter")
+
+  // Form data records originally created by this user
+  createdForms FormData[] @relation("FormDataCreator")
+  // Form data records last modified by this user
+  updatedForms FormData[] @relation("FormDataUpdater")
+  // Form data records deleted by this user
+  deletedForms FormData[] @relation("FormDataDeleter")
+
+  // Form schemas deleted by this user
+  deletedFormSchemas FormSchema[] @relation("FormSchemaDeleter")
+
+  // Warranty templates deleted by this user
+  deletedWarrantyTemplates WarrantyTemplate[] @relation("WarrantyTemplateDeleter")
+
+  // Warranties deleted by this user
+  deletedWarranties Warranty[] @relation("WarrantyDeleter")
+
+  // UserAccess records removed by this user
+  removedUserAccesses UserAccess[] @relation("UserAccessRemover")
 
   // One user can only have one active access profile per organization per portal type
   // When deletedAt is set, a new record can be created with the same combination
@@ -57,5 +154,6 @@ model UserAccess {
   @@index([userId])
   @@index([orgId])
   @@index([portalType])
+  @@index([phoneNumber])
   @@index([deletedAt])
 }

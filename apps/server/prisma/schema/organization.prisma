@@ -10,7 +10,7 @@ model Organization {
   // Official registered business name for legal documents
   companyName String
 
-  // URL-friendly unique identifier for path-based routing - Example: "acme" → domain.com/acme/login
+  // URL-friendly unique identifier for internal reference
   slug String @unique
 
   // Organization logo URL stored in S3 bucket
@@ -22,12 +22,13 @@ model Organization {
   // Master switch to activate/deactivate entire organization - false locks out ALL users
   isActive Boolean @default(true)
 
-  hash          String    @unique    // "a3f2b8c1" (public URL)
+  // Public hash for URL routing - "a3f2b8c1" → domain.com/a3f2b8c1/login
+  hash String @unique
 
-  // Admin user ID who onboarded/created this organization
+  // UserAccess ID who onboarded/created this organization
   createdBy String? @db.Uuid
 
-  // Admin user ID who last modified this organization
+  // UserAccess ID who last modified this organization
   updatedBy String? @db.Uuid
 
   // Timestamp when organization was first created/onboarded
@@ -37,10 +38,10 @@ model Organization {
   updatedAt DateTime @updatedAt @db.Timestamptz
 
   // Soft-delete timestamp - when set, organization is considered deleted
-  // Slug becomes available for reuse after deletion
+  // Slug and hash become available for reuse after deletion
   deletedAt DateTime? @db.Timestamptz
 
-  // Admin user ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Hierarchy Relations ---
@@ -65,14 +66,14 @@ model Organization {
 
   // --- Audit Relations ---
 
-  // Admin user who created this organization
-  creator User? @relation("OrganizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // UserAccess who created this organization
+  creator UserAccess? @relation("OrganizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  // Admin user who last updated this organization
-  updater User? @relation("OrganizationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last updated this organization
+  updater UserAccess? @relation("OrganizationUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // Admin user who deleted this organization
-  deleter User? @relation("OrganizationDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this organization
+  deleter UserAccess? @relation("OrganizationDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // --- Feature Access ---
 
@@ -110,7 +111,7 @@ model Organization {
   // Warranty rules and templates configured for this organization
   warrantyTemplates WarrantyTemplate[]
 
-  // Index for fast tenant resolution from URL slug
+  // Index for fast tenant resolution from URL hash
   @@index([slug])
   @@index([deletedAt])
 }

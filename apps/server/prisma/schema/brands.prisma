@@ -28,10 +28,10 @@ model Brand {
   // Active status - false hides this brand from UI
   isActive Boolean @default(true)
 
-  // User ID who created this brand
+  // UserAccess ID who created this brand
   createdBy String? @db.Uuid
 
-  // User ID who last updated this brand
+  // UserAccess ID who last updated this brand
   updatedBy String? @db.Uuid
 
   // Timestamp when brand was created
@@ -44,7 +44,7 @@ model Brand {
   // Allows re-creating a brand with the same slug after deletion
   deletedAt DateTime? @db.Timestamptz
 
-  // User ID who performed the soft-delete
+  // UserAccess ID who performed the soft-delete
   deletedBy String? @db.Uuid
 
   // --- Relations ---
@@ -52,14 +52,14 @@ model Brand {
   // Organization this brand belongs to
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // User who created this brand
-  creator User? @relation("BrandCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // UserAccess who created this brand
+  creator UserAccess? @relation("BrandCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  // User who last updated this brand
-  updater User? @relation("BrandUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  // UserAccess who last updated this brand
+  updater UserAccess? @relation("BrandUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
 
-  // User who deleted this brand
-  deleter User? @relation("BrandDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
+  // UserAccess who deleted this brand
+  deleter UserAccess? @relation("BrandDeleter", fields: [deletedBy], references: [id], onDelete: SetNull)
 
   // Unique slug per organization (only enforced for non-deleted records via partial index)
   @@unique([orgId, slug])
