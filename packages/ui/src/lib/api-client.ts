@@ -1,136 +1,119 @@
-import {
-  ApiError,
-  ApiMeta,
-  ApiResponse,
-  PaginatedResponse,
-  PaginationMeta,
-} from "../types/api.types";
+import { IApiResponse } from "../types/api.types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
-interface RequestConfig extends Omit<RequestInit, "body"> {
-  params?: Record<string, string | number | boolean | undefined>;
-  body?: unknown;
+export interface ApiClientOptions extends Omit<RequestInit, "method" | "body"> {
+  body?: any;
 }
 
-class ApiClient {
+export class ApiClientService {
   private readonly baseUrl: string;
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl: string = "http://localhost:3000") {
+    this.baseUrl = baseUrl.replace(/\/$/, ""); // Normalize base URL trailing slashes
   }
 
-  private buildUrl(
+  /**
+   * Core request orchestrator that mirrors the NestJS interceptor envelope rules.
+   * Returns the exact, raw `IApiResponse<T>` shape from the backend streams.
+   */
+  public async request<T>(
+    method: HttpMethod,
     path: string,
-    params?: Record<string, string | number | boolean | undefined>,
-  ): string {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : undefined;
-    const base = this.baseUrl.startsWith("http")
-      ? this.baseUrl
-      : `${origin ?? ""}${this.baseUrl}`;
-    const url = new URL(`${base}${path}`);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          url.searchParams.append(key, String(value));
-        }
-      });
-    }
-    return url.toString();
-  }
+    options: ApiClientOptions = {},
+  ): Promise<IApiResponse<T>> {
+    const { body, headers = {}, ...restOptions } = options;
+    const url = `${this.baseUrl}/${path.replace(/^\//, "")}`;
 
-  // Returns the full envelope { success, statusCode, message, data, meta }
-  private async requestRaw<T>(
-    path: string,
-    config: RequestConfig = {},
-  ): Promise<ApiResponse<T>> {
-    const { params, body, ...fetchConfig } = config;
-    const url = this.buildUrl(path, params);
+    const config: RequestInit = {
+      method,
+      headers: { ...headers },
+      credentials: "include", // Crucial: Permits cookie setting/sending via this.setTokenCookies
+      ...restOptions,
+    };
 
-    const headers: HeadersInit = {};
-    const isFormData = body instanceof FormData;
-    if (!isFormData && body !== undefined) {
-      headers["Content-Type"] = "application/json";
-    }
-
-    const response = await fetch(url, {
-      ...fetchConfig,
-      credentials: "include",
-      headers: { ...headers, ...fetchConfig.headers },
-      body: isFormData
-        ? body
-        : body !== undefined
-          ? JSON.stringify(body)
-          : undefined,
-    });
-
-    // Guard against empty bodies (e.g. 204 No Content) or non-JSON responses
-    const text = await response.text();
-    const json: ApiResponse<T> = text
-      ? JSON.parse(text)
-      : ({} as ApiResponse<T>);
-
-    if (!response.ok || !json.success) {
-      throw new ApiError(
-        json.message ?? response.statusText,
-        json.statusCode ?? response.status,
-        json.meta as ApiMeta | undefined,
-      );
+    // Automatically manage payload content mapping and sanitation pipelines
+    if (body !== undefined && body !== null) {
+      if (body instanceof FormData) {
+        config.body = body;
+        // Let the browser environment set standard boundaries dynamically
+      } else if (typeof body === "object") {
+        config.body = JSON.stringify(body);
+        (config.headers as Record<string, string>)["Content-Type"] =
+          "application/json";
+      } else {
+        config.body = String(body);
+      }
     }
 
-    return json;
+    try {
+      const response = await fetch(url, config);
+
+      // Every response from your backend is guaranteed to match IApiResponse JSON structure
+      return (await response.json()) as IApiResponse<T>;
+    } catch (networkError: any) {
+      // Synthesize a structured response matching ExceptionInterceptor format if server drops connection
+      return {
+        success: false,
+        statusCode: 503,
+        message: networkError?.message || "Network unreachable or server down",
+        data: null as unknown as T,
+        meta: {
+          timings: {
+            processingTime: "0 ms",
+            serverTime: new Date().toLocaleString(),
+            requestReceived: new Date().toLocaleString(),
+            responseSent: new Date().toLocaleString(),
+          },
+          request: {
+            path,
+            method,
+            ip: "unknown",
+            userAgent:
+              typeof navigator !== "undefined" ? navigator.userAgent : "client",
+          },
+        },
+      };
+    }
   }
 
-  private async request<T>(
+  /* Fluent helper utilities mimicking standard backend operation flows */
+
+  public async get<T>(
     path: string,
-    config: RequestConfig = {},
-  ): Promise<T> {
-    const json = await this.requestRaw<T>(path, config);
-    return json.data;
+    options?: ApiClientOptions,
+  ): Promise<IApiResponse<T>> {
+    return this.request<T>("GET", path, options);
   }
 
-  async get<T>(
+  public async post<T>(
     path: string,
-    params?: Record<string, string | number | boolean | undefined>,
-  ): Promise<T> {
-    return this.request<T>(path, { method: "GET", params });
+    body?: any,
+    options?: ApiClientOptions,
+  ): Promise<IApiResponse<T>> {
+    return this.request<T>("POST", path, { ...options, body });
   }
 
-  // For list endpoints whose payload is { items, meta: PaginationMeta }
-  // e.g. GET /admin/organizations -> ListOrganizationsHandler
-  async getPaginated<T>(
+  public async patch<T>(
     path: string,
-    params?: Record<string, string | number | boolean | undefined>,
-  ): Promise<PaginatedResponse<T>> {
-    return this.request<PaginatedResponse<T>>(path, {
-      method: "GET",
-      params,
-    });
+    body?: any,
+    options?: ApiClientOptions,
+  ): Promise<IApiResponse<T>> {
+    return this.request<T>("PATCH", path, { ...options, body });
   }
 
-  async post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>(path, { method: "POST", body });
+  public async put<T>(
+    path: string,
+    body?: any,
+    options?: ApiClientOptions,
+  ): Promise<IApiResponse<T>> {
+    return this.request<T>("PUT", path, { ...options, body });
   }
 
-  async patch<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>(path, { method: "PATCH", body });
-  }
-
-  async put<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>(path, { method: "PUT", body });
-  }
-
-  async delete<T>(path: string): Promise<T> {
-    return this.request<T>(path, { method: "DELETE" });
-  }
-
-  async upload<T>(path: string, file: File): Promise<T> {
-    const formData = new FormData();
-    formData.append("file", file);
-    return this.request<T>(path, { method: "POST", body: formData });
+  public async delete<T>(
+    path: string,
+    options?: ApiClientOptions,
+  ): Promise<IApiResponse<T>> {
+    return this.request<T>("DELETE", path, options);
   }
 }
-
-export const apiClient = new ApiClient(API_BASE_URL);

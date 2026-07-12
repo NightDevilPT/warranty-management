@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { RootProvider } from "@/components/index";
-import { Geist, Geist_Mono } from "next/font/google";
 
 export const metadata: Metadata = {
   title: "wm: admin",
