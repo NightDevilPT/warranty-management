@@ -1,119 +1,116 @@
-import { IApiResponse } from "../types/api.types";
+import type { IApiResponse } from "../types/api.types";
 
-export type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-export interface ApiClientOptions extends Omit<RequestInit, "method" | "body"> {
-  body?: any;
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+    public readonly meta?: IApiResponse<null>["meta"],
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
 }
 
-export class ApiClientService {
+interface RequestConfig extends Omit<RequestInit, "body"> {
+  params?: Record<string, string | number | boolean | undefined>;
+  body?: unknown;
+}
+
+class ApiClient {
   private readonly baseUrl: string;
 
-  constructor(baseUrl: string = "http://localhost:3000") {
-    this.baseUrl = baseUrl.replace(/\/$/, ""); // Normalize base URL trailing slashes
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
-  /**
-   * Core request orchestrator that mirrors the NestJS interceptor envelope rules.
-   * Returns the exact, raw `IApiResponse<T>` shape from the backend streams.
-   */
-  public async request<T>(
-    method: HttpMethod,
+  private buildUrl(
     path: string,
-    options: ApiClientOptions = {},
-  ): Promise<IApiResponse<T>> {
-    const { body, headers = {}, ...restOptions } = options;
-    const url = `${this.baseUrl}/${path.replace(/^\//, "")}`;
+    params?: Record<string, string | number | boolean | undefined>,
+  ): string {
+    const url = new URL(`${this.baseUrl}/${path.replace(/^\//, "")}`);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.append(key, String(value));
+        }
+      });
+    }
+    return url.toString();
+  }
 
-    const config: RequestInit = {
-      method,
-      headers: { ...headers },
-      credentials: "include", // Crucial: Permits cookie setting/sending via this.setTokenCookies
-      ...restOptions,
+  private async request<T>(
+    method: string,
+    path: string,
+    config: RequestConfig = {},
+  ): Promise<IApiResponse<T>> {
+    const { params, body, headers = {}, ...rest } = config;
+    const url = this.buildUrl(path, params);
+
+    const fetchHeaders: HeadersInit = {
+      ...(headers as Record<string, string>),
     };
 
-    // Automatically manage payload content mapping and sanitation pipelines
-    if (body !== undefined && body !== null) {
-      if (body instanceof FormData) {
-        config.body = body;
-        // Let the browser environment set standard boundaries dynamically
-      } else if (typeof body === "object") {
-        config.body = JSON.stringify(body);
-        (config.headers as Record<string, string>)["Content-Type"] =
-          "application/json";
-      } else {
-        config.body = String(body);
-      }
+    if (body !== undefined && !(body instanceof FormData)) {
+      fetchHeaders["Content-Type"] = "application/json";
     }
 
-    try {
-      const response = await fetch(url, config);
+    const response = await fetch(url, {
+      method,
+      headers: fetchHeaders,
+      credentials: "include",
+      body:
+        body instanceof FormData
+          ? body
+          : body
+            ? JSON.stringify(body)
+            : undefined,
+      ...rest,
+    });
 
-      // Every response from your backend is guaranteed to match IApiResponse JSON structure
-      return (await response.json()) as IApiResponse<T>;
-    } catch (networkError: any) {
-      // Synthesize a structured response matching ExceptionInterceptor format if server drops connection
-      return {
-        success: false,
-        statusCode: 503,
-        message: networkError?.message || "Network unreachable or server down",
-        data: null as unknown as T,
-        meta: {
-          timings: {
-            processingTime: "0 ms",
-            serverTime: new Date().toLocaleString(),
-            requestReceived: new Date().toLocaleString(),
-            responseSent: new Date().toLocaleString(),
-          },
-          request: {
-            path,
-            method,
-            ip: "unknown",
-            userAgent:
-              typeof navigator !== "undefined" ? navigator.userAgent : "client",
-          },
-        },
-      };
-    }
+    const json: IApiResponse<T> = await response.json();
+    return json;
   }
 
-  /* Fluent helper utilities mimicking standard backend operation flows */
-
-  public async get<T>(
+  async get<T>(
     path: string,
-    options?: ApiClientOptions,
+    params?: Record<string, string | number | boolean | undefined>,
   ): Promise<IApiResponse<T>> {
-    return this.request<T>("GET", path, options);
+    return this.request<T>("GET", path, { params });
   }
 
-  public async post<T>(
-    path: string,
-    body?: any,
-    options?: ApiClientOptions,
-  ): Promise<IApiResponse<T>> {
-    return this.request<T>("POST", path, { ...options, body });
+  async post<T>(path: string, body?: unknown): Promise<IApiResponse<T>> {
+    return this.request<T>("POST", path, { body });
   }
 
-  public async patch<T>(
-    path: string,
-    body?: any,
-    options?: ApiClientOptions,
-  ): Promise<IApiResponse<T>> {
-    return this.request<T>("PATCH", path, { ...options, body });
+  async patch<T>(path: string, body?: unknown): Promise<IApiResponse<T>> {
+    return this.request<T>("PATCH", path, { body });
   }
 
-  public async put<T>(
-    path: string,
-    body?: any,
-    options?: ApiClientOptions,
-  ): Promise<IApiResponse<T>> {
-    return this.request<T>("PUT", path, { ...options, body });
+  async put<T>(path: string, body?: unknown): Promise<IApiResponse<T>> {
+    return this.request<T>("PUT", path, { body });
   }
 
-  public async delete<T>(
-    path: string,
-    options?: ApiClientOptions,
-  ): Promise<IApiResponse<T>> {
-    return this.request<T>("DELETE", path, options);
+  async delete<T>(path: string): Promise<IApiResponse<T>> {
+    return this.request<T>("DELETE", path);
+  }
+
+  async upload<T>(path: string, file: File): Promise<IApiResponse<T>> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const url = `${this.baseUrl}/${path.replace(/^\//, "")}`;
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const json: IApiResponse<T> = await response.json();
+    return json;
   }
 }
+
+export const apiClient = new ApiClient(API_BASE_URL);
