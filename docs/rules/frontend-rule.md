@@ -6,7 +6,7 @@
 2. [Monorepo Directory Structures](#2-monorepo-directory-structures)
 3. [Available UI Components Catalog](#3-available-ui-components-catalog)
 4. [Portal Routing & API Prefixes](#4-portal-routing--api-prefixes)
-5. [Component Co-location Rules](#5-component-co-location-rules)
+5. [Folder Standards & Component Co-location Rules](#5-folder-standards--component-co-location-rules)
 6. [State & Context Standards](#6-state--context-standards)
 7. [API Client & Request Rules](#7-api-client--request-rules)
 8. [UX & Loading States Rules](#8-ux--loading-states-rules)
@@ -100,8 +100,7 @@ apps/<portal>/
 │   │       └── _components/        # Private feature components
 │   │           ├── page-skeleton.tsx
 │   │           ├── page-empty.tsx
-│   │           ├── data-table.tsx
-│   │           └── create-dialog.tsx
+│   │           └── <feature>-form-dialog.tsx # Dynamic dialog form for both edit & create
 │   └── context/
 │       ├── auth-context.tsx        # Portal-specific auth provider
 │       └── <feature>-context.tsx   # Feature-specific context (complex pages)
@@ -201,12 +200,32 @@ Portals must adhere to the route prefixes and backend API paths specified in thi
 
 ---
 
-## 5. Component Co-location Rules
+## 5. Folder Standards & Component Co-location Rules
 
-- **Rule 5.1: Primitive Elements** — Pure library elements (e.g., Radix wrappers, base shadcn elements) must reside inside `packages/ui/src/components/`. NEVER duplicate these in portal directories.
-- **Rule 5.2: Shared UI Blocks** — Business layouts and elements used across 2+ portals must reside inside `packages/ui/src/shared/`. Before building any new component, CHECK if it should be shared.
+- **Rule 5.1: The `lib/<feature>` Standard**
+  Every feature module folder contains the network and validation layer structure:
+  - **`index.ts`**: Pure async function triggers hitting API endpoints via `apiClient`. Never contains React state or rendering code.
+  - **`validation.ts`**: Holds all Zod schemas (e.g. `createSchema`, `updateSchema`) enforcing validation. Form interfaces are inferred directly from these schemas.
+  - **`types.ts`**: Houses TypeScript interface definitions describing API payloads, output data models, inputs, and pagination contracts.
 
-- **Rule 5.3: Feature UI Blocks** — Elements used only on a single feature page (e.g., a specific table row, item card, or dialog) must be saved inside `apps/<portal>/components/pages/<feature>-page/_components/`.
+- **Rule 5.2: The `components/context` Standard**
+  Defines React Context providers containing the state variables and core orchestration logic for the module:
+  - Must integrate the API triggers, types, and validation schemas directly from the `lib/<feature>` folder.
+  - Holds state for fetching, mutations, active items, current page, filters, etc.
+  - Extends clean React hook wrappers (e.g. `use<Feature>s()`) for consumers.
+
+- **Rule 5.3: The `components/pages` Standard**
+  Handles the physical layout architecture of standard modules:
+  - **`index.tsx`**: Orchestrated layout assembly (Search input, action buttons, table states). Subscribes to context hook values and is used inside the app layout and page routers.
+  - **`_components/`**: Houses files that are strictly local to the parent page view.
+    - Components inside `_components/` cannot be imported outside this specific page directory.
+    - Include files like `<feature>-form-dialog.tsx`, `page-skeleton.tsx` (for skeleton layouts), `page-empty.tsx`, etc.
+    - **Single Form Rule**: Dynamic form components (e.g. `organization-form-dialog.tsx`) must serve both **Create** and **Edit** operations. Define conditional logic inside the form based on props (such as an optional `initialData` or `editId` object) to avoid duplicating layouts.
+
+- **Rule 5.4: Shared Component Co-location Rules**
+  - **Primitive Elements**: Pure library elements (e.g., Radix wrappers, base shadcn elements) must reside inside `packages/ui/src/components/`. NEVER duplicate these in portal directories.
+  - **Shared UI Blocks**: Business layouts and elements used across 2+ portals must reside inside `packages/ui/src/shared/`. Before building any new component, CHECK if it should be shared.
+  - **Feature UI Blocks**: Elements used only on a single feature page (e.g., a specific table row, item card, or dialog) must be saved inside `apps/<portal>/components/pages/<feature>-page/_components/`.
 
 ---
 
@@ -239,14 +258,28 @@ Portals must adhere to the route prefixes and backend API paths specified in thi
 
 - **Rule 7.3: Parameter Cleaning** — Empty values (`""`, `null`, `undefined`) are automatically stripped from request parameters by `apiClient`. No manual cleanup needed.
 
-- **Rule 7.4: Response Handling** — All API responses follow the `IApiResponse<T>` interface:
+- **Rule 7.4: Response Structure** — All API responses follow the standardized `IApiResponse<T>` interface:
+
   ```typescript
-  interface IApiResponse<T> {
+  export interface IApiResponse<T> {
     success: boolean;
-    data?: T;
+    data: T;
+    meta?: IApiPaginationMeta;
     message?: string;
+    statusCode: number;
   }
   ```
+
+- **Rule 7.5: Cookie-Based JWT Security**
+  - The backend (`ResponseInterceptor`) automatically handles token management.
+  - Access and Refresh tokens are stripped from the response payload, and stored as Secure, HTTP-Only cookies (`accessToken` and `refreshToken`).
+  - **Rule**: The frontend **must never** manually store, read, or pass JWT tokens in localStorage, sessionStorage, or custom header wrappers.
+  - **Rule**: Ensure the `apiClient` executes with `{ credentials: "include" }` so that session cookies are forwarded automatically.
+
+- **Rule 7.6: Backend Interceptor Pagination Convention**
+  - For queries returning lists, the backend interceptor extracts the list arrays and places them directly inside the top-level `data` payload parameter.
+  - The pagination controls are flattened and placed inside the top-level `meta` parameter of type `IApiPaginationMeta`.
+  - **Rule**: Page queries must trigger clients returning `Promise<IApiResponse<T[]>>` (direct array data) and consume the pagination stats using `response.meta` values.
 
 ---
 
@@ -279,13 +312,8 @@ import type {
   Update<Feature>Input
 } from "./types";
 
-export function get<Feature>s(params?: Record<string, any>): Promise<IApiResponse<{
-  items: <Feature>[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}>> {
+// Returns direct array because backend interceptor extracts items array into `data`
+export function get<Feature>s(params?: Record<string, any>): Promise<IApiResponse<<Feature>[]>> {
   return apiClient.get("/<portal-prefix>/<feature>s", params);
 }
 
@@ -387,9 +415,12 @@ export function <Feature>sProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get<Feature>s({ page, limit, search });
       if (res.success && res.data) {
-        setItems(res.data.items);
-        setTotal(res.data.total);
-        setTotalPages(res.data.totalPages);
+        // Direct array payload as structured by response.interceptor
+        setItems(res.data);
+        if (res.meta) {
+          setTotal(res.meta.total || 0);
+          setTotalPages(res.meta.totalPages || 0);
+        }
       } else {
         toast.error(res.message || "Failed to load <feature>s");
       }
@@ -627,6 +658,9 @@ Before submitting a Pull Request, verify ALL of the following:
 - [ ] **Import Order**: Imports sorted per Section 10 hierarchy. No relative package pathways used for shared code.
 - [ ] **Feature Co-location**: Feature-specific components correctly placed in `_components/` directory.
 - [ ] **No Service Classes**: API calls triggered directly, no intermediate adapters or service wrappers.
+- [ ] **Single Form Reuse**: A single form component (e.g. `organization-form-dialog.tsx`) is designed dynamically to handle both Edit and Create states to avoid duplication.
+- [ ] **Cookie Auth Security**: JWT tokens are NOT stored in localStorage or parsed; the frontend relies entirely on automatic HTTP-Only cookie transportation.
+- [ ] **Response Pagination Mapping**: List components fetch data expecting `response.data` to be a direct array of elements, while pagination details are extracted from `response.meta`.
 
 ---
 

@@ -69,7 +69,7 @@ export function DataTable<T extends { id: string }>({
   limit,
   onPageChange,
   onLimitChange,
-  limitOptions = [10, 20, 30, 50],
+  limitOptions = [5, 10, 20, 30, 50],
   emptyMessage = "No data found",
   emptyIcon: EmptyIcon,
   onRowClick,
