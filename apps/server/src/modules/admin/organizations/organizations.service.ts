@@ -17,6 +17,7 @@ import { InviteSuperAdminCommand } from './commands/impl/invite-super-admin.comm
 import { UploadOrganizationLogoCommand } from './commands/impl/upload-organization-logo.command';
 import { GetOrganizationQuery } from './queries/impl/get-organization.query';
 import { ListOrganizationsQuery } from './queries/impl/list-organizations.query';
+import { GetOrganizationOptionsQuery } from './queries/impl/get-organization-options.query';
 
 @Injectable()
 export class OrganizationsService {
@@ -42,6 +43,10 @@ export class OrganizationsService {
     return this.queryBus.execute(
       new ListOrganizationsQuery(page, limit, search, type, status),
     );
+  }
+
+  async getOptions(search?: string) {
+    return this.queryBus.execute(new GetOrganizationOptionsQuery(search));
   }
 
   async findById(orgId: string): Promise<OrganizationDetailDto> {

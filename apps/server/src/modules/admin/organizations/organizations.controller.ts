@@ -61,6 +61,15 @@ export class OrganizationsController {
     return this.organizationsService.create(dto, req.user.id);
   }
 
+  @Get('options')
+  @ApiOperation({ summary: 'Get organization options for dropdown' })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Options retrieved' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  async getOptions(@Query('search') search?: string) {
+    return this.organizationsService.getOptions(search);
+  }
+
   @Get()
   @ApiOperation({ summary: 'List all organizations' })
   @ApiQuery({ name: 'page', required: false, type: Number })
