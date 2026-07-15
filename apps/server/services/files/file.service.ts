@@ -1,5 +1,3 @@
-// apps/server/services/file/file.service.ts
-
 import {
   Injectable,
   Logger,
@@ -21,6 +19,7 @@ import * as path from 'path';
 export interface UploadedFile {
   key: string;
   url: string;
+  publicUrl: string;
   fileName: string;
   originalName: string;
   mimeType: string;
@@ -31,11 +30,13 @@ export interface UploadedFile {
 export class FileService {
   private readonly s3Client: S3Client;
   private readonly bucket: string;
+  private readonly endpoint: string;
+  private readonly region: string;
   private readonly logger = new Logger(FileService.name);
 
   constructor(private readonly configService: ConfigService) {
-    const region = this.configService.get<string>('aws.region') || 'us-east-1';
-    const endpoint =
+    this.region = this.configService.get<string>('aws.region') || 'us-east-1';
+    this.endpoint =
       this.configService.get<string>('aws.endpoint') || 'http://localhost:4566';
     const accessKeyId =
       this.configService.get<string>('aws.accessKeyId') || 'test';
@@ -49,8 +50,8 @@ export class FileService {
       'warranty-system-uploads';
 
     this.s3Client = new S3Client({
-      region,
-      endpoint,
+      region: this.region,
+      endpoint: this.endpoint,
       credentials: {
         accessKeyId,
         secretAccessKey,
@@ -61,6 +62,26 @@ export class FileService {
     this.logger.log(`FileService initialized - Bucket: ${this.bucket}`);
   }
 
+  /**
+   * Get the public URL for a file (no expiration)
+   */
+  getPublicUrl(key: string): string {
+    const isLocal =
+      this.endpoint?.includes('localhost') ||
+      this.endpoint?.includes('localstack') ||
+      this.endpoint?.includes('127.0.0.1');
+
+    if (isLocal) {
+      return `${this.endpoint}/${this.bucket}/${key}`;
+    }
+
+    // For real AWS S3, construct the public URL
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+  }
+
+  /**
+   * Upload a single file to S3
+   */
   async uploadFile(
     file: Express.Multer.File,
     folder: string = 'uploads',
@@ -86,11 +107,14 @@ export class FileService {
       await this.s3Client.send(command);
       this.logger.log(`File uploaded: ${key}`);
 
+      // Generate both presigned URL (backward compatible) and public URL
       const url = await this.getDownloadUrl(key);
+      const publicUrl = this.getPublicUrl(key);
 
       return {
         key,
         url,
+        publicUrl,
         fileName,
         originalName: file.originalname,
         mimeType: file.mimetype,
@@ -102,6 +126,9 @@ export class FileService {
     }
   }
 
+  /**
+   * Upload multiple files to S3
+   */
   async uploadFiles(
     files: Express.Multer.File[],
     folder: string = 'uploads',
@@ -110,6 +137,10 @@ export class FileService {
     return Promise.all(uploadPromises);
   }
 
+  /**
+   * Generate a presigned download URL (with expiration)
+   * Kept for backward compatibility
+   */
   async getDownloadUrl(key: string): Promise<string> {
     try {
       const expiresIn =
@@ -125,12 +156,13 @@ export class FileService {
       });
       return signedUrl;
     } catch (error) {
-      const endpoint = this.configService.get<string>('aws.endpoint');
       const isLocal =
-        endpoint?.includes('localhost') || endpoint?.includes('floci');
+        this.endpoint?.includes('localhost') ||
+        this.endpoint?.includes('localstack') ||
+        this.endpoint?.includes('127.0.0.1');
 
       if (isLocal) {
-        return `${endpoint}/${this.bucket}/${key}`;
+        return `${this.endpoint}/${this.bucket}/${key}`;
       }
 
       this.logger.error(`Failed to generate download URL: ${error.message}`);
@@ -156,6 +188,9 @@ export class FileService {
     }
   }
 
+  /**
+   * Ensure the S3 bucket exists
+   */
   async ensureBucketExists(): Promise<void> {
     try {
       try {

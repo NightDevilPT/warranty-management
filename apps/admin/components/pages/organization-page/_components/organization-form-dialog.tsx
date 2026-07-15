@@ -21,8 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
+import { FileUpload, UploadedFileInfo } from "@workspace/ui/shared/file-upload";
 
 import { useOrganizations } from "@/components/context/organization-context";
+import { uploadFileWithValidation } from "@/lib/file-upload";
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
@@ -57,6 +59,7 @@ export function OrganizationFormDialog({
   const [slug, setSlug] = useState("");
   const [type, setType] = useState<"ROOT" | "BRANCH">("ROOT");
   const [logo, setLogo] = useState("");
+  const [logoFile, setLogoFile] = useState<UploadedFileInfo | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
@@ -67,12 +70,26 @@ export function OrganizationFormDialog({
         setSlug(editData.slug);
         setType(editData.type);
         setLogo(editData.logo || "");
+        setLogoFile(
+          editData.logo
+            ? {
+                key: "",
+                url: editData.logo,
+                publicUrl: editData.logo,
+                fileName: "",
+                originalName: "",
+                mimeType: "image/*",
+                size: 0,
+              }
+            : null,
+        );
       } else {
         setName("");
         setCompanyName("");
         setSlug("");
         setType("ROOT");
         setLogo("");
+        setLogoFile(null);
       }
       setErrors({});
     }
@@ -87,6 +104,43 @@ export function OrganizationFormDialog({
         .replace(/^-|-$/g, "");
       setSlug(generatedSlug);
     }
+  };
+
+  const handleLogoUpload = async (
+    file: File,
+  ): Promise<UploadedFileInfo | null> => {
+    try {
+      const uploaded = await uploadFileWithValidation(file, {
+        folder: "organizations",
+      });
+
+      if (uploaded) {
+        const fileInfo: UploadedFileInfo = {
+          key: "",
+          url: uploaded,
+          publicUrl: uploaded,
+          fileName: file.name,
+          originalName: file.name,
+          mimeType: file.type,
+          size: file.size,
+        };
+        setLogo(uploaded);
+        setLogoFile(fileInfo);
+        return fileInfo;
+      }
+
+      return null;
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload logo",
+      );
+      return null;
+    }
+  };
+
+  const handleLogoRemove = () => {
+    setLogo("");
+    setLogoFile(null);
   };
 
   const validate = (): boolean => {
@@ -218,12 +272,13 @@ export function OrganizationFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="logo">Logo URL (Optional)</Label>
-            <Input
-              id="logo"
-              placeholder="https://example.com/logo.png"
-              value={logo}
-              onChange={(e) => setLogo(e.target.value)}
+            <Label>Logo</Label>
+            <FileUpload
+              onUpload={handleLogoUpload}
+              onRemove={handleLogoRemove}
+              value={logoFile}
+              accept="image/*"
+              buttonText="Upload Logo"
             />
             {errors.logo && (
               <p className="text-sm text-destructive">{errors.logo}</p>

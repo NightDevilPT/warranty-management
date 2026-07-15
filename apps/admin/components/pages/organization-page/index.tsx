@@ -10,6 +10,7 @@ import {
   Power,
   PowerOff,
   Trash2,
+  Building2,
 } from "lucide-react";
 
 import { Badge } from "@workspace/ui/components/badge";
@@ -75,6 +76,26 @@ export function OrganizationsPage() {
   );
 
   const columns = [
+    {
+      key: "logo",
+      header: "",
+      className: "w-[60px]",
+      render: (org: Organization) => (
+        <div className="flex items-center justify-center">
+          {org.logo ? (
+            <img
+              src={org.logo}
+              alt={org.name}
+              className="h-10 w-10 rounded-lg object-cover border bg-muted"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+          )}
+        </div>
+      ),
+    },
     {
       key: "name",
       header: "Organization",
