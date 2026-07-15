@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { FileUpload, UploadedFileInfo } from "@workspace/ui/shared/file-upload";
+import { FileUpload } from "@workspace/ui/shared/file-upload";
+import type { UploadedFileInfo } from "@workspace/ui/shared/file-upload";
 
 import { useOrganizations } from "@/components/context/organization-context";
 import { uploadFileWithValidation } from "@/lib/file-upload";
@@ -29,13 +30,15 @@ import {
   createOrganizationSchema,
   updateOrganizationSchema,
 } from "@/lib/organization/validation";
-import type { Organization } from "@/lib/organization/types";
+import type { Organization, OrganizationType } from "@/lib/organization/types";
 import { toast } from "sonner";
 
 interface OrganizationFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editData?: Organization | null;
+  typeOptions?: OrganizationType[];
+  parentOrgId?: string;
 }
 
 interface FormErrors {
@@ -50,14 +53,22 @@ export function OrganizationFormDialog({
   open,
   onOpenChange,
   editData,
+  typeOptions = ["ROOT", "BRANCH"],
+  parentOrgId,
 }: OrganizationFormDialogProps) {
   const { createItem, updateItem, actionLoading } = useOrganizations();
   const isEdit = !!editData;
 
+  const defaultType: OrganizationType =
+    typeOptions.length === 1 && typeOptions[0] ? typeOptions[0] : "ROOT";
+  const showTypeSelector = typeOptions.length > 1;
+  const isBranchOnly = typeOptions.length === 1 && typeOptions[0] === "BRANCH";
+  const isRootOnly = typeOptions.length === 1 && typeOptions[0] === "ROOT";
+
   const [name, setName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [slug, setSlug] = useState("");
-  const [type, setType] = useState<"ROOT" | "BRANCH">("ROOT");
+  const [type, setType] = useState<OrganizationType>(defaultType);
   const [logo, setLogo] = useState("");
   const [logoFile, setLogoFile] = useState<UploadedFileInfo | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -68,7 +79,7 @@ export function OrganizationFormDialog({
         setName(editData.name);
         setCompanyName(editData.companyName);
         setSlug(editData.slug);
-        setType(editData.type);
+        setType(editData.type || "ROOT");
         setLogo(editData.logo || "");
         setLogoFile(
           editData.logo
@@ -87,13 +98,13 @@ export function OrganizationFormDialog({
         setName("");
         setCompanyName("");
         setSlug("");
-        setType("ROOT");
+        setType(defaultType);
         setLogo("");
         setLogoFile(null);
       }
       setErrors({});
     }
-  }, [open, editData]);
+  }, [open, editData, defaultType]);
 
   const handleNameChange = (value: string) => {
     setName(value);
@@ -110,9 +121,8 @@ export function OrganizationFormDialog({
     file: File,
   ): Promise<UploadedFileInfo | null> => {
     try {
-      const uploaded = await uploadFileWithValidation(file, {
-        folder: "organizations",
-      });
+      const folder = isBranchOnly ? "organizations/branches" : "organizations";
+      const uploaded = await uploadFileWithValidation(file, { folder });
 
       if (uploaded) {
         const fileInfo: UploadedFileInfo = {
@@ -193,18 +203,38 @@ export function OrganizationFormDialog({
     }
   };
 
+  const getTitle = (): string => {
+    if (isEdit) return "Edit Organization";
+    if (isBranchOnly) return "Create Branch";
+    if (isRootOnly) return "Create Organization";
+    return "Create Organization";
+  };
+
+  const getDescription = (): string => {
+    if (isEdit) return "Update the organization details below.";
+    if (isBranchOnly) {
+      return parentOrgId
+        ? "Fill in the details to create a new branch under this organization."
+        : "Fill in the details to create a new branch organization.";
+    }
+    if (isRootOnly) {
+      return "Fill in the details to create a new root organization.";
+    }
+    return "Fill in the details to create a new organization.";
+  };
+
+  const getTypeLabel = (): string => {
+    if (isRootOnly) return "Root Organization";
+    if (isBranchOnly) return "Branch Organization";
+    return "Organization Type";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Edit Organization" : "Create Organization"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Update the organization details below."
-              : "Fill in the details to create a new organization."}
-          </DialogDescription>
+          <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>{getDescription()}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -212,7 +242,11 @@ export function OrganizationFormDialog({
             <Label htmlFor="name">Display Name</Label>
             <Input
               id="name"
-              placeholder="e.g., TechServe India"
+              placeholder={
+                isBranchOnly
+                  ? "e.g., TechServe Mumbai"
+                  : "e.g., TechServe India"
+              }
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
             />
@@ -225,7 +259,11 @@ export function OrganizationFormDialog({
             <Label htmlFor="companyName">Legal Company Name</Label>
             <Input
               id="companyName"
-              placeholder="e.g., TechServe India Private Limited"
+              placeholder={
+                isBranchOnly
+                  ? "e.g., TechServe Mumbai Private Limited"
+                  : "e.g., TechServe India Private Limited"
+              }
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
@@ -238,7 +276,9 @@ export function OrganizationFormDialog({
             <Label htmlFor="slug">Slug</Label>
             <Input
               id="slug"
-              placeholder="e.g., techserve"
+              placeholder={
+                isBranchOnly ? "e.g., techserve-mumbai" : "e.g., techserve"
+              }
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               disabled={isEdit}
@@ -252,24 +292,52 @@ export function OrganizationFormDialog({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="type">Organization Type</Label>
-            <Select
-              value={type}
-              onValueChange={(v) => setType(v as "ROOT" | "BRANCH")}
-            >
-              <SelectTrigger id="type">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ROOT">Root</SelectItem>
-                <SelectItem value="BRANCH">Branch</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.type && (
-              <p className="text-sm text-destructive">{errors.type}</p>
-            )}
-          </div>
+          {!isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="type">{getTypeLabel()}</Label>
+              {showTypeSelector ? (
+                <Select
+                  value={type}
+                  onValueChange={(v) => setType(v as OrganizationType)}
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {typeOptions.includes("ROOT") && (
+                      <SelectItem value="ROOT">Root Organization</SelectItem>
+                    )}
+                    {typeOptions.includes("BRANCH") && (
+                      <SelectItem value="BRANCH">
+                        Branch Organization
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="type"
+                    value={
+                      type === "ROOT"
+                        ? "Root Organization"
+                        : "Branch Organization"
+                    }
+                    disabled
+                    className="bg-muted"
+                  />
+                  {isBranchOnly && parentOrgId && (
+                    <p className="text-xs text-muted-foreground">
+                      This organization will be created as a branch.
+                    </p>
+                  )}
+                </div>
+              )}
+              {errors.type && (
+                <p className="text-sm text-destructive">{errors.type}</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Logo</Label>

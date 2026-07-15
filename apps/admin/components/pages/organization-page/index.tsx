@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -42,6 +43,8 @@ import { OrganizationFormDialog } from "./_components/organization-form-dialog";
 import { DeleteDialog } from "./_components/delete-dialog";
 
 export function OrganizationsPage() {
+  const router = useRouter();
+
   const {
     items,
     fetchLoading,
@@ -73,6 +76,40 @@ export function OrganizationsPage() {
       setSearch(value);
     },
     [setSearch],
+  );
+
+  const handleRowClick = useCallback(
+    (org: Organization) => {
+      router.push(`/dashboard/organizations/${org.id}`);
+    },
+    [router],
+  );
+
+  const handleEdit = useCallback((org: Organization, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditOrg(org);
+    setEditOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(
+    (org: Organization, e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setDeleteOrg(org);
+      setDeleteOpen(true);
+    },
+    [],
+  );
+
+  const handleStatusChange = useCallback(
+    (
+      org: Organization,
+      action: "activate" | "deactivate" | "soft-delete",
+      e?: React.MouseEvent,
+    ) => {
+      e?.stopPropagation();
+      updateStatus(org.id, { action });
+    },
+    [updateStatus],
   );
 
   const columns = [
@@ -153,7 +190,7 @@ export function OrganizationsPage() {
       header: "Actions",
       render: (org: Organization) => (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">Open menu</span>
@@ -162,23 +199,14 @@ export function OrganizationsPage() {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setEditOrg(org);
-                setEditOpen(true);
-              }}
-            >
+            <DropdownMenuItem onClick={(e) => handleEdit(org, e)}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {org.isActive ? (
               <DropdownMenuItem
-                onClick={() =>
-                  updateStatus(org.id, {
-                    action: "deactivate",
-                  })
-                }
+                onClick={(e) => handleStatusChange(org, "deactivate", e)}
                 className="text-yellow-600"
               >
                 <PowerOff className="mr-2 h-4 w-4" />
@@ -186,7 +214,7 @@ export function OrganizationsPage() {
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
-                onClick={() => updateStatus(org.id, { action: "activate" })}
+                onClick={(e) => handleStatusChange(org, "activate", e)}
                 className="text-green-600"
               >
                 <Power className="mr-2 h-4 w-4" />
@@ -194,10 +222,7 @@ export function OrganizationsPage() {
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
-              onClick={() => {
-                setDeleteOrg(org);
-                setDeleteOpen(true);
-              }}
+              onClick={(e) => handleDelete(org, e)}
               className="text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -287,6 +312,7 @@ export function OrganizationsPage() {
           limit={limit}
           onPageChange={setPage}
           onLimitChange={setLimit}
+          onRowClick={handleRowClick}
         />
       )}
 
