@@ -1,35 +1,38 @@
-# 🚀 Warranty Management System - Frontend Developer Rule Book v3.1
-
-## Table of Contents
-
-1. [Project Overview & Architecture](#1-project-overview--architecture)
-2. [Monorepo Directory Structures](#2-monorepo-directory-structures)
-3. [Available UI Components Catalog](#3-available-ui-components-catalog)
-4. [Portal Routing & API Prefixes](#4-portal-routing--api-prefixes)
-5. [Folder Standards & Component Co-location Rules](#5-folder-standards--component-co-location-rules)
-6. [State & Context Standards](#6-state--context-standards)
-7. [API Client & Request Rules](#7-api-client--request-rules)
-8. [UX & Loading States Rules](#8-ux--loading-states-rules)
-9. [Generic File Templates (AI Scaffolding Boilerplate)](#9-generic-file-templates-ai-scaffolding-boilerplate)
-   - [9.1 Feature API Client (`lib/<feature>/index.ts`)](#91-feature-api-client-libfeatureindexts)
-   - [9.2 Feature Types (`lib/<feature>/types.ts`)](#92-feature-types-libfeaturetypests)
-   - [9.3 Feature Validation (`lib/<feature>/validation.ts`)](#93-feature-validation-libfeaturevalidationts)
-   - [9.4 Feature Context (`components/context/<feature>-context.tsx`)](#94-feature-context-componentscontextfeature-contexttsx)
-   - [9.5 Feature Routing Layout (`app/.../<feature>/layout.tsx`)](#95-feature-routing-layout-appfeaturelayouttsx)
-   - [9.6 Feature Routing Page (`app/.../<feature>/page.tsx`)](#96-feature-routing-page-appfeaturepagetsx)
-   - [9.7 Feature Component Entry (`components/pages/<feature>-page/index.tsx`)](#97-feature-component-entry-componentspagesfeature-pageindextsx)
-10. [Import Hierarchy & Sorting Rules](#10-import-hierarchy--sorting-rules)
-11. [Developer PR Checklist](#11-developer-pr-checklist)
+# Warranty Management System - Frontend Developer Rule Book v4.0
 
 ---
 
-## 1. Project Overview & Architecture
+## Table of Contents
 
-- **Tech Stack**: Next.js 15 (App Router) + React 19 + TypeScript + Tailwind CSS + shadcn/ui
-- **Workspaces**: Monorepo with three portals (`admin`, `company`, `consumer`) sharing a unified library `@workspace/ui`
-- **State Management**: Scoped React Context Providers injected via route layout files
-- **Validation**: Zod schemas for all form inputs
-- **Notifications**: Sonner toast for all write operation feedback
+1. Project Overview and Architecture
+2. Monorepo Directory Structures
+3. Available UI Components Catalog
+4. Portal Routing and API Prefixes
+5. Folder Standards and Component Co-location Rules
+6. State and Context Standards
+7. API Client and Request Rules
+8. UX and Loading States Rules
+9. Breadcrumb System
+10. File Upload System
+11. Generic File Templates - AI Scaffolding Boilerplate
+12. Import Hierarchy and Sorting Rules
+13. Developer PR Checklist
+
+---
+
+## 1. Project Overview and Architecture
+
+Tech Stack: Next.js 15 (App Router) + React 19 + TypeScript + Tailwind CSS + shadcn/ui
+
+Workspaces: Monorepo with three portals (admin, company, consumer) sharing a unified library @workspace/ui
+
+State Management: Scoped React Context Providers injected via route layout files
+
+Validation: Zod schemas for all form inputs
+
+Notifications: Sonner toast for all write operation feedback
+
+Breadcrumbs: Dynamic breadcrumb system with path-to-name mapping via BreadcrumbProvider in @workspace/ui/context/breadcrumb-context
 
 ---
 
@@ -37,7 +40,7 @@
 
 ### 2.1 Workspace Structure
 
-```text
+```
 warranty-management/
 ├── apps/
 │   ├── admin/                  # Admin Portal (Port 4001)
@@ -56,11 +59,11 @@ warranty-management/
 │   │   └── README.md
 │   └── ui/                     # Shared Package (@workspace/ui)
 │       ├── src/
-│       │   ├── components/     # shadcn/ui base primitives (26 components)
-│       │   ├── shared/         # Shared business components (8 components)
+│       │   ├── components/     # shadcn/ui base primitives (27+ components)
+│       │   ├── shared/         # Shared business components (10+ components)
 │       │   ├── hooks/          # Shared hooks (use-mobile)
-│       │   ├── lib/            # Shared clients (apiClient, utils)
-│       │   ├── context/        # Shared contexts (theme-context)
+│       │   ├── lib/            # Shared clients (apiClient, utils with debounce)
+│       │   ├── context/        # Shared contexts (theme-context, breadcrumb-context)
 │       │   ├── styles/         # Global CSS (globals.css)
 │       │   ├── types/          # API types (api.types.ts)
 │       │   └── i18n/           # Internationalization
@@ -77,9 +80,9 @@ warranty-management/
 
 ### 2.2 Portal Directory Structure
 
-Every Next.js app in `apps/<portal>/` must implement this structure:
+Every Next.js app in apps/portal/ must implement this structure:
 
-```text
+```
 apps/<portal>/
 ├── app/
 │   ├── layout.tsx                  # Root layout
@@ -87,25 +90,38 @@ apps/<portal>/
 │   │   ├── layout.tsx              # Protected shell layout (with SidebarLayout)
 │   │   └── dashboard/
 │   │       └── <feature>/
-│   │           ├── layout.tsx      # Feature layout wrapping its context
+│   │           ├── layout.tsx      # Feature layout wrapping its context + metadata
 │   │           └── page.tsx        # Lean page wrapper (no UI logic)
+│   │       └── <feature>/
+│   │           └── [<entity>Id]/   # Detail page with dynamic segment
+│   │               ├── layout.tsx  # Layout with metadata
+│   │               └── page.tsx    # Detail page
 │   └── auth/
 │       ├── layout.tsx              # Auth shell layout (centered)
 │       └── login/
 │           └── page.tsx            # Renders login page component
 ├── components/
 │   ├── pages/
-│   │   └── <feature>-page/         # Component containing page UI orchestration
+│   │   └── <feature>-page/         # List page component
 │   │       ├── index.tsx           # Entry file for page layout
 │   │       └── _components/        # Private feature components
 │   │           ├── page-skeleton.tsx
 │   │           ├── page-empty.tsx
-│   │           └── <feature>-form-dialog.tsx # Dynamic dialog form for both edit & create
+│   │           ├── <feature>-form-dialog.tsx  # Single form for create & edit
+│   │           ├── delete-dialog.tsx
+│   │           └── invite-dialog.tsx          # If applicable
+│   │   └── <feature>-detail-page/  # Detail page component
+│   │       ├── index.tsx
+│   │       └── _components/
+│   │           ├── page-skeleton.tsx
+│   │           ├── <feature>-header.tsx
+│   │           ├── <feature>-info.tsx
+│   │           ├── <feature>-stats.tsx
+│   │           └── <feature>-hierarchy.tsx    # If applicable
 │   └── context/
-│       ├── auth-context.tsx        # Portal-specific auth provider
-│       └── <feature>-context.tsx   # Feature-specific context (complex pages)
+│       └── <feature>-context.tsx   # Feature-specific context only
 ├── lib/
-│   └── <feature>/                  # API integration, validation schemas, types
+│   └── <feature>/                  # API integration, validation, types
 │       ├── index.ts                # API client functions
 │       ├── types.ts                # TypeScript interfaces
 │       └── validation.ts           # Zod schemas
@@ -117,245 +133,502 @@ apps/<portal>/
 
 ## 3. Available UI Components Catalog
 
-> **CRITICAL**: Always reference this catalog before building any UI. These components are already implemented and must be reused.
+CRITICAL: Always reference this catalog before building any UI. These components are already implemented and must be reused.
 
-### 3.1 Common UI Primitives (`@workspace/ui/components/`)
+### 3.1 Common UI Primitives (@workspace/ui/components/)
 
-These are the base shadcn/ui components available across all portals:
+1. Accordion - @workspace/ui/components/accordion
+2. Avatar - @workspace/ui/components/avatar
+3. Badge - @workspace/ui/components/badge
+4. Breadcrumb - @workspace/ui/components/breadcrumb
+5. Button - @workspace/ui/components/button
+6. Calendar - @workspace/ui/components/calendar
+7. Card - @workspace/ui/components/card
+8. Chart - @workspace/ui/components/chart
+9. Collapsible - @workspace/ui/components/collapsible
+10. Command - @workspace/ui/components/command
+11. ContextMenu - @workspace/ui/components/context-menu
+12. Dialog - @workspace/ui/components/dialog
+13. DropdownMenu - @workspace/ui/components/dropdown-menu
+14. HoverCard - @workspace/ui/components/hover-card
+15. Input - @workspace/ui/components/input
+16. InputOTP - @workspace/ui/components/input-otp
+17. Label - @workspace/ui/components/label
+18. Pagination - @workspace/ui/components/pagination
+19. Popover - @workspace/ui/components/popover
+20. ScrollArea - @workspace/ui/components/scroll-area
+21. Select - @workspace/ui/components/select
+22. Separator - @workspace/ui/components/separator
+23. Sheet - @workspace/ui/components/sheet
+24. Sidebar - @workspace/ui/components/sidebar
+25. Skeleton - @workspace/ui/components/skeleton
+26. Sonner - @workspace/ui/components/sonner
+27. Table - @workspace/ui/components/table
+28. Textarea - @workspace/ui/components/textarea
+29. Tooltip - @workspace/ui/components/tooltip
 
-| #   | Component        | Import Path                              | Primary Use Case                                |
-| --- | ---------------- | ---------------------------------------- | ----------------------------------------------- |
-| 1   | **Badge**        | `@workspace/ui/components/badge`         | Status indicators, labels, counters             |
-| 2   | **Breadcrumb**   | `@workspace/ui/components/breadcrumb`    | Navigation hierarchy trails                     |
-| 3   | **Button**       | `@workspace/ui/components/button`        | All clickable actions, submissions              |
-| 4   | **Calendar**     | `@workspace/ui/components/calendar`      | Date picker, date range selection               |
-| 5   | **Card**         | `@workspace/ui/components/card`          | Content containers with header/footer           |
-| 6   | **Chart**        | `@workspace/ui/components/chart`         | Data visualization (recharts wrapper)           |
-| 7   | **Collapsible**  | `@workspace/ui/components/collapsible`   | Expandable/collapsible sections                 |
-| 8   | **Command**      | `@workspace/ui/components/command`       | Command palette, searchable menus               |
-| 9   | **ContextMenu**  | `@workspace/ui/components/context-menu`  | Right-click contextual menus                    |
-| 10  | **Dialog**       | `@workspace/ui/components/dialog`        | Modal windows, confirmations                    |
-| 11  | **DropdownMenu** | `@workspace/ui/components/dropdown-menu` | Dropdown selection menus                        |
-| 12  | **HoverCard**    | `@workspace/ui/components/hover-card`    | Preview cards on hover                          |
-| 13  | **Input**        | `@workspace/ui/components/input`         | Single-line text input fields                   |
-| 14  | **InputOTP**     | `@workspace/ui/components/input-otp`     | OTP/verification code input (6 slots)           |
-| 15  | **Label**        | `@workspace/ui/components/label`         | Form input labels                               |
-| 16  | **Pagination**   | `@workspace/ui/components/pagination`    | Data table page navigation                      |
-| 17  | **Popover**      | `@workspace/ui/components/popover`       | Floating content panels                         |
-| 18  | **ScrollArea**   | `@workspace/ui/components/scroll-area`   | Custom scrollable containers                    |
-| 19  | **Select**       | `@workspace/ui/components/select`        | Native-style dropdown selects                   |
-| 20  | **Separator**    | `@workspace/ui/components/separator`     | Visual content dividers                         |
-| 21  | **Sheet**        | `@workspace/ui/components/sheet`         | Slide-out side panels                           |
-| 22  | **Sidebar**      | `@workspace/ui/components/sidebar`       | Collapsible app sidebar                         |
-| 23  | **Skeleton**     | `@workspace/ui/components/skeleton`      | Loading placeholder blocks                      |
-| 24  | **Sonner**       | `@workspace/ui/components/sonner`        | Toast notification system                       |
-| 25  | **Table**        | `@workspace/ui/components/table`         | Data table structure (thead, tbody, tr, th, td) |
-| 26  | **Textarea**     | `@workspace/ui/components/textarea`      | Multi-line text input                           |
-| 27  | **Tooltip**      | `@workspace/ui/components/tooltip`       | Hover tooltip hints                             |
+### 3.2 Shared Business Components (@workspace/ui/shared/)
 
-### 3.2 Shared Business Components (`@workspace/ui/shared/`)
+1. AuthCard - @workspace/ui/shared/auth/auth-card
+2. DataTable - @workspace/ui/shared/data-table/data-table
+3. FileUpload - @workspace/ui/shared/file-upload
+4. HeaderLogo - @workspace/ui/shared/header-logo/header-logo
+5. HeaderSection - @workspace/ui/shared/header-section/header-section
+6. LanguageSwitch - @workspace/ui/shared/language-switch
+7. RouteBreadcrumb - @workspace/ui/shared/route-breadcrumb/route-breadcrumb
+8. SidebarLayout - @workspace/ui/shared/sidebar-layout/sidebar-layout
+9. ThemeToggle - @workspace/ui/shared/theme-toggle/theme-toggle
 
-These are pre-built business components reused across 2+ portals:
+### 3.3 Shared Contexts (@workspace/ui/context/)
 
-| #   | Component           | Import Path                                              | Purpose                                                 |
-| --- | ------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
-| 1   | **AuthCard**        | `@workspace/ui/shared/auth/auth-card`                    | Authentication card layout wrapper                      |
-| 2   | **DataTable**       | `@workspace/ui/shared/data-table/data-table`             | Reusable data table with sorting, filtering, pagination |
-| 3   | **HeaderLogo**      | `@workspace/ui/shared/header-logo/header-logo`           | Application logo in header/navbar                       |
-| 4   | **HeaderSection**   | `@workspace/ui/shared/header-section/header-section`     | Page header with title, subtitle, and action buttons    |
-| 5   | **LanguageSwitch**  | `@workspace/ui/shared/language-switch`                   | i18n language toggle switcher                           |
-| 6   | **RouteBreadcrumb** | `@workspace/ui/shared/route-breadcrumb/route-breadcrumb` | Auto-generated breadcrumbs from route                   |
-| 7   | **SidebarLayout**   | `@workspace/ui/shared/sidebar-layout/sidebar-layout`     | Full app shell with sidebar + content area              |
-| 8   | **ThemeToggle**     | `@workspace/ui/shared/theme-toggle/theme-toggle`         | Dark/Light/System theme toggle                          |
+1. ThemeContext - @workspace/ui/context/theme-context
+2. BreadcrumbContext - @workspace/ui/context/breadcrumb-context
 
-### 3.3 Shared Hooks & Utilities
+### 3.4 Shared Hooks and Utilities
 
-| #   | Export           | Import Path                           | Purpose                                               |
-| --- | ---------------- | ------------------------------------- | ----------------------------------------------------- |
-| 1   | **apiClient**    | `@workspace/ui/lib/api-client`        | Centralized HTTP client (use ONLY this for API calls) |
-| 2   | **cn / utils**   | `@workspace/ui/lib/utils`             | Tailwind CSS class merging utility                    |
-| 3   | **useMobile**    | `@workspace/ui/hooks/use-mobile`      | Responsive mobile breakpoint detection                |
-| 4   | **ThemeContext** | `@workspace/ui/context/theme-context` | Application theme state management                    |
-| 5   | **IApiResponse** | `@workspace/ui/types/api.types`       | Standard API response type interface                  |
+1. apiClient - @workspace/ui/lib/api-client
+2. cn/utils - @workspace/ui/lib/utils (includes debounce helper)
+3. useMobile - @workspace/ui/hooks/use-mobile
+4. IApiResponse - @workspace/ui/types/api.types
 
-### 3.4 Sub-Components of Shared Modules
+### 3.5 SidebarLayout Sub-Components
 
-#### SidebarLayout Sub-Components
-
-| Component   | Import Path                                             |
-| ----------- | ------------------------------------------------------- |
-| **NavMain** | `@workspace/ui/shared/sidebar-layout/nav-main/nav-main` |
+1. NavMain - @workspace/ui/shared/sidebar-layout/nav-main/nav-main
 
 ---
 
-## 4. Portal Routing & API Prefixes
+## 4. Portal Routing and API Prefixes
 
-Portals must adhere to the route prefixes and backend API paths specified in this table:
-
-| Portal       | Directory       | Route Path Prefix                           | API Endpoint Prefix  | Auth Context Path                     |
-| :----------- | :-------------- | :------------------------------------------ | :------------------- | :------------------------------------ |
-| **Admin**    | `apps/admin`    | `/` (e.g., `/dashboard`)                    | `/admin`             | `components/context/auth-context.tsx` |
-| **Company**  | `apps/company`  | `/[orgHash]` (e.g., `/[orgHash]/dashboard`) | `/:orgHash`          | `components/context/auth-context.tsx` |
-| **Consumer** | `apps/consumer` | `/[orgHash]` (e.g., `/[orgHash]/dashboard`) | `/:orgHash/consumer` | `components/context/auth-context.tsx` |
+| Portal   | Directory     | Route Path Prefix                       | API Endpoint Prefix | Auth Context Path                   |
+| -------- | ------------- | --------------------------------------- | ------------------- | ----------------------------------- |
+| Admin    | apps/admin    | / (e.g., /dashboard)                    | /admin              | components/context/auth-context.tsx |
+| Company  | apps/company  | /[orgHash] (e.g., /[orgHash]/dashboard) | /:orgHash           | components/context/auth-context.tsx |
+| Consumer | apps/consumer | /[orgHash] (e.g., /[orgHash]/dashboard) | /:orgHash/consumer  | components/context/auth-context.tsx |
 
 ---
 
-## 5. Folder Standards & Component Co-location Rules
+## 5. Folder Standards and Component Co-location Rules
 
-- **Rule 5.1: The `lib/<feature>` Standard**
-  Every feature module folder contains the network and validation layer structure:
-  - **`index.ts`**: Pure async function triggers hitting API endpoints via `apiClient`. Never contains React state or rendering code.
-  - **`validation.ts`**: Holds all Zod schemas (e.g. `createSchema`, `updateSchema`) enforcing validation. Form interfaces are inferred directly from these schemas.
-  - **`types.ts`**: Houses TypeScript interface definitions describing API payloads, output data models, inputs, and pagination contracts.
+### Rule 5.1: The lib/feature Standard
 
-- **Rule 5.2: The `components/context` Standard**
-  Defines React Context providers containing the state variables and core orchestration logic for the module:
-  - Must integrate the API triggers, types, and validation schemas directly from the `lib/<feature>` folder.
-  - Holds state for fetching, mutations, active items, current page, filters, etc.
-  - Extends clean React hook wrappers (e.g. `use<Feature>s()`) for consumers.
+Every feature module folder contains:
 
-- **Rule 5.3: The `components/pages` Standard**
-  Handles the physical layout architecture of standard modules:
-  - **`index.tsx`**: Orchestrated layout assembly (Search input, action buttons, table states). Subscribes to context hook values and is used inside the app layout and page routers.
-  - **`_components/`**: Houses files that are strictly local to the parent page view.
-    - Components inside `_components/` cannot be imported outside this specific page directory.
-    - Include files like `<feature>-form-dialog.tsx`, `page-skeleton.tsx` (for skeleton layouts), `page-empty.tsx`, etc.
-    - **Single Form Rule**: Dynamic form components (e.g. `organization-form-dialog.tsx`) must serve both **Create** and **Edit** operations. Define conditional logic inside the form based on props (such as an optional `initialData` or `editId` object) to avoid duplicating layouts.
+index.ts: Pure async functions hitting API endpoints via apiClient. Never contains React state or rendering code.
 
-- **Rule 5.4: Shared Component Co-location Rules**
-  - **Primitive Elements**: Pure library elements (e.g., Radix wrappers, base shadcn elements) must reside inside `packages/ui/src/components/`. NEVER duplicate these in portal directories.
-  - **Shared UI Blocks**: Business layouts and elements used across 2+ portals must reside inside `packages/ui/src/shared/`. Before building any new component, CHECK if it should be shared.
-  - **Feature UI Blocks**: Elements used only on a single feature page (e.g., a specific table row, item card, or dialog) must be saved inside `apps/<portal>/components/pages/<feature>-page/_components/`.
+validation.ts: Holds all Zod schemas (createSchema, updateSchema) enforcing validation. Form interfaces are inferred directly from these schemas.
 
----
+types.ts: TypeScript interface definitions for API payloads, output data models, inputs, and pagination contracts.
 
-## 6. State & Context Standards
+### Rule 5.2: The components/context Standard
 
-- **Rule 6.1: Simple Pages** — Fetch data directly within components using the `apiClient` instance. Do NOT construct a React context for single-fetch pages.
+React Context providers in components/context/feature-context.tsx containing state and orchestration logic:
 
-- **Rule 6.2: Complex Pages** — Pages containing list pagination, search queries, or CRUD operations MUST use a context provider in `components/context/<feature>-context.tsx`.
+Must integrate the API triggers, types, and validation schemas directly from the lib/feature folder.
 
-- **Rule 6.3: Standard State Keys** — All feature contexts must implement and export these standard properties:
+Holds state for fetching, mutations, active items, current page, filters, etc.
 
-| State Key       | Type      | Purpose                                    |
-| --------------- | --------- | ------------------------------------------ |
-| `items`         | `T[]`     | Data payload array                         |
-| `fetchLoading`  | `boolean` | Loading flag for GET/list operations       |
-| `actionLoading` | `boolean` | Loading flag for POST/PATCH/DELETE actions |
-| `page`          | `number`  | Current page index (starts at 1)           |
-| `limit`         | `number`  | Items per page                             |
-| `total`         | `number`  | Total item count                           |
-| `totalPages`    | `number`  | Calculated total pages                     |
-| `search`        | `string`  | Search query string                        |
+Extends clean React hook wrappers (e.g. useFeatures()) for consumers.
 
----
+Should include getItemById(id) to find items from already-fetched array without API call.
 
-## 7. API Client & Request Rules
+Should include getDetailById(id) to fetch full detail from API through context.
 
-- **Rule 7.1: Single Request Tool** — ALL HTTP calls MUST use `apiClient` from `@workspace/ui/lib/api-client`. Never use raw `fetch`, `axios`, or any other HTTP library.
+Standard state keys: items, fetchLoading, actionLoading, page, limit, total, totalPages, search.
 
-- **Rule 7.2: Direct Integration** — Do NOT write intermediate service class adapters or wrapper classes. Trigger API functions directly in components or contexts.
+Optional filter states: typeFilter, statusFilter.
 
-- **Rule 7.3: Parameter Cleaning** — Empty values (`""`, `null`, `undefined`) are automatically stripped from request parameters by `apiClient`. No manual cleanup needed.
+### Rule 5.3: The components/pages Standard
 
-- **Rule 7.4: Response Structure** — All API responses follow the standardized `IApiResponse<T>` interface:
+List Page (components/pages/feature-page/):
 
-  ```typescript
-  export interface IApiResponse<T> {
-    success: boolean;
-    data: T;
-    meta?: IApiPaginationMeta;
-    message?: string;
-    statusCode: number;
-  }
-  ```
+- index.tsx: Orchestrated layout (Search, filters, table states, dialogs)
+- \_components/: Private files (page-skeleton.tsx, page-empty.tsx, feature-form-dialog.tsx, delete-dialog.tsx, invite-dialog.tsx)
 
-- **Rule 7.5: Cookie-Based JWT Security**
-  - The backend (`ResponseInterceptor`) automatically handles token management.
-  - Access and Refresh tokens are stripped from the response payload, and stored as Secure, HTTP-Only cookies (`accessToken` and `refreshToken`).
-  - **Rule**: The frontend **must never** manually store, read, or pass JWT tokens in localStorage, sessionStorage, or custom header wrappers.
-  - **Rule**: Ensure the `apiClient` executes with `{ credentials: "include" }` so that session cookies are forwarded automatically.
+Detail Page (components/pages/feature-detail-page/):
 
-- **Rule 7.6: Backend Interceptor Pagination Convention**
-  - For queries returning lists, the backend interceptor extracts the list arrays and places them directly inside the top-level `data` payload parameter.
-  - The pagination controls are flattened and placed inside the top-level `meta` parameter of type `IApiPaginationMeta`.
-  - **Rule**: Page queries must trigger clients returning `Promise<IApiResponse<T[]>>` (direct array data) and consume the pagination stats using `response.meta` values.
+- index.tsx: Detail page with header, info, stats, hierarchy sections
+- \_components/: Private files (page-skeleton.tsx, feature-header.tsx, feature-info.tsx, feature-stats.tsx, feature-hierarchy.tsx)
+
+Single Form Rule: Dynamic form components must serve both Create and Edit operations. Use conditional logic based on props (editData or initialData) to avoid duplication.
+
+Components inside \_components/ cannot be imported outside that specific page directory.
+
+### Rule 5.4: Shared Component Co-location Rules
+
+Primitive Elements: Pure library elements (Radix wrappers, base shadcn) must reside inside packages/ui/src/components/. NEVER duplicate in portal directories.
+
+Shared UI Blocks: Business components used across 2+ portals must reside inside packages/ui/src/shared/. Check before building new components.
+
+Feature UI Blocks: Elements used only on a single feature page must be saved inside apps/portal/components/pages/feature-page/\_components/.
+
+Shared Contexts: Contexts used across portals (theme, breadcrumb) must reside inside packages/ui/src/context/.
 
 ---
 
-## 8. UX & Loading States Rules
+## 6. State and Context Standards
 
-- **Rule 8.1: Fetch Skeletons** — Display a full page skeleton (`<PageSkeleton />`) during list operations, searching, and pagination by checking `fetchLoading === true`. Use the `Skeleton` component from `@workspace/ui/components/skeleton`.
+### Rule 6.1: Simple Pages
 
-- **Rule 8.2: Action Spinners** — Display `<Loader2 className="animate-spin" />` loader icons inside action/submit buttons during CRUD operations by checking `actionLoading === true`.
+Fetch data directly within components using the apiClient instance. Do NOT construct a React context for single-fetch pages.
 
-- **Rule 8.3: Data Visibility** — NEVER clear, hide, or reset the main data table or content list while a write operation (create/update/delete) is running. Existing data must remain visible.
+### Rule 6.2: Complex Pages
 
-- **Rule 8.4: Search Reset** — Any modification to the search query string MUST immediately reset the page index state to `1`.
+Pages with list pagination, search queries, or CRUD operations MUST use a context provider in components/context/feature-context.tsx.
 
-- **Rule 8.5: Feedback Toasts** — Trigger `sonner` success/error notifications (`toast.success()` / `toast.error()`) upon completion of ALL write actions (create, update, delete).
+### Rule 6.3: Standard State Keys
+
+| State Key     | Type    | Purpose                                    |
+| ------------- | ------- | ------------------------------------------ |
+| items         | T[]     | Data payload array                         |
+| fetchLoading  | boolean | Loading flag for GET/list operations       |
+| actionLoading | boolean | Loading flag for POST/PATCH/DELETE actions |
+| page          | number  | Current page index (starts at 1)           |
+| limit         | number  | Items per page                             |
+| total         | number  | Total item count                           |
+| totalPages    | number  | Calculated total pages                     |
+| search        | string  | Search query string                        |
+
+### Rule 6.4: Additional Context Methods
+
+getItemById(id): Finds item from already-fetched items array without API call. Used for quick lookups.
+
+getDetailById(id): Fetches full entity detail from API through context. Returns detail or null on failure.
+
+### Rule 6.5: Filter States (Optional)
+
+| State Key    | Type   | Purpose             |
+| ------------ | ------ | ------------------- |
+| typeFilter   | string | Type filter value   |
+| statusFilter | string | Status filter value |
+
+### Rule 6.6: Debounce Pattern
+
+Search/filter changes must use debounce from @workspace/ui/lib/utils to avoid excessive API calls. Default delay: 300ms.
+
+```
+import { debounce } from "@workspace/ui/lib/utils";
+
+const debouncedFetchRef = useRef(
+  debounce(async (params) => {
+    // fetch logic here
+  }, 300)
+);
+```
 
 ---
 
-## 9. Generic File Templates (AI Scaffolding Boilerplate)
+## 7. API Client and Request Rules
 
-Use these templates to construct features. Replace `<feature>` and `<Feature>` placeholders (e.g., `brand`, `Brand` or `organization`, `Organization`) with the target domain name.
+### Rule 7.1: Single Request Tool
 
-### 9.1 Feature API Client (`lib/<feature>/index.ts`)
+ALL HTTP calls MUST use apiClient from @workspace/ui/lib/api-client. Never use raw fetch, axios, or any other HTTP library.
+
+### Rule 7.2: Direct Integration
+
+Do NOT write intermediate service class adapters or wrapper classes. Trigger API functions directly in components or contexts.
+
+### Rule 7.3: Parameter Cleaning
+
+Empty values ("", null, undefined) are automatically stripped from request parameters by apiClient.
+
+### Rule 7.4: Response Structure
+
+All API responses follow the standardized IApiResponse interface:
+
+```
+IApiResponse<T> {
+  success: boolean;
+  data: T;
+  meta?: IApiPaginationMeta;
+  message?: string;
+  statusCode: number;
+}
+```
+
+### Rule 7.5: Cookie-Based JWT Security
+
+The backend ResponseInterceptor automatically handles token management.
+
+Access and Refresh tokens are stored as Secure, HTTP-Only cookies (accessToken and refreshToken).
+
+Rule: Frontend must never manually store, read, or pass JWT tokens in localStorage, sessionStorage, or custom headers.
+
+Rule: apiClient executes with { credentials: "include" } for automatic cookie forwarding.
+
+### Rule 7.6: Backend Interceptor Pagination Convention
+
+List queries return items array directly in data payload.
+
+Pagination controls are in meta parameter.
+
+Rule: Page queries return Promise<IApiResponse<T[]>> and consume pagination stats from response.meta.
+
+---
+
+## 8. UX and Loading States Rules
+
+### Rule 8.1: Fetch Skeletons
+
+Display PageSkeleton during list operations, searching, and pagination when fetchLoading === true. Use Skeleton from @workspace/ui/components/skeleton.
+
+### Rule 8.2: Action Spinners
+
+Display Loader2 with animate-spin class inside action/submit buttons when actionLoading === true.
+
+### Rule 8.3: Data Visibility
+
+NEVER clear, hide, or reset the main data table or content list while a write operation is running. Existing data must remain visible.
+
+### Rule 8.4: Search Reset
+
+Any modification to the search query string MUST immediately reset the page index state to 1.
+
+### Rule 8.5: Filter Reset
+
+Any modification to typeFilter or statusFilter MUST immediately reset the page index state to 1.
+
+### Rule 8.6: Limit Change Reset
+
+Any modification to limit MUST immediately reset the page index state to 1.
+
+### Rule 8.7: Feedback Toasts
+
+Trigger sonner success/error notifications (toast.success() / toast.error()) upon completion of ALL write actions (create, update, delete).
+
+---
+
+## 9. Breadcrumb System
+
+### Rule 9.1: Breadcrumb Provider Location
+
+The BreadcrumbProvider is defined in packages/ui/src/context/breadcrumb-context.tsx and wraps the entire application in the RootProvider.
+
+### Rule 9.2: Breadcrumb Context API
+
+```
+import { useBreadcrumb } from "@workspace/ui/context/breadcrumb-context";
+
+useBreadcrumb() returns:
+- pathMap: Record<string, string> - Current path-to-name mappings
+- setPathName(path: string, name: string): void - Set a label for a path
+- removePathName(path: string): void - Remove a label when navigating away
+```
+
+### Rule 9.3: Setting Breadcrumb Labels in Detail Pages
+
+When a detail page loads data, it MUST call setPathName with the full URL path and entity name:
+
+```
+const { setPathName, removePathName } = useBreadcrumb();
+
+useEffect(() => {
+  // After data loads
+  setPathName(`/dashboard/organizations/${organizationId}`, organization.name);
+
+  return () => {
+    removePathName(`/dashboard/organizations/${organizationId}`);
+  };
+}, [organizationId]);
+```
+
+### Rule 9.4: Breadcrumb Resolution Order
+
+The RouteBreadcrumb component resolves labels in this priority:
+
+1. Check breadcrumb pathMap (set by detail pages via setPathName)
+2. Check SEGMENT_LABELS overrides (static mapping for known paths)
+3. If UUID segment, use parent segment label
+4. Default: capitalize and replace hyphens
+
+### Rule 9.5: Standard Segment Labels
+
+```
+const SEGMENT_LABELS = {
+  dashboard: "Dashboard",
+  organizations: "Organizations",
+  features: "Features",
+  brands: "Brands",
+  categories: "Categories",
+  users: "Users",
+  "dealer-types": "Dealer Types",
+  settings: "Settings",
+  profile: "Profile",
+};
+```
+
+---
+
+## 10. File Upload System
+
+### Rule 10.1: File Upload Lib Location
+
+Each portal has lib/file-upload/ with:
+
+- index.ts: uploadFile, uploadFiles, uploadFileWithValidation, uploadImage
+- types.ts: UploadedFile, SingleFileUploadResponse, MultipleFilesUploadResponse
+- validation.ts: fileSchema, imageSchema, validateFile, validateImage
+
+### Rule 10.2: File Upload Component Location
+
+The shared FileUpload component is at @workspace/ui/shared/file-upload.
+
+### Rule 10.3: File Upload Component Features
+
+- Single file upload (default) or multiple file upload (multiple prop)
+- Dropzone variant (default) or button variant
+- Drag and drop support
+- Image preview for image files
+- File type icon for non-image files
+- Size validation with error message
+- Custom accept types and max size
+- Remove button with callback
+
+### Rule 10.4: File Upload Props
+
+```
+interface FileUploadProps {
+  onUpload: (file: File) => Promise<UploadedFileInfo | null>;
+  onRemove?: (file: UploadedFileInfo) => void;
+  value?: UploadedFileInfo | null | UploadedFileInfo[];
+  accept?: string;
+  maxSize?: number;
+  maxFiles?: number;
+  multiple?: boolean;
+  disabled?: boolean;
+  className?: string;
+  buttonText?: string;
+  variant?: "dropzone" | "button";
+  dropzoneText?: string;
+  dropzoneSubText?: string;
+  supportedFormats?: string;
+  showSizeHint?: boolean;
+}
+```
+
+### Rule 10.5: Upload Flow
+
+1. User selects or drops file
+2. Component validates size against maxSize
+3. Component calls onUpload(file) prop
+4. Parent handler calls uploadFileWithValidation(file, { folder }) from lib/file-upload
+5. API uploads file and returns publicUrl
+6. Parent sets the URL in form state via setLogo(publicUrl)
+
+### Rule 10.6: Logo Handling in Forms
+
+When editing existing data with a logo, create a placeholder UploadedFileInfo:
+
+```
+setLogoFile({
+  key: "",
+  url: editData.logo,
+  publicUrl: editData.logo,
+  fileName: "",
+  originalName: "",
+  mimeType: "image/*",
+  size: 0,
+});
+```
+
+When removing a logo, call setLogo("") and setLogoFile(null).
+
+---
+
+Here's the corrected Section 11 with proper template placeholders and formatting:
+
+---
+
+## 11. Generic File Templates (AI Scaffolding Boilerplate)
+
+Use these templates to construct features. Replace `<feature>` and `<Feature>` placeholders with the target domain name (e.g., `brand`, `Brand` or `organization`, `Organization`).
+
+### 11.1 Feature API Client (`lib/<feature>/index.ts`)
 
 ```typescript
 import { apiClient } from "@workspace/ui/lib/api-client";
 import type { IApiResponse } from "@workspace/ui/types/api.types";
 import type {
   <Feature>,
+  <Feature>Detail,
   Create<Feature>Input,
-  Update<Feature>Input
+  Update<Feature>Input,
 } from "./types";
 
-// Returns direct array because backend interceptor extracts items array into `data`
-export function get<Feature>s(params?: Record<string, any>): Promise<IApiResponse<<Feature>[]>> {
-  return apiClient.get("/<portal-prefix>/<feature>s", params);
+// List with pagination and filters
+export function get<Feature>s(
+  filters?: Record<string, string | number | boolean | undefined>
+): Promise<IApiResponse<<Feature>[]>> {
+  return apiClient.get("/<portal-prefix>/<feature>s", filters);
 }
 
-export function create<Feature>(data: Create<Feature>Input): Promise<IApiResponse<<Feature>>> {
+// Get single detail
+export function get<Feature>(
+  id: string
+): Promise<IApiResponse<<Feature>Detail>> {
+  return apiClient.get(`/<portal-prefix>/<feature>s/${id}`);
+}
+
+// Create
+export function create<Feature>(
+  data: Create<Feature>Input
+): Promise<IApiResponse<<Feature>>> {
   return apiClient.post("/<portal-prefix>/<feature>s", data);
 }
 
-export function update<Feature>(id: string, data: Update<Feature>Input): Promise<IApiResponse<<Feature>>> {
-  return apiClient.patch("/<portal-prefix>/<feature>s/" + id, data);
+// Update
+export function update<Feature>(
+  id: string,
+  data: Update<Feature>Input
+): Promise<IApiResponse<<Feature>>> {
+  return apiClient.patch(`/<portal-prefix>/<feature>s/${id}`, data);
 }
 
-export function delete<Feature>(id: string): Promise<IApiResponse<null>> {
-  return apiClient.delete("/<portal-prefix>/<feature>s/" + id);
+// Delete or status change
+export function delete<Feature>(
+  id: string
+): Promise<IApiResponse<null>> {
+  return apiClient.delete(`/<portal-prefix>/<feature>s/${id}`);
 }
 ```
 
-### 9.2 Feature Types (`lib/<feature>/types.ts`)
+### 11.2 Feature Types (`lib/<feature>/types.ts`)
 
 ```typescript
 export interface <Feature> {
   id: string;
   name: string;
+  // Add feature-specific fields here
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface <Feature>Detail extends <Feature> {
+  // Add detail-specific fields here (stats, relations, etc.)
+}
+
 export interface Create<Feature>Input {
   name: string;
+  // Add required create fields here
 }
 
 export interface Update<Feature>Input {
   name?: string;
+  // Add optional update fields here
 }
 ```
 
-### 9.3 Feature Validation (`lib/<feature>/validation.ts`)
+### 11.3 Feature Validation (`lib/<feature>/validation.ts`)
 
 ```typescript
 import { z } from "zod";
 
 export const create<Feature>Schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must not exceed 100 characters"),
+  // Add more validation fields here
 });
 
 export const update<Feature>Schema = create<Feature>Schema.partial();
@@ -364,9 +637,9 @@ export type Create<Feature>FormData = z.infer<typeof create<Feature>Schema>;
 export type Update<Feature>FormData = z.infer<typeof update<Feature>Schema>;
 ```
 
-### 9.4 Feature Context (`components/context/<feature>-context.tsx`)
+### 11.4 Feature Context (`components/context/<feature>-context.tsx`)
 
-```tsx
+```typescript
 "use client";
 
 import {
@@ -375,11 +648,20 @@ import {
   useState,
   useCallback,
   useEffect,
-  ReactNode
+  useRef,
+  ReactNode,
 } from "react";
 import { toast } from "sonner";
+
+import { debounce } from "@workspace/ui/lib/utils";
+
 import * as api from "@/lib/<feature>";
-import type { <Feature>, Create<Feature>Input, Update<Feature>Input } from "@/lib/<feature>/types";
+import type {
+  <Feature>,
+  <Feature>Detail,
+  Create<Feature>Input,
+  Update<Feature>Input,
+} from "@/lib/<feature>/types";
 
 interface <Feature>sContextType {
   items: <Feature>[];
@@ -390,12 +672,15 @@ interface <Feature>sContextType {
   total: number;
   totalPages: number;
   search: string;
-  fetchItems: () => Promise<void>;
+  fetchItems: () => void;
+  getItemById: (id: string) => <Feature> | undefined;
+  getDetailById: (id: string) => Promise<<Feature>Detail | null>;
   createItem: (data: Create<Feature>Input) => Promise<boolean>;
   updateItem: (id: string, data: Update<Feature>Input) => Promise<boolean>;
   deleteItem: (id: string) => Promise<boolean>;
   setSearch: (query: string) => void;
   setPage: (page: number) => void;
+  setLimit: (limit: number) => void;
 }
 
 const <Feature>sContext = createContext<<Feature>sContextType | null>(null);
@@ -404,43 +689,99 @@ export function <Feature>sProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<<Feature>[]>([]);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [page, setPageState] = useState(1);
+  const [limit, setLimitState] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [search, setSearchState] = useState("");
 
-  const fetchItems = useCallback(async () => {
-    setFetchLoading(true);
-    try {
-      const res = await api.get<Feature>s({ page, limit, search });
-      if (res.success && res.data) {
-        // Direct array payload as structured by response.interceptor
-        setItems(res.data);
-        if (res.meta) {
-          setTotal(res.meta.total || 0);
-          setTotalPages(res.meta.totalPages || 0);
+  const debouncedFetchRef = useRef(
+    debounce(
+      async (params: {
+        page: number;
+        limit: number;
+        search: string;
+      }) => {
+        setFetchLoading(true);
+        try {
+          const filters: Record<
+            string,
+            string | number | boolean | undefined
+          > = {
+            page: params.page,
+            limit: params.limit,
+          };
+
+          if (params.search) filters.search = params.search;
+
+          const res = await api.get<Feature>s(filters);
+
+          if (res.success && res.data) {
+            setItems(res.data);
+            if (res.meta) {
+              setTotal(res.meta.total || 0);
+              setTotalPages(res.meta.totalPages || 0);
+            }
+          } else {
+            toast.error(res.message || "Failed to load <feature>s");
+          }
+        } catch {
+          toast.error("An unexpected error occurred");
+        } finally {
+          setFetchLoading(false);
         }
-      } else {
-        toast.error(res.message || "Failed to load <feature>s");
-      }
-    } catch {
-      toast.error("An unexpected error occurred");
-    } finally {
-      setFetchLoading(false);
-    }
+      },
+      300
+    )
+  );
+
+  const fetchItems = useCallback(() => {
+    debouncedFetchRef.current({ page, limit, search });
   }, [page, limit, search]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
+  const getItemById = useCallback(
+    (id: string): <Feature> | undefined => {
+      return items.find((item) => item.id === id);
+    },
+    [items]
+  );
+
+  const getDetailById = useCallback(
+    async (id: string): Promise<<Feature>Detail | null> => {
+      try {
+        const res = await api.get<Feature>(id);
+        if (res.success && res.data) {
+          return res.data;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
+
   const setSearch = useCallback((query: string) => {
     setSearchState(query);
-    setPage(1);
+    setPageState(1);
   }, []);
 
-  const createItem = async (data: Create<Feature>Input): Promise<boolean> => {
+  const setPage = useCallback((newPage: number) => {
+    setPageState(newPage);
+  }, []);
+
+  const setLimit = useCallback((newLimit: number) => {
+    setLimitState(newLimit);
+    setPageState(1);
+  }, []);
+
+  const createItem = async (
+    data: Create<Feature>Input
+  ): Promise<boolean> => {
     setActionLoading(true);
     try {
       const res = await api.create<Feature>(data);
@@ -459,7 +800,10 @@ export function <Feature>sProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateItem = async (id: string, data: Update<Feature>Input): Promise<boolean> => {
+  const updateItem = async (
+    id: string,
+    data: Update<Feature>Input
+  ): Promise<boolean> => {
     setActionLoading(true);
     try {
       const res = await api.update<Feature>(id, data);
@@ -509,11 +853,14 @@ export function <Feature>sProvider({ children }: { children: ReactNode }) {
         totalPages,
         search,
         fetchItems,
+        getItemById,
+        getDetailById,
         createItem,
         updateItem,
         deleteItem,
         setSearch,
         setPage,
+        setLimit,
       }}
     >
       {children}
@@ -523,15 +870,25 @@ export function <Feature>sProvider({ children }: { children: ReactNode }) {
 
 export function use<Feature>s() {
   const context = useContext(<Feature>sContext);
-  if (!context) throw new Error("use<Feature>s must be used within an <Feature>sProvider");
+  if (!context)
+    throw new Error(
+      "use<Feature>s must be used within an <Feature>sProvider"
+    );
   return context;
 }
 ```
 
-### 9.5 Feature Routing Layout (`app/.../<feature>/layout.tsx`)
+### 11.5 Feature Routing Layout (`app/(protected)/dashboard/<feature>/layout.tsx`)
 
-```tsx
+```typescript
+import type { Metadata } from "next";
+
 import { <Feature>sProvider } from "@/components/context/<feature>-context";
+
+export const metadata: Metadata = {
+  title: "<Feature>s",
+  description: "Manage <feature>s description here",
+};
 
 export default function <Feature>sLayout({
   children,
@@ -542,9 +899,9 @@ export default function <Feature>sLayout({
 }
 ```
 
-### 9.6 Feature Routing Page (`app/.../<feature>/page.tsx`)
+### 11.6 Feature Routing Page (`app/(protected)/dashboard/<feature>/page.tsx`)
 
-```tsx
+```typescript
 import { <Feature>sPage } from "@/components/pages/<feature>-page";
 
 export default function Page() {
@@ -552,116 +909,506 @@ export default function Page() {
 }
 ```
 
-### 9.7 Feature Component Entry (`components/pages/<feature>-page/index.tsx`)
+### 11.7 Feature List Page Component (`components/pages/<feature>-page/index.tsx`)
 
-```tsx
+```typescript
 "use client";
 
-import { useState } from "react";
-import { use<Feature>s } from "@/components/context/<feature>-context";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 import { Input } from "@workspace/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
+import { DataTable } from "@workspace/ui/shared/data-table/data-table";
+
+import { use<Feature>s } from "@/components/context/<feature>-context";
+import type { <Feature> } from "@/lib/<feature>/types";
+
 import { PageSkeleton } from "./_components/page-skeleton";
 import { PageEmpty } from "./_components/page-empty";
-import { DataTable } from "./_components/data-table";
-import { CreateDialog } from "./_components/create-dialog";
-import { Plus, Search } from "lucide-react";
+import { <Feature>FormDialog } from "./_components/<feature>-form-dialog";
+import { DeleteDialog } from "./_components/delete-dialog";
 
 export function <Feature>sPage() {
-  const { items, fetchLoading, search, setSearch } = use<Feature>s();
-  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const {
+    items,
+    fetchLoading,
+    search,
+    page,
+    totalPages,
+    total,
+    limit,
+    setSearch,
+    setPage,
+    setLimit,
+    deleteItem,
+  } = use<Feature>s();
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editData, setEditData] = useState<<Feature> | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteData, setDeleteData] = useState<<Feature> | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const handleRowClick = useCallback(
+    (item: <Feature>) => {
+      router.push(`/dashboard/<feature>s/${item.id}`);
+    },
+    [router]
+  );
+
+  const columns = [
+    {
+      key: "name",
+      header: "Name",
+      render: (item: <Feature>) => (
+        <div className="flex flex-col min-w-0">
+          <p className="text-sm font-medium truncate">{item.name}</p>
+        </div>
+      ),
+    },
+    {
+      key: "isActive",
+      header: "Status",
+      render: (item: <Feature>) =>
+        item.isActive ? (
+          <Badge variant="default">Active</Badge>
+        ) : (
+          <Badge variant="destructive">Inactive</Badge>
+        ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (item: <Feature>) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditData(item);
+                setEditOpen(true);
+              }}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteData(item);
+                setDeleteOpen(true);
+              }}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold"><Feature>s</h1>
-          <p className="text-sm text-muted-foreground">Manage your <feature>s</p>
+          <p className="text-sm text-muted-foreground">
+            Manage your <feature>s
+          </p>
         </div>
-        <Button onClick={() => setOpen(true)} className="flex items-center gap-2">
+        <Button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" />
           Add <Feature>
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search <feature>s..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 max-w-sm"
-        />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search <feature>s..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
-      {fetchLoading ? (
+      {fetchLoading && items.length === 0 ? (
         <PageSkeleton />
-      ) : items.length === 0 ? (
-        <PageEmpty />
+      ) : items.length === 0 && !search ? (
+        <PageEmpty onCreateNew={() => setCreateOpen(true)} />
       ) : (
-        <DataTable />
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={fetchLoading}
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          onRowClick={handleRowClick}
+        />
       )}
 
-      <CreateDialog open={open} onOpenChange={setOpen} />
+      <<Feature>FormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
+
+      <<Feature>FormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        editData={editData}
+      />
+
+      <DeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        item={deleteData}
+        onDelete={deleteItem}
+      />
     </div>
   );
 }
 ```
 
----
-
-## 10. Import Hierarchy & Sorting Rules
-
-Imports in ALL files must strictly follow this grouping order with blank line separators:
+### 11.8 Feature Detail Page Component (`components/pages/<feature>-detail-page/index.tsx`)
 
 ```typescript
-// 1. React/Next.js dependencies
-import { useState, useEffect } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
-// 2. Third-party packages (lucide-react, zod, sonner, etc.)
-import { Plus, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { z } from "zod";
-
-// 3. Shared Workspace Packages (@workspace/ui)
 import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { apiClient } from "@workspace/ui/lib/api-client";
-import { AuthCard } from "@workspace/ui/shared/auth/auth-card";
 
-// 4. Portal-specific Modules (@/)
-import { useAuth } from "@/components/context/auth-context";
-import * as api from "@/lib/<feature>";
+import { useBreadcrumb } from "@workspace/ui/context/breadcrumb-context";
 
-// 5. Local Components (./_components)
-import { DataTable } from "./_components/data-table";
-import { CreateDialog } from "./_components/create-dialog";
+import { use<Feature>s } from "@/components/context/<feature>-context";
+import type { <Feature>Detail } from "@/lib/<feature>/types";
+
+import { PageSkeleton } from "./_components/page-skeleton";
+import { <Feature>Header } from "./_components/<feature>-header";
+import { <Feature>Info } from "./_components/<feature>-info";
+import { <Feature>Stats } from "./_components/<feature>-stats";
+
+interface <Feature>DetailPageProps {
+  <feature>Id: string;
+}
+
+export function <Feature>DetailPage({
+  <feature>Id,
+}: <Feature>DetailPageProps) {
+  const router = useRouter();
+  const { getDetailById } = use<Feature>s();
+  const { setPathName, removePathName } = useBreadcrumb();
+  const [data, setData] = useState<<Feature>Detail | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const result = await getDetailById(<feature>Id);
+      if (result) {
+        setData(result);
+        setPathName(
+          `/dashboard/<feature>s/${<feature>Id}`,
+          result.name
+        );
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+
+    return () => {
+      removePathName(`/dashboard/<feature>s/${<feature>Id}`);
+    };
+  }, [<feature>Id, getDetailById, setPathName, removePathName]);
+
+  if (loading || !data) return <PageSkeleton />;
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/dashboard/<feature>s")}
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span className="sr-only">Back</span>
+        </Button>
+      </div>
+
+      <<Feature>Header data={data} />
+      <<Feature>Info data={data} />
+      <<Feature>Stats data={data} />
+    </div>
+  );
+}
+```
+
+### 11.9 Detail Page Layout (`app/(protected)/dashboard/<feature>/[<feature>Id]/layout.tsx`)
+
+```typescript
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "<Feature> Details",
+  description: "View <feature> details and information",
+};
+
+export default function <Feature>DetailLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
+}
+```
+
+### 11.10 Detail Page Route (`app/(protected)/dashboard/<feature>/[<feature>Id]/page.tsx`)
+
+```typescript
+import { <Feature>DetailPage } from "@/components/pages/<feature>-detail-page";
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ <feature>Id: string }>;
+}) {
+  const { <feature>Id } = await params;
+
+  return <<Feature>DetailPage <feature>Id={<feature>Id} />;
+}
 ```
 
 ---
 
-## 11. Developer PR Checklist
+## 12. Import Hierarchy and Sorting Rules
 
-Before submitting a Pull Request, verify ALL of the following:
+Imports in ALL files must strictly follow this grouping order with blank line separators between each group:
 
-- [ ] **Lean Pages**: `page.tsx` files contain only imports and a single component render. No UI structure, state, or logic.
-- [ ] **Shared Components**: Any component used across 2+ portals is refactored into `packages/ui/src/shared/`.
-- [ ] **Primitive Usage**: No duplicate shadcn components in portal directories. All primitives imported from `@workspace/ui/components/`.
-- [ ] **Layout Wrapping**: Feature context providers are properly injected via `layout.tsx` files.
-- [ ] **API Client Only**: No raw `fetch`, `axios`, or other HTTP libraries used anywhere.
-- [ ] **Zod Validation**: All form inputs have corresponding Zod schema validation configured.
-- [ ] **Loading States**: `fetchLoading` triggers page skeletons; `actionLoading` triggers inline button spinners.
-- [ ] **Data Persistence**: Table/list data remains visible during all CRUD operations.
-- [ ] **Search Pagination**: Changing search query resets page index to `1`.
-- [ ] **Toast Feedback**: All write actions (create/update/delete) trigger `sonner` success/error toasts.
-- [ ] **Import Order**: Imports sorted per Section 10 hierarchy. No relative package pathways used for shared code.
-- [ ] **Feature Co-location**: Feature-specific components correctly placed in `_components/` directory.
-- [ ] **No Service Classes**: API calls triggered directly, no intermediate adapters or service wrappers.
-- [ ] **Single Form Reuse**: A single form component (e.g. `organization-form-dialog.tsx`) is designed dynamically to handle both Edit and Create states to avoid duplication.
-- [ ] **Cookie Auth Security**: JWT tokens are NOT stored in localStorage or parsed; the frontend relies entirely on automatic HTTP-Only cookie transportation.
-- [ ] **Response Pagination Mapping**: List components fetch data expecting `response.data` to be a direct array of elements, while pagination details are extracted from `response.meta`.
+### Group 1: React/Next.js dependencies
+
+```typescript
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+```
+
+### Group 2: Third-party packages (lucide-react, zod, sonner, etc.)
+
+```typescript
+import {
+  Plus,
+  Loader2,
+  Search,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+} from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
+```
+
+### Group 3: Shared Workspace Packages (@workspace/ui) - Components first, then shared, then context, then lib
+
+```typescript
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Textarea } from "@workspace/ui/components/textarea";
+
+import { DataTable } from "@workspace/ui/shared/data-table/data-table";
+import { FileUpload } from "@workspace/ui/shared/file-upload";
+import type { UploadedFileInfo } from "@workspace/ui/shared/file-upload";
+
+import { useBreadcrumb } from "@workspace/ui/context/breadcrumb-context";
+
+import { apiClient } from "@workspace/ui/lib/api-client";
+import { cn } from "@workspace/ui/lib/utils";
+import { debounce } from "@workspace/ui/lib/utils";
+import type { IApiResponse } from "@workspace/ui/types/api.types";
+```
+
+### Group 4: Portal-specific Modules (@/) - Contexts first, then lib APIs, then types
+
+```typescript
+import { useOrganizations } from "@/components/context/organization-context";
+import { useFeatures } from "@/components/context/feature-context";
+
+import * as api from "@/lib/organization";
+import * as fileApi from "@/lib/file-upload";
+import { uploadFileWithValidation } from "@/lib/file-upload";
+
+import type {
+  Organization,
+  OrganizationDetail,
+  OrganizationType,
+} from "@/lib/organization/types";
+import type { Feature, FeatureStatus } from "@/lib/feature/types";
+```
+
+### Group 5: Local Components (./\_components)
+
+```typescript
+import { PageSkeleton } from "./_components/page-skeleton";
+import { PageEmpty } from "./_components/page-empty";
+import { OrganizationFormDialog } from "./_components/organization-form-dialog";
+import { DeleteDialog } from "./_components/delete-dialog";
+import { InviteSuperAdminDialog } from "./_components/invite-super-admin-dialog";
+```
+
+### Rules Summary
+
+1. Each group MUST be separated by exactly one blank line
+2. Within each group, imports should be alphabetically sorted
+3. Type imports use `import type` syntax and come after regular imports within their group
+4. Never use relative paths for shared code outside the current directory
+5. Local imports (./\_components) always come last
 
 ---
 
-**End of Frontend Developer Rule Book v3.1**
+## 13. Developer PR Checklist
+
+Before submitting a Pull Request, verify ALL of the following:
+
+### Pages and Routing
+
+- [ ] Lean Pages: page.tsx files contain only imports and a single component render. No UI structure, state, or logic.
+- [ ] Layout Wrapping: Feature context providers are properly injected via layout.tsx files.
+- [ ] Layout Metadata: All layout.tsx files include proper Metadata export with title and description using template pattern from parent layout.
+- [ ] Detail Routes: Detail pages use [entityId] dynamic segments and extract params via Promise.
+
+### Components
+
+- [ ] Shared Components: Any component used across 2+ portals is refactored into packages/ui/src/shared/.
+- [ ] Primitive Usage: No duplicate shadcn components in portal directories. All primitives imported from @workspace/ui/components/.
+- [ ] Feature Co-location: Feature-specific components correctly placed in \_components/ directory. Cannot be imported outside that directory.
+- [ ] Single Form Reuse: A single form component handles both Edit and Create states via props (editData/initialData).
+
+### State and Context
+
+- [ ] Context Location: Feature contexts in components/context/, shared contexts (theme, breadcrumb) in packages/ui/src/context/.
+- [ ] Context Methods: Context includes getItemById() for array lookup and getDetailById() for API fetch.
+- [ ] Standard State Keys: items, fetchLoading, actionLoading, page, limit, total, totalPages, search present.
+- [ ] Debounce Pattern: Search and filter changes use debounce from @workspace/ui/lib/utils with 300ms delay.
+
+### API and Data
+
+- [ ] API Client Only: No raw fetch, axios, or other HTTP libraries used anywhere.
+- [ ] No Service Classes: API calls triggered directly from context or components, no intermediate adapters.
+- [ ] Response Pagination Mapping: List components expect response.data as direct array, pagination from response.meta.
+- [ ] Cookie Auth Security: JWT tokens are NOT stored in localStorage; frontend relies on HTTP-Only cookie transportation.
+
+### Forms and Validation
+
+- [ ] Zod Validation: All form inputs have corresponding Zod schema validation configured.
+- [ ] Error Display: Form validation errors shown inline below each field using text-destructive styling.
+
+### UX and Loading
+
+- [ ] Loading States: fetchLoading triggers page skeletons via Skeleton component; actionLoading triggers Loader2 spinner in buttons.
+- [ ] Data Persistence: Table/list data remains visible during all CRUD operations. Never clear data during writes.
+- [ ] Search Pagination: Changing search query resets page index to 1.
+- [ ] Filter Reset: Changing typeFilter, statusFilter, or any filter resets page index to 1.
+- [ ] Limit Reset: Changing limit resets page index to 1.
+- [ ] Toast Feedback: All write actions (create/update/delete) trigger sonner success/error toasts.
+
+### Breadcrumbs
+
+- [ ] Breadcrumb Provider: BreadcrumbProvider wraps app in RootProvider (from packages/ui/src/context/).
+- [ ] Detail Page Labels: Detail pages call setPathName() when data loads to replace UUID with entity name.
+- [ ] Cleanup: Detail pages call removePathName() in useEffect cleanup to prevent stale labels.
+
+### Code Quality
+
+- [ ] Import Order: Imports sorted per Section 12 hierarchy with blank line separators between groups.
+- [ ] Color Standards: Use only shadcn/Tailwind CSS variables (text-primary, text-muted-foreground, bg-muted, bg-card, etc.), no hardcoded hex colors.
+- [ ] Type Safety: No use of `any` type unless absolutely necessary. Proper TypeScript interfaces for all data.
+- [ ] Event Propagation: Dropdown menu actions call e.stopPropagation() to prevent row click conflicts.
+
+### File Structure
+
+- [ ] lib/feature/ contains: index.ts, types.ts, validation.ts
+- [ ] components/context/ contains: feature-context.tsx
+- [ ] components/pages/feature-page/ contains: index.tsx and \_components/ folder
+- [ ] app/(protected)/dashboard/feature/ contains: layout.tsx and page.tsx
+
+---
+
+**End of Frontend Developer Rule Book v4.0**
