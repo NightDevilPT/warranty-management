@@ -16,6 +16,7 @@ import { debounce } from "@workspace/ui/lib/utils";
 import * as api from "@/lib/organization";
 import type {
   Organization,
+  OrganizationDetail,
   CreateOrganizationInput,
   UpdateOrganizationInput,
   UpdateOrganizationStatusInput,
@@ -33,6 +34,8 @@ interface OrganizationsContextType {
   typeFilter: string;
   statusFilter: string;
   fetchItems: () => void;
+  getItemById: (id: string) => Organization | undefined;
+  getDetailById: (id: string) => Promise<OrganizationDetail | null>;
   createItem: (data: CreateOrganizationInput) => Promise<boolean>;
   updateItem: (id: string, data: UpdateOrganizationInput) => Promise<boolean>;
   updateStatus: (
@@ -119,6 +122,28 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  const getItemById = useCallback(
+    (id: string): Organization | undefined => {
+      return items.find((item) => item.id === id);
+    },
+    [items],
+  );
+
+  const getDetailById = useCallback(
+    async (id: string): Promise<OrganizationDetail | null> => {
+      try {
+        const res = await api.getOrganization(id);
+        if (res.success && res.data) {
+          return res.data;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
 
   const setSearch = useCallback((query: string) => {
     setSearchState(query);
@@ -225,6 +250,8 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
         typeFilter,
         statusFilter,
         fetchItems,
+        getItemById,
+        getDetailById,
         createItem,
         updateItem,
         updateStatus,

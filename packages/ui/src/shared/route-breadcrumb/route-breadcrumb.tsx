@@ -1,98 +1,129 @@
 "use client";
 
-import {
-	Breadcrumb,
-	BreadcrumbEllipsis,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@workspace/ui/components/breadcrumb";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Interface for breadcrumb items
-interface RouteBreadcrumb {
-	label: string;
-	href: string;
-	isCurrent: boolean;
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@workspace/ui/components/breadcrumb";
+import { useBreadcrumb } from "@workspace/ui/context/breadcrumb-context";
+
+interface RouteBreadcrumbItem {
+  label: string;
+  href: string;
+  isCurrent: boolean;
+}
+
+const SEGMENT_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  organizations: "Organizations",
+  features: "Features",
+  brands: "Brands",
+  categories: "Categories",
+  users: "Users",
+  "dealer-types": "Dealer Types",
+  settings: "Settings",
+  profile: "Profile",
+};
+
+function formatSegment(segment: string): string {
+  return segment
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function isUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    str,
+  );
 }
 
 export const RouteBreadcrumb: React.FC = () => {
-	const pathname = usePathname();
-	// Split the pathname into segments and filter out empty strings
-	const pathSegments = pathname
-		.split("/")
-		.filter((segment: string) => segment);
+  const pathname = usePathname();
+  const { pathMap } = useBreadcrumb();
+  const pathSegments = pathname.split("/").filter((segment: string) => segment);
 
-	// Create breadcrumb items
-	const breadcrumbItems: RouteBreadcrumb[] = [
-		// Always include Home
-		{
-			label: "Home",
-			href: "/",
-			isCurrent: pathname === "/",
-		},
-		// Map path segments
-		...pathSegments.map((segment: string, index: number) => {
-			const href = `/${pathSegments.slice(0, index + 1).join("/")}`;
-			const isCurrent = index === pathSegments.length - 1;
-			const label = segment.charAt(0).toUpperCase() + segment.slice(1);
-			return { label, href, isCurrent };
-		}),
-	];
+  const breadcrumbItems: RouteBreadcrumbItem[] = pathSegments.map(
+    (segment: string, index: number) => {
+      const href = `/${pathSegments.slice(0, index + 1).join("/")}`;
+      const isCurrent = index === pathSegments.length - 1;
 
-	// Define collapse threshold
-	const maxItems = 3;
-	const shouldCollapse = breadcrumbItems.length > maxItems;
+      // Check breadcrumb path map first (set by pages when data loads)
+      if (pathMap[href]) {
+        return { label: pathMap[href], href, isCurrent };
+      }
 
-	// Collapsed items: show Home, first segment, and last segment
-	const displayedItems: RouteBreadcrumb[] = shouldCollapse
-		? [
-				breadcrumbItems[0], // Home
-				breadcrumbItems.length > 1 ? breadcrumbItems[1] : undefined,
-				breadcrumbItems.length > 1
-					? breadcrumbItems[breadcrumbItems.length - 1]
-					: undefined,
-			].filter((item): item is RouteBreadcrumb => item !== undefined)
-		: breadcrumbItems;
+      // Check segment overrides
+      if (SEGMENT_LABELS[segment]) {
+        return { label: SEGMENT_LABELS[segment], href, isCurrent };
+      }
 
-	return (
-		<Breadcrumb>
-			<BreadcrumbList>
-				{displayedItems.map((item, index) => (
-					<React.Fragment key={item.href}>
-						<BreadcrumbItem>
-							{item.isCurrent ? (
-								<BreadcrumbPage className="bg-primary font-bold text-primary-foreground px-4 py-1 rounded-md">
-									{item.label}
-								</BreadcrumbPage>
-							) : (
-								<BreadcrumbLink
-									className="hover:bg-muted px-4 py-1 rounded-md"
-									asChild
-								>
-									<Link href={item.href}>{item.label}</Link>
-								</BreadcrumbLink>
-							)}
-						</BreadcrumbItem>
-						{index < displayedItems.length - 1 && (
-							<>
-								{shouldCollapse &&
-									index === 1 &&
-									displayedItems.length > 2 && (
-										<BreadcrumbItem>
-											<BreadcrumbEllipsis />
-										</BreadcrumbItem>
-									)}
-								<BreadcrumbSeparator />
-							</>
-						)}
-					</React.Fragment>
-				))}
-			</BreadcrumbList>
-		</Breadcrumb>
-	);
+      // If UUID, show parent segment label
+      if (isUUID(segment)) {
+        const parentSegment = pathSegments[index - 1];
+        const parentLabel = parentSegment
+          ? SEGMENT_LABELS[parentSegment] || formatSegment(parentSegment)
+          : "Details";
+        return { label: parentLabel, href, isCurrent };
+      }
+
+      return { label: formatSegment(segment), href, isCurrent };
+    },
+  );
+
+  const maxItems = 4;
+  const shouldCollapse = breadcrumbItems.length > maxItems;
+
+  const displayedItems = shouldCollapse
+    ? [
+        breadcrumbItems[0],
+        breadcrumbItems[1],
+        ...(breadcrumbItems.length > 2
+          ? [breadcrumbItems[breadcrumbItems.length - 1]]
+          : []),
+      ].filter((item): item is RouteBreadcrumbItem => item !== undefined)
+    : breadcrumbItems;
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        {displayedItems.map((item, index) => (
+          <React.Fragment key={item.href}>
+            <BreadcrumbItem>
+              {item.isCurrent ? (
+                <BreadcrumbPage className="bg-primary font-bold text-primary-foreground px-4 py-1 rounded-md">
+                  {item.label}
+                </BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink
+                  className="hover:bg-muted px-4 py-1 rounded-md"
+                  asChild
+                >
+                  <Link href={item.href}>{item.label}</Link>
+                </BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
+            {index < displayedItems.length - 1 && (
+              <>
+                {shouldCollapse && index === 1 && displayedItems.length > 2 && (
+                  <BreadcrumbItem>
+                    <BreadcrumbEllipsis />
+                  </BreadcrumbItem>
+                )}
+                <BreadcrumbSeparator />
+              </>
+            )}
+          </React.Fragment>
+        ))}
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
 };

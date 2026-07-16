@@ -4,6 +4,9 @@ import { Pool } from 'pg';
 import { seedUsers } from './user/index';
 import { seedOrganizations } from './organization/index';
 import { seedFeatures } from './features/index';
+import { seedBrands } from './brands/index';
+import { seedCategories } from './categories/index';
+import { seedDealerTypes } from './dealer-types/index';
 import { seedLogger } from './utils/logger';
 
 const pool = new Pool({
@@ -47,8 +50,20 @@ async function main() {
   // Step 2: Seed remaining root organizations with admin as creator
   const organizations = await seedOrganizations(prisma, admin.userAccessId);
 
+  // Collect all organization IDs (excluding system)
+  const orgIds = organizations.map((org) => org.id);
+
   // Step 3: Seed global features
   await seedFeatures(prisma);
+
+  // Step 4: Seed brands for each organization
+  await seedBrands(prisma, orgIds);
+
+  // Step 5: Seed categories for each organization
+  await seedCategories(prisma, orgIds);
+
+  // Step 6: Seed dealer types for each organization
+  await seedDealerTypes(prisma, orgIds);
 
   console.log(`${'═'.repeat(60)}`);
   console.log('  📊 SEED COMPLETE');
