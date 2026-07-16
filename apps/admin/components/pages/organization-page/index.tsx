@@ -12,6 +12,7 @@ import {
   PowerOff,
   Trash2,
   Building2,
+  UserPlus,
 } from "lucide-react";
 
 import { Badge } from "@workspace/ui/components/badge";
@@ -41,6 +42,7 @@ import { PageSkeleton } from "./_components/page-skeleton";
 import { PageEmpty } from "./_components/page-empty";
 import { OrganizationFormDialog } from "./_components/organization-form-dialog";
 import { DeleteDialog } from "./_components/delete-dialog";
+import { InviteSuperAdminDialog } from "./_components/invite-super-admin-dialog";
 
 export function OrganizationsPage() {
   const router = useRouter();
@@ -68,6 +70,8 @@ export function OrganizationsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOrg, setDeleteOrg] = useState<Organization | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [inviteOrg, setInviteOrg] = useState<Organization | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(search);
 
   const handleSearchChange = useCallback(
@@ -90,6 +94,15 @@ export function OrganizationsPage() {
     setEditOrg(org);
     setEditOpen(true);
   }, []);
+
+  const handleInvite = useCallback(
+    (org: Organization, e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setInviteOrg(org);
+      setInviteOpen(true);
+    },
+    [],
+  );
 
   const handleDelete = useCallback(
     (org: Organization, e?: React.MouseEvent) => {
@@ -202,6 +215,10 @@ export function OrganizationsPage() {
             <DropdownMenuItem onClick={(e) => handleEdit(org, e)}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => handleInvite(org, e)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Admin
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {org.isActive ? (
@@ -328,6 +345,12 @@ export function OrganizationsPage() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         organization={deleteOrg}
+      />
+
+      <InviteSuperAdminDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        organization={inviteOrg}
       />
     </div>
   );

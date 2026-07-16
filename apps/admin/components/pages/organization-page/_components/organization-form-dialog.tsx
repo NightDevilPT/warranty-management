@@ -189,11 +189,12 @@ export function OrganizationFormDialog({
         logo: logo || undefined,
       });
     } else {
+      // When creating a branch under a parent, type is always BRANCH
       success = await createItem({
         name,
         companyName,
         slug,
-        type,
+        type: parentOrgId ? "BRANCH" : type,
         logo: logo || undefined,
       });
     }
@@ -205,6 +206,7 @@ export function OrganizationFormDialog({
 
   const getTitle = (): string => {
     if (isEdit) return "Edit Organization";
+    if (parentOrgId) return "Create Branch";
     if (isBranchOnly) return "Create Branch";
     if (isRootOnly) return "Create Organization";
     return "Create Organization";
@@ -212,10 +214,11 @@ export function OrganizationFormDialog({
 
   const getDescription = (): string => {
     if (isEdit) return "Update the organization details below.";
+    if (parentOrgId) {
+      return "Fill in the details to create a new branch under this organization.";
+    }
     if (isBranchOnly) {
-      return parentOrgId
-        ? "Fill in the details to create a new branch under this organization."
-        : "Fill in the details to create a new branch organization.";
+      return "Fill in the details to create a new branch organization.";
     }
     if (isRootOnly) {
       return "Fill in the details to create a new root organization.";
@@ -225,7 +228,7 @@ export function OrganizationFormDialog({
 
   const getTypeLabel = (): string => {
     if (isRootOnly) return "Root Organization";
-    if (isBranchOnly) return "Branch Organization";
+    if (isBranchOnly || parentOrgId) return "Branch Organization";
     return "Organization Type";
   };
 
@@ -243,7 +246,7 @@ export function OrganizationFormDialog({
             <Input
               id="name"
               placeholder={
-                isBranchOnly
+                isBranchOnly || parentOrgId
                   ? "e.g., TechServe Mumbai"
                   : "e.g., TechServe India"
               }
@@ -260,7 +263,7 @@ export function OrganizationFormDialog({
             <Input
               id="companyName"
               placeholder={
-                isBranchOnly
+                isBranchOnly || parentOrgId
                   ? "e.g., TechServe Mumbai Private Limited"
                   : "e.g., TechServe India Private Limited"
               }
@@ -277,7 +280,9 @@ export function OrganizationFormDialog({
             <Input
               id="slug"
               placeholder={
-                isBranchOnly ? "e.g., techserve-mumbai" : "e.g., techserve"
+                isBranchOnly || parentOrgId
+                  ? "e.g., techserve-mumbai"
+                  : "e.g., techserve"
               }
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
@@ -292,7 +297,7 @@ export function OrganizationFormDialog({
             )}
           </div>
 
-          {!isEdit && (
+          {!isEdit && !parentOrgId && (
             <div className="space-y-2">
               <Label htmlFor="type">{getTypeLabel()}</Label>
               {showTypeSelector ? (
@@ -326,7 +331,7 @@ export function OrganizationFormDialog({
                     disabled
                     className="bg-muted"
                   />
-                  {isBranchOnly && parentOrgId && (
+                  {isBranchOnly && (
                     <p className="text-xs text-muted-foreground">
                       This organization will be created as a branch.
                     </p>
@@ -336,6 +341,21 @@ export function OrganizationFormDialog({
               {errors.type && (
                 <p className="text-sm text-destructive">{errors.type}</p>
               )}
+            </div>
+          )}
+
+          {!isEdit && parentOrgId && (
+            <div className="space-y-2">
+              <Label>Organization Type</Label>
+              <Input
+                value="Branch Organization"
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">
+                This organization will be created as a branch under the current
+                organization.
+              </p>
             </div>
           )}
 

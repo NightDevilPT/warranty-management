@@ -1,12 +1,11 @@
-import React from "react";
+import { OrganizationDetailPage } from "@/components/pages/organization-detail-page";
 
-const page = async ({
+export default async function Page({
   params,
 }: {
   params: Promise<{ organizationId: string }>;
-}) => {
+}) {
   const { organizationId } = await params;
-  return <div>page{organizationId}</div>;
-};
 
-export default page;
+  return <OrganizationDetailPage organizationId={organizationId} />;
+}
