@@ -23,6 +23,7 @@ import type {
 } from "@/lib/organization/types";
 
 interface OrganizationsContextType {
+  // List state
   items: Organization[];
   fetchLoading: boolean;
   actionLoading: boolean;
@@ -33,15 +34,29 @@ interface OrganizationsContextType {
   search: string;
   typeFilter: string;
   statusFilter: string;
+
+  // Detail state
+  selectedOrganization: OrganizationDetail | null;
+  detailLoading: boolean;
+
+  // List actions
   fetchItems: () => void;
   getItemById: (id: string) => Organization | undefined;
+
+  // Detail actions
   getDetailById: (id: string) => Promise<OrganizationDetail | null>;
+  fetchDetailById: (id: string) => Promise<void>;
+  clearSelectedOrganization: () => void;
+
+  // CRUD actions
   createItem: (data: CreateOrganizationInput) => Promise<boolean>;
   updateItem: (id: string, data: UpdateOrganizationInput) => Promise<boolean>;
   updateStatus: (
     id: string,
     data: UpdateOrganizationStatusInput,
   ) => Promise<boolean>;
+
+  // Filter actions
   setSearch: (query: string) => void;
   setPage: (page: number) => void;
   setLimit: (limit: number) => void;
@@ -54,6 +69,7 @@ const OrganizationsContext = createContext<OrganizationsContextType | null>(
 );
 
 export function OrganizationsProvider({ children }: { children: ReactNode }) {
+  // ============ List State ============
   const [items, setItems] = useState<Organization[]>([]);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -65,6 +81,12 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
   const [typeFilter, setTypeFilterState] = useState("");
   const [statusFilter, setStatusFilterState] = useState("");
 
+  // ============ Detail State ============
+  const [selectedOrganization, setSelectedOrganization] =
+    useState<OrganizationDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // ============ Debounced List Fetch ============
   const debouncedFetchRef = useRef(
     debounce(
       async (params: {
@@ -109,6 +131,7 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
     ),
   );
 
+  // ============ List Actions ============
   const fetchItems = useCallback(() => {
     debouncedFetchRef.current({
       page,
@@ -130,6 +153,7 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
     [items],
   );
 
+  // ============ Detail Actions ============
   const getDetailById = useCallback(
     async (id: string): Promise<OrganizationDetail | null> => {
       try {
@@ -145,6 +169,27 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const fetchDetailById = useCallback(async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await api.getOrganization(id);
+      if (res.success && res.data) {
+        setSelectedOrganization(res.data);
+      } else {
+        toast.error(res.message || "Failed to load organization details");
+      }
+    } catch {
+      toast.error("Failed to load organization details");
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const clearSelectedOrganization = useCallback(() => {
+    setSelectedOrganization(null);
+  }, []);
+
+  // ============ Filter Actions ============
   const setSearch = useCallback((query: string) => {
     setSearchState(query);
     setPageState(1);
@@ -169,6 +214,7 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
     setPageState(1);
   }, []);
 
+  // ============ CRUD Actions ============
   const createItem = async (
     data: CreateOrganizationInput,
   ): Promise<boolean> => {
@@ -239,6 +285,7 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
   return (
     <OrganizationsContext.Provider
       value={{
+        // List state
         items,
         fetchLoading,
         actionLoading,
@@ -249,12 +296,26 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
         search,
         typeFilter,
         statusFilter,
+
+        // Detail state
+        selectedOrganization,
+        detailLoading,
+
+        // List actions
         fetchItems,
         getItemById,
+
+        // Detail actions
         getDetailById,
+        fetchDetailById,
+        clearSelectedOrganization,
+
+        // CRUD actions
         createItem,
         updateItem,
         updateStatus,
+
+        // Filter actions
         setSearch,
         setPage,
         setLimit,

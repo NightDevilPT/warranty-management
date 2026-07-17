@@ -1,14 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+
+import { Button } from "@workspace/ui/components/button";
+
+import { useBreadcrumb } from "@workspace/ui/context/breadcrumb-context";
+
+import { useOrganizations } from "@/components/context/organization-context";
+
 import { PageSkeleton } from "./_components/page-skeleton";
-import type { OrganizationDetail } from "@/lib/organization/types";
+import { OrganizationHeader } from "./_components/organization-header";
 import { OrganizationInfo } from "./_components/organization-info";
 import { OrganizationStats } from "./_components/organization-stats";
-import { OrganizationHeader } from "./_components/organization-header";
-import { useBreadcrumb } from "@workspace/ui/context/breadcrumb-context";
-import { useOrganizations } from "@/components/context/organization-context";
 
 interface OrganizationDetailPageProps {
   organizationId: string;
@@ -18,41 +23,45 @@ export function OrganizationDetailPage({
   organizationId,
 }: OrganizationDetailPageProps) {
   const router = useRouter();
-  const { getDetailById } = useOrganizations();
+  const {
+    selectedOrganization,
+    detailLoading,
+    fetchDetailById,
+    clearSelectedOrganization,
+  } = useOrganizations();
   const { setPathName, removePathName } = useBreadcrumb();
-  const [organization, setOrganization] = useState<OrganizationDetail | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrganization = async () => {
-      setLoading(true);
-      const data = await getDetailById(organizationId);
-      if (data) {
-        setOrganization(data);
-        // Set breadcrumb name when data loads
-        setPathName(`/dashboard/organizations/${organizationId}`, data.name);
-      }
-      setLoading(false);
-    };
-
-    fetchOrganization();
+    fetchDetailById(organizationId);
 
     return () => {
+      clearSelectedOrganization();
       removePathName(`/dashboard/organizations/${organizationId}`);
     };
-  }, [organizationId, getDetailById, setPathName, removePathName]);
+  }, [
+    organizationId,
+    fetchDetailById,
+    clearSelectedOrganization,
+    removePathName,
+  ]);
 
-  if (loading || !organization) {
+  useEffect(() => {
+    if (selectedOrganization) {
+      setPathName(
+        `/dashboard/organizations/${organizationId}`,
+        selectedOrganization.name,
+      );
+    }
+  }, [selectedOrganization, organizationId, setPathName]);
+
+  if (detailLoading || !selectedOrganization) {
     return <PageSkeleton />;
   }
 
   return (
     <div className="space-y-6 p-6">
-      <OrganizationHeader organization={organization} />
-      <OrganizationInfo organization={organization} />
-      <OrganizationStats organization={organization} />
+      <OrganizationHeader organization={selectedOrganization} />
+      <OrganizationStats organization={selectedOrganization} />
     </div>
   );
 }
