@@ -61,8 +61,7 @@ export class GetCategoryHandler implements IQueryHandler<GetCategoryQuery> {
         currentParentId = parent.parentId;
       }
 
-      // Count products (FormData linked to this category - if applicable)
-      const productCount = 0; // Placeholder - products linked via FormSchema, not directly
+      const productCount = 0; // Placeholder
 
       return {
         ...category,

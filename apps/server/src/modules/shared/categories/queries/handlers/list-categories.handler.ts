@@ -22,7 +22,12 @@ export class ListCategoriesHandler
     const skip = (page - 1) * limit;
 
     try {
-      const where: any = { orgId };
+      const where: any = {};
+
+      // Only filter by orgId if provided (admin can skip this)
+      if (orgId) {
+        where.orgId = orgId;
+      }
 
       // Status filter
       if (status === 'active') {

@@ -1,7 +1,3 @@
-You're absolutely right! I apologize. Here's the **complete** Rule Book v6.0 with ALL existing rules preserved and the new shared module rules added:
-
----
-
 # 🚀 Warranty Management System - Backend Developer Rule Book v6.0
 
 ## Complete & Final Version - AI-Ready
@@ -11,10 +7,10 @@ You're absolutely right! I apologize. Here's the **complete** Rule Book v6.0 wit
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
-2. [Folder Structure](#2-folder-structure)
+2. [Folder Structure & Import Paths](#2-folder-structure--import-paths)
 3. [Portal-Based Module Organization](#3-portal-based-module-organization)
-4. [Shared Module Architecture](#4-shared-module-architecture) ← **NEW**
-5. [Portal Implementation Decision Flow](#5-portal-implementation-decision-flow) ← **NEW**
+4. [Shared Module Architecture](#4-shared-module-architecture)
+5. [Portal Implementation Decision Flow](#5-portal-implementation-decision-flow)
 6. [Global Services - Complete API](#6-global-services---complete-api)
 7. [Guards & Decorators](#7-guards--decorators)
 8. [Interceptors](#8-interceptors)
@@ -52,7 +48,7 @@ You're absolutely right! I apologize. Here's the **complete** Rule Book v6.0 wit
 
 ---
 
-## 2. Folder Structure
+## 2. Folder Structure & Import Paths
 
 ```text
 src/
@@ -115,6 +111,22 @@ src/
     ├── consumer/      # :orgHash/consumer/* (controllers only, imports shared)
     └── files/         # files/*
 ```
+
+### Import Path Standards
+
+| Import Type                 | Path Pattern                        | Example                                        |
+| --------------------------- | ----------------------------------- | ---------------------------------------------- |
+| **Global Services**         | `services/<service-name>/<file>`    | `services/prisma/prisma.service`               |
+| **Middleware/Guards**       | `middleware/guards/<file>`          | `middleware/guards/jwt-auth.guard`             |
+| **Middleware/Interceptors** | `middleware/interceptors/<file>`    | `middleware/interceptors/response.interceptor` |
+| **Decorators**              | `decorators/<file>`                 | `decorators/roles.decorator`                   |
+| **Shared Modules**          | `modules/shared/<feature>/<file>`   | `modules/shared/brands/brands.service`         |
+| **Portal Modules**          | `modules/<portal>/<feature>/<file>` | `modules/admin/brands/brands.controller`       |
+| **Prisma Generated**        | `generated/prisma/<path>`           | `generated/prisma/enums`                       |
+| **Config**                  | `config/<file>`                     | `config/swagger.config`                        |
+| **Interface**               | `interface/<file>`                  | `interface/api.interface`                      |
+
+> ⚠️ **CRITICAL**: All imports use paths relative to `src/`. Do NOT include `src/` prefix.
 
 ---
 
@@ -183,7 +195,7 @@ modules/shared/<feature-name>/
 
 ---
 
-## 4. Shared Module Architecture ← **NEW**
+## 4. Shared Module Architecture
 
 ### 4.1 When to Use Shared Modules
 
@@ -258,19 +270,39 @@ export class <Feature>Module {}
 import { Module } from '@nestjs/common';
 import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
 import { Admin<Feature>Controller } from './<feature>.controller';
-import { RolesGuard } from 'middleware/guards/roles.guard';  // If needed
 
 @Module({
   imports: [<Feature>Module],
   controllers: [Admin<Feature>Controller],
-  providers: [RolesGuard],  // If using @Roles() decorator
 })
 export class Admin<Feature>Module {}
+
+// modules/company/<feature>/<feature>.module.ts
+import { Module } from '@nestjs/common';
+import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
+import { Company<Feature>Controller } from './<feature>.controller';
+import { RolesGuard } from 'middleware/guards/roles.guard';
+
+@Module({
+  imports: [<Feature>Module],
+  controllers: [Company<Feature>Controller],
+  providers: [RolesGuard],
+})
+export class Company<Feature>Module {}
+
+// modules/consumer/<feature>/<feature>.module.ts
+import { Module } from '@nestjs/common';
+import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
+import { Consumer<Feature>Controller } from './<feature>.controller';
+
+@Module({
+  imports: [<Feature>Module],
+  controllers: [Consumer<Feature>Controller],
+})
+export class Consumer<Feature>Module {}
 ```
 
 ### 4.6 orgId Handling in Shared Services
-
-The shared service's `findAll()` method should accept `orgId` as **optional**:
 
 ```typescript
 // Shared service - orgId is optional for admin, required for company/consumer
@@ -309,7 +341,7 @@ if (orgId) {
 
 ---
 
-## 5. Portal Implementation Decision Flow ← **NEW**
+## 5. Portal Implementation Decision Flow
 
 ### 5.1 Decision Tree for AI/Developers
 
@@ -1543,7 +1575,7 @@ import { List<Features>Handler } from './handlers/list-<features>.handler';
 export const <Feature>QueryHandlers = [Get<Feature>Handler, List<Features>Handler];
 ```
 
-### 11.16 Service Facade (with optional orgId for findAll)
+### 11.16 Shared Service Facade (with optional orgId for findAll)
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -1754,7 +1786,46 @@ export class Company<Feature>Controller {
 }
 ```
 
-### 11.19 Module (Portal using Shared)
+### 11.19 Consumer Controller Template
+
+```typescript
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
+import { TenantGuard } from 'middleware/guards/tenant.guard';
+import { <Feature>Service } from 'modules/shared/<feature>/<feature>.service';
+import { <Feature>DetailDto } from 'modules/shared/<feature>/dto/<feature>-response.dto';
+
+@ApiTags('Consumer - <Features>')
+@Controller(':orgHash/consumer/<features>')
+@UseGuards(JwtAuthGuard, TenantGuard)
+export class Consumer<Feature>Controller {
+  constructor(private readonly service: <Feature>Service) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List active <features>' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'List retrieved' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 403, description: 'Organization context required' })
+  async findAll(@Req() req: any, @Query('page') page = 1, @Query('limit') limit = 10, @Query('search') search?: string) {
+    return this.service.findAll(req.user.orgId, page, limit, search, 'active');
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get <feature> by ID' })
+  @ApiResponse({ status: 200, description: 'Retrieved', type: <Feature>DetailDto })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  async findById(@Param('id') id: string, @Req() req: any) {
+    return this.service.findById(id, req.user.orgId);
+  }
+}
+```
+
+### 11.20 Module Templates
 
 ```typescript
 // Admin Module
@@ -1780,6 +1851,17 @@ import { RolesGuard } from 'middleware/guards/roles.guard';
   providers: [RolesGuard],
 })
 export class Company<Feature>Module {}
+
+// Consumer Module
+import { Module } from '@nestjs/common';
+import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
+import { Consumer<Feature>Controller } from './<feature>.controller';
+
+@Module({
+  imports: [<Feature>Module],
+  controllers: [Consumer<Feature>Controller],
+})
+export class Consumer<Feature>Module {}
 ```
 
 ---
@@ -1876,6 +1958,7 @@ const data = await this.prisma.organization.findMany({
 | `process.env.*` in handlers                | Use `ConfigService` (except in PrismaService)                                                              |
 | Missing `@ApiResponse` for errors          | Document ALL possible error responses                                                                      |
 | Duplicating shared logic per portal        | Create shared module at `modules/shared/` and import in each portal                                        |
+| Using `src/` prefix in imports             | Use paths without `src/` prefix                                                                            |
 
 ---
 

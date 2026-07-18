@@ -36,9 +36,9 @@ export class CategoriesService {
   }
 
   async findAll(
-    orgId: string,
-    page: number,
-    limit: number,
+    orgId?: string,
+    page: number = 1,
+    limit: number = 10,
     search?: string,
     status?: string,
     parentId?: string,

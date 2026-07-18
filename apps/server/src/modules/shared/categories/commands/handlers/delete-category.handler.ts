@@ -1,8 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { DeleteCategoryCommand } from '../impl/delete-category.command';
 import { LoggerService } from 'services/logger/logger.service';
 import { PrismaService } from 'services/prisma/prisma.service';
 import { ErrorService } from 'services/errors/error.service';
+import { DeleteCategoryCommand } from '../impl/delete-category.command';
 
 @CommandHandler(DeleteCategoryCommand)
 export class DeleteCategoryHandler

@@ -109,7 +109,6 @@ export class UpdateCategoryHandler
     }
   }
 
-  // Helper to prevent circular reference
   private async isDescendant(
     categoryId: string,
     targetParentId: string,
@@ -119,7 +118,7 @@ export class UpdateCategoryHandler
 
     while (currentId) {
       if (currentId === categoryId) return true;
-      if (visited.has(currentId)) return false; // Safety: prevent infinite loop
+      if (visited.has(currentId)) return false;
       visited.add(currentId);
 
       const parent = await this.prisma.category.findUnique({
