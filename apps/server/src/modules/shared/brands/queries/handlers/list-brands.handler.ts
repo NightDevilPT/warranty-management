@@ -20,7 +20,12 @@ export class ListBrandsHandler implements IQueryHandler<ListBrandsQuery> {
     const skip = (page - 1) * limit;
 
     try {
-      const where: any = { orgId };
+      const where: any = {};
+
+      // If orgId is provided, filter by it; otherwise return all brands
+      if (orgId) {
+        where.orgId = orgId;
+      }
 
       // Status filter
       if (status === 'active') {

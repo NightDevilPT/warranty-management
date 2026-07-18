@@ -19,18 +19,21 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
 import { TenantGuard } from 'middleware/guards/tenant.guard';
-import { BrandsService } from './brands.service';
-import { CreateBrandDto } from './dto/create-brand.dto';
-import { UpdateBrandDto } from './dto/update-brand.dto';
-import { BrandResponseDto, BrandDetailDto } from './dto/brand-response.dto';
+import { BrandsService } from 'src/modules/shared/brands/brands.service';
+import {
+  BrandDetailDto,
+  BrandResponseDto,
+} from 'src/modules/shared/brands/dto/brand-response.dto';
+import { CreateBrandDto } from 'src/modules/shared/brands/dto/create-brand.dto';
+import { UpdateBrandDto } from 'src/modules/shared/brands/dto/update-brand.dto';
 
 @ApiTags('Admin - Brands')
-@Controller('admin/organizations/:orgId/brands')
+@Controller('admin/brands')
 @UseGuards(JwtAuthGuard, TenantGuard)
-export class BrandsController {
+export class AdminBrandsController {
   constructor(private readonly brandsService: BrandsService) {}
 
-  @Post()
+  @Post('organizations/:orgId')
   @ApiOperation({ summary: 'Create a brand for an organization' })
   @ApiBody({ type: CreateBrandDto })
   @ApiResponse({
@@ -54,7 +57,14 @@ export class BrandsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List brands for an organization' })
+  @ApiOperation({ summary: 'List brands (all or filtered by orgId)' })
+  @ApiQuery({
+    name: 'orgId',
+    required: false,
+    type: String,
+    description:
+      'Optional - filter by organization ID. If not provided, returns all brands.',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -65,9 +75,8 @@ export class BrandsController {
   })
   @ApiResponse({ status: 200, description: 'Brands list' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
-  @ApiResponse({ status: 404, description: 'Organization not found' })
   async findAll(
-    @Param('orgId') orgId: string,
+    @Query('orgId') orgId?: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
@@ -76,7 +85,7 @@ export class BrandsController {
     return this.brandsService.findAll(orgId, page, limit, search, status);
   }
 
-  @Get(':id')
+  @Get('organizations/:orgId/:id')
   @ApiOperation({ summary: 'Get brand details with product count' })
   @ApiResponse({
     status: 200,
@@ -92,7 +101,7 @@ export class BrandsController {
     return this.brandsService.findById(id, orgId);
   }
 
-  @Patch(':id')
+  @Patch('organizations/:orgId/:id')
   @ApiOperation({ summary: 'Update brand details' })
   @ApiBody({ type: UpdateBrandDto })
   @ApiResponse({
@@ -115,7 +124,7 @@ export class BrandsController {
     return this.brandsService.update(id, dto, orgId, req.user.id);
   }
 
-  @Delete(':id')
+  @Delete('organizations/:orgId/:id')
   @ApiOperation({ summary: 'Soft delete a brand' })
   @ApiResponse({ status: 200, description: 'Brand deleted' })
   @ApiResponse({ status: 401, description: 'Authentication required' })

@@ -27,7 +27,7 @@ export class GetBrandHandler implements IQueryHandler<GetBrandQuery> {
         throw this.errorService.notFound('Brand not found');
       }
 
-      // Count products using this brand (via FormData.brandFormDataId)
+      // Count products using this brand
       const productCount = await this.prisma.formData.count({
         where: { brandFormDataId: brandId, deletedAt: null },
       });

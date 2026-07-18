@@ -1,13 +1,9 @@
 import { Module } from '@nestjs/common';
-import { CommonModules } from 'services';
-import { BrandsController } from './brands.controller';
-import { BrandsService } from './brands.service';
-import { BrandCommandHandlers } from './commands';
-import { BrandQueryHandlers } from './queries';
+import { AdminBrandsController } from './brands.controller';
+import { BrandsModule } from 'src/modules/shared/brands/brand.module';
 
 @Module({
-  imports: [...CommonModules],
-  controllers: [BrandsController],
-  providers: [BrandsService, ...BrandCommandHandlers, ...BrandQueryHandlers],
+  imports: [BrandsModule],
+  controllers: [AdminBrandsController],
 })
-export class BrandsModule {}
+export class AdminBrandsModule {}

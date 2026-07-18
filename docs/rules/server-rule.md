@@ -1,4 +1,8 @@
-# 🚀 Warranty Management System - Backend Developer Rule Book v5.0
+You're absolutely right! I apologize. Here's the **complete** Rule Book v6.0 with ALL existing rules preserved and the new shared module rules added:
+
+---
+
+# 🚀 Warranty Management System - Backend Developer Rule Book v6.0
 
 ## Complete & Final Version - AI-Ready
 
@@ -9,19 +13,21 @@
 1. [Project Overview](#1-project-overview)
 2. [Folder Structure](#2-folder-structure)
 3. [Portal-Based Module Organization](#3-portal-based-module-organization)
-4. [Global Services - Complete API](#4-global-services---complete-api)
-5. [Guards & Decorators](#5-guards--decorators)
-6. [Interceptors](#6-interceptors)
-7. [Complete Request Lifecycle](#7-complete-request-lifecycle)
-8. [Response Patterns](#8-response-patterns)
-9. [Complete File Templates](#9-complete-file-templates)
-10. [Organization-Scoped Operations](#10-organization-scoped-operations)
-11. [Soft Delete Operations](#11-soft-delete-operations)
-12. [Multi-Tenant Data Isolation](#12-multi-tenant-data-isolation)
-13. [Anti-Patterns](#13-anti-patterns)
-14. [Quick Checklist](#14-quick-checklist)
-15. [Error Response Standards](#15-error-response-standards)
-16. [Current Implementation Reference](#16-current-implementation-reference)
+4. [Shared Module Architecture](#4-shared-module-architecture) ← **NEW**
+5. [Portal Implementation Decision Flow](#5-portal-implementation-decision-flow) ← **NEW**
+6. [Global Services - Complete API](#6-global-services---complete-api)
+7. [Guards & Decorators](#7-guards--decorators)
+8. [Interceptors](#8-interceptors)
+9. [Complete Request Lifecycle](#9-complete-request-lifecycle)
+10. [Response Patterns](#10-response-patterns)
+11. [Complete File Templates](#11-complete-file-templates)
+12. [Organization-Scoped Operations](#12-organization-scoped-operations)
+13. [Soft Delete Operations](#13-soft-delete-operations)
+14. [Multi-Tenant Data Isolation](#14-multi-tenant-data-isolation)
+15. [Anti-Patterns](#15-anti-patterns)
+16. [Quick Checklist](#16-quick-checklist)
+17. [Error Response Standards](#17-error-response-standards)
+18. [Current Implementation Reference](#18-current-implementation-reference)
 
 ---
 
@@ -42,6 +48,7 @@
 - `orgHash` is used for URL routing (not `slug`)
 - Controller paths do NOT include `api/` prefix (global prefix in main.ts)
 - Tokens returned in response body, ResponseInterceptor extracts to cookies
+- **Shared modules** for business logic reused across portals
 
 ---
 
@@ -98,10 +105,14 @@ src/
 │   └── api.interface.ts
 │
 └── modules/
+    ├── shared/        # ← NEW: Shared business logic (NO controllers)
+    │   ├── brands/
+    │   ├── categories/
+    │   └── dealer-types/
     ├── auth/          # auth/*
-    ├── admin/         # admin/*
-    ├── company/       # :orgHash/*
-    ├── consumer/      # :orgHash/consumer/*
+    ├── admin/         # admin/* (controllers only, imports shared)
+    ├── company/       # :orgHash/* (controllers only, imports shared)
+    ├── consumer/      # :orgHash/consumer/* (controllers only, imports shared)
     └── files/         # files/*
 ```
 
@@ -111,9 +122,8 @@ src/
 
 ### 3.1 Feature Module Internal Structure
 
-Every feature follows this EXACT structure:
-
 ```text
+# For PORTAL-SPECIFIC features (only used by one portal):
 modules/<portal>/<feature-name>/
 ├── commands/
 │   ├── handlers/
@@ -140,35 +150,269 @@ modules/<portal>/<feature-name>/
 ├── <feature>.service.ts
 ├── <feature>.controller.ts
 └── <feature>.module.ts
+
+# For SHARED features (used by multiple portals):
+modules/shared/<feature-name>/
+├── commands/           # Same structure as above
+├── queries/            # Same structure as above
+├── dto/                # Same structure as above
+├── <feature>.service.ts
+└── <feature>.module.ts  # NO controller, exports service
 ```
 
 ### 3.2 Portal Definitions
 
-| Portal       | API Prefix          | Guard Requirements         | Example                            |
-| ------------ | ------------------- | -------------------------- | ---------------------------------- |
-| **auth**     | `auth`              | Mixed                      | `POST auth/:portalType/send-otp`   |
-| **admin**    | `admin`             | JwtAuthGuard + TenantGuard | `GET admin/features`               |
-| **company**  | `:orgHash`          | JwtAuthGuard + TenantGuard | `POST a3f2b8c1/brands`             |
-| **consumer** | `:orgHash/consumer` | JwtAuthGuard + TenantGuard | `GET a3f2b8c1/consumer/warranties` |
-| **files**    | `files`             | JwtAuthGuard only          | `POST files/upload`                |
+| Portal       | API Prefix          | Guard Requirements         | orgId Source                                          | Example                            |
+| ------------ | ------------------- | -------------------------- | ----------------------------------------------------- | ---------------------------------- |
+| **auth**     | `auth`              | Mixed                      | N/A                                                   | `POST auth/:portalType/send-otp`   |
+| **admin**    | `admin`             | JwtAuthGuard + TenantGuard | `@Param('orgId')` for CUD, `@Query('orgId')` for list | `GET admin/brands?orgId=xxx`       |
+| **company**  | `:orgHash`          | JwtAuthGuard + TenantGuard | `req.user.orgId` (set by TenantGuard)                 | `POST a3f2b8c1/brands`             |
+| **consumer** | `:orgHash/consumer` | JwtAuthGuard + TenantGuard | `req.user.orgId` (set by TenantGuard)                 | `GET a3f2b8c1/consumer/warranties` |
+| **files**    | `files`             | JwtAuthGuard only          | Optional                                              | `POST files/upload`                |
 
 ### 3.3 Feature Name Mapping
 
-| Portal       | Features                                                                     |
-| ------------ | ---------------------------------------------------------------------------- |
-| **auth**     | `otp`, `profile`                                                             |
-| **admin**    | `organizations`, `features`, `org-features`                                  |
-| **company**  | `organizations`, `branches`, `dealer-types`, `users`, `categories`, `brands` |
-| **consumer** | `auth`, `profile`, `warranties`, `registrations`                             |
-| **files**    | `upload`                                                                     |
+| Portal       | Features                                                                            |
+| ------------ | ----------------------------------------------------------------------------------- |
+| **auth**     | `otp`, `profile`                                                                    |
+| **admin**    | `organizations`, `features`, `org-features`, `brands`, `categories`, `dealer-types` |
+| **company**  | `organizations`, `branches`, `dealer-types`, `users`, `categories`, `brands`        |
+| **consumer** | `auth`, `profile`, `warranties`, `registrations`, `brands`, `categories`            |
+| **files**    | `upload`                                                                            |
+| **shared**   | `brands`, `categories`, `dealer-types` (business logic reused across portals)       |
 
 ---
 
-## 4. Global Services - Complete API
+## 4. Shared Module Architecture ← **NEW**
+
+### 4.1 When to Use Shared Modules
+
+A feature should be created as a **shared module** when:
+
+- The same CRUD operations are needed by 2 or more portals
+- The business logic (validation, creation, queries) is identical across portals
+- Only the **route path**, **guard requirements**, and **data scoping** differ per portal
+
+### 4.2 Shared Module Rules
+
+| Rule                         | Description                                             |
+| ---------------------------- | ------------------------------------------------------- |
+| **Location**                 | `src/modules/shared/<feature-name>/`                    |
+| **NO Controller**            | Shared modules do NOT have controllers                  |
+| **Exports Service**          | Only the service is exported from the module            |
+| **Imports CommonModules**    | Same as any other module                                |
+| **Portal modules import it** | Admin/Company/Consumer modules import the shared module |
+
+### 4.3 Shared Module Structure
+
+```text
+modules/shared/<feature-name>/
+├── commands/
+│   ├── handlers/
+│   │   ├── create-<feature>.handler.ts
+│   │   ├── update-<feature>.handler.ts
+│   │   └── delete-<feature>.handler.ts
+│   ├── impl/
+│   │   ├── create-<feature>.command.ts
+│   │   ├── update-<feature>.command.ts
+│   │   └── delete-<feature>.command.ts
+│   └── index.ts
+├── queries/
+│   ├── handlers/
+│   │   ├── get-<feature>.handler.ts
+│   │   └── list-<features>.handler.ts
+│   ├── impl/
+│   │   ├── get-<feature>.query.ts
+│   │   └── list-<features>.query.ts
+│   └── index.ts
+├── dto/
+│   ├── create-<feature>.dto.ts
+│   ├── update-<feature>.dto.ts
+│   └── <feature>-response.dto.ts
+├── <feature>.service.ts    # Facade calling CommandBus/QueryBus
+└── <feature>.module.ts     # NO controller, exports service
+```
+
+### 4.4 Shared Module Template
+
+```typescript
+// modules/shared/<feature>/<feature>.module.ts
+import { Module } from '@nestjs/common';
+import { CommonModules } from 'services';
+import { <Feature>Service } from './<feature>.service';
+import { <Feature>CommandHandlers } from './commands';
+import { <Feature>QueryHandlers } from './queries';
+
+@Module({
+  imports: [...CommonModules],
+  providers: [<Feature>Service, ...<Feature>CommandHandlers, ...<Feature>QueryHandlers],
+  exports: [<Feature>Service],
+})
+export class <Feature>Module {}
+```
+
+### 4.5 Portal Module Using Shared Module
+
+```typescript
+// modules/admin/<feature>/<feature>.module.ts
+import { Module } from '@nestjs/common';
+import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
+import { Admin<Feature>Controller } from './<feature>.controller';
+import { RolesGuard } from 'middleware/guards/roles.guard';  // If needed
+
+@Module({
+  imports: [<Feature>Module],
+  controllers: [Admin<Feature>Controller],
+  providers: [RolesGuard],  // If using @Roles() decorator
+})
+export class Admin<Feature>Module {}
+```
+
+### 4.6 orgId Handling in Shared Services
+
+The shared service's `findAll()` method should accept `orgId` as **optional**:
+
+```typescript
+// Shared service - orgId is optional for admin, required for company/consumer
+async findAll(
+  orgId?: string,
+  page: number = 1,
+  limit: number = 10,
+  search?: string,
+  status?: string,
+) {
+  return this.queryBus.execute(
+    new ListBrandsQuery(orgId, page, limit, search, status),
+  );
+}
+```
+
+### 4.7 orgId in List Query Handler
+
+```typescript
+// Handler - only add orgId filter if provided
+const where: any = {};
+if (orgId) {
+  where.orgId = orgId;
+}
+// Admin calls without orgId → sees ALL records
+// Company calls with req.user.orgId → sees only their org's records
+```
+
+### 4.8 Data Isolation Per Portal
+
+| Portal       | GET List orgId             | Behavior                                              |
+| ------------ | -------------------------- | ----------------------------------------------------- |
+| **Admin**    | Optional `@Query('orgId')` | No orgId → ALL records. With orgId → filtered         |
+| **Company**  | Always `req.user.orgId`    | Only their organization's records                     |
+| **Consumer** | Always `req.user.orgId`    | Only their organization's records (often active only) |
+
+---
+
+## 5. Portal Implementation Decision Flow ← **NEW**
+
+### 5.1 Decision Tree for AI/Developers
+
+When asked to create a new feature, follow this flow:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ STEP 1: Is this feature needed by MULTIPLE portals?         │
+│         (admin + company, or company + consumer, etc.)      │
+└─────────────────────────────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │ YES                   │ NO
+        ▼                       ▼
+┌───────────────────┐   ┌───────────────────────────┐
+│ STEP 2: Create    │   │ STEP 2: Create portal-    │
+│ SHARED module at: │   │ specific module at:       │
+│ modules/shared/   │   │ modules/<portal>/         │
+│ <feature-name>/   │   │ <feature-name>/           │
+│                   │   │ (with controller included) │
+│ - Commands        │   └───────────────────────────┘
+│ - Queries         │
+│ - DTOs            │
+│ - Service         │
+│ - Module          │
+│ (NO controller)   │
+└───────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│ STEP 3: For EACH portal that needs this feature:            │
+│         Create portal controller + module at:               │
+│         modules/<portal>/<feature-name>/                    │
+│         - <feature>.controller.ts (portal-specific routes)  │
+│         - <feature>.module.ts (imports shared module)       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 Portal-Specific Controller Rules
+
+#### Admin Portal Controller
+
+```typescript
+@Controller('admin/brands')  // NO :orgId at controller level
+// orgId from @Param('orgId') in method path for CUD operations
+// orgId from @Query('orgId') (optional) for GET list
+
+@Post('organizations/:orgId')       // orgId required for create
+@Get()                               // orgId optional query param
+@Get('organizations/:orgId/:id')     // orgId required for get by id
+@Patch('organizations/:orgId/:id')   // orgId required for update
+@Delete('organizations/:orgId/:id')  // orgId required for delete
+```
+
+#### Company Portal Controller
+
+```typescript
+@Controller(':orgHash/brands')  // orgHash from URL, resolved by TenantGuard
+// orgId ALWAYS from req.user.orgId (set by TenantGuard)
+
+@Post()       // orgId = req.user.orgId
+@Get()        // orgId = req.user.orgId (always scoped)
+@Get(':id')   // orgId = req.user.orgId
+@Patch(':id') // orgId = req.user.orgId
+@Delete(':id')// orgId = req.user.orgId
+```
+
+#### Consumer Portal Controller
+
+```typescript
+@Controller(':orgHash/consumer/brands')
+// Read-only typically, always scoped to req.user.orgId
+// Often forces status='active' filter
+
+@Get()       // orgId = req.user.orgId, status = 'active'
+@Get(':id')  // orgId = req.user.orgId
+```
+
+### 5.3 API Endpoint Comparison
+
+| Operation     | Admin                                          | Company                      | Consumer                           |
+| ------------- | ---------------------------------------------- | ---------------------------- | ---------------------------------- |
+| **List**      | `GET admin/brands?orgId=opt`                   | `GET :orgHash/brands`        | `GET :orgHash/consumer/brands`     |
+| **Get by ID** | `GET admin/brands/organizations/:orgId/:id`    | `GET :orgHash/brands/:id`    | `GET :orgHash/consumer/brands/:id` |
+| **Create**    | `POST admin/brands/organizations/:orgId`       | `POST :orgHash/brands`       | ❌ Not allowed                     |
+| **Update**    | `PATCH admin/brands/organizations/:orgId/:id`  | `PATCH :orgHash/brands/:id`  | ❌ Not allowed                     |
+| **Delete**    | `DELETE admin/brands/organizations/:orgId/:id` | `DELETE :orgHash/brands/:id` | ❌ Not allowed                     |
+
+### 5.4 Guard & Decorator Requirements Per Portal
+
+| Portal       | JwtAuthGuard | TenantGuard | RolesGuard |  @Roles  | @RequiredFeature |
+| ------------ | :----------: | :---------: | :--------: | :------: | :--------------: |
+| **Admin**    |      ✅      |     ✅      |     ❌     |    ❌    |        ❌        |
+| **Company**  |      ✅      |     ✅      |  ✅ (CUD)  | Required |     Required     |
+| **Consumer** |      ✅      |     ✅      |     ❌     |    ❌    |        ❌        |
+
+---
+
+## 6. Global Services - Complete API
 
 > **CRITICAL: All services are @Global() - NEVER import their modules. Just inject the service directly.**
 
-### 4.1 PrismaService
+### 6.1 PrismaService
 
 ```typescript
 import { PrismaService } from 'services/prisma/prisma.service';
@@ -227,7 +471,7 @@ prisma.$transaction(async (tx) => {
 // 3. For admin-only queries where orgId is system org, still filter by orgId
 ```
 
-### 4.2 ErrorService
+### 6.2 ErrorService
 
 ```typescript
 import { ErrorService } from 'services/errors/error.service';
@@ -261,7 +505,7 @@ throw this.errorService.conflict('Phone number already in use');
 throw this.errorService.internalServerError('Failed to create brand', { cause: error });
 ```
 
-### 4.3 LoggerService
+### 6.3 LoggerService
 
 ```typescript
 import { LoggerService } from 'services/logger/logger.service';
@@ -287,7 +531,7 @@ this.logger.debug('Tenant check passed', undefined, { userId, orgId, role });
 // ⚠️ NEVER use console.log() or console.error() - always use logger
 ```
 
-### 4.4 JwtService
+### 6.4 JwtService
 
 ```typescript
 import { JwtService } from 'services/jwt/jwt.service';
@@ -346,7 +590,7 @@ jwtService.decodeToken(token: string): JwtPayload | null
 // Always pass UserAccess ID as 'sub' field
 ```
 
-### 4.5 FileService
+### 6.5 FileService
 
 ```typescript
 import { FileService } from 'services/files/file.service';
@@ -390,7 +634,7 @@ if (userAccess.profile) {
 const uploaded = await this.fileService.uploadFile(file, 'profiles');
 ```
 
-### 4.6 MailService
+### 6.6 MailService
 
 ```typescript
 import { MailService } from 'services/mail/mail.service';
@@ -431,7 +675,7 @@ await this.mailService.sendMail({
 // ⚠️ In development (NODE_ENV !== 'production'), skip email sending and return OTP in response
 ```
 
-### 4.7 CommonModules
+### 6.7 CommonModules
 
 ```typescript
 // File: src/services/index.ts
@@ -465,9 +709,9 @@ export class <Feature>Module {}
 
 ---
 
-## 5. Guards & Decorators
+## 7. Guards & Decorators
 
-### 5.1 Guard Overview
+### 7.1 Guard Overview
 
 | Guard            | Scope        | Registration           | Purpose                                                             |
 | ---------------- | ------------ | ---------------------- | ------------------------------------------------------------------- |
@@ -475,7 +719,7 @@ export class <Feature>Module {}
 | **TenantGuard**  | Global       | APP_GUARD in AppModule | Resolves org from `orgHash`, validates UserAccess, checks features  |
 | **RolesGuard**   | Per-endpoint | @UseGuards(RolesGuard) | Checks `req.user.role` against @Roles() decorator                   |
 
-### 5.2 App Module (Global Guard Registration)
+### 7.2 App Module (Global Guard Registration)
 
 ```typescript
 import { Module } from "@nestjs/common";
@@ -492,7 +736,7 @@ import { TenantGuard } from "middleware/guards/tenant.guard";
 export class AppModule {}
 ```
 
-### 5.3 JwtAuthGuard - Complete Behavior
+### 7.3 JwtAuthGuard - Complete Behavior
 
 ```typescript
 // File: src/middleware/guards/jwt-auth.guard.ts
@@ -517,7 +761,7 @@ request.user = {
 };
 ```
 
-### 5.4 TenantGuard - Complete Behavior
+### 7.4 TenantGuard - Complete Behavior
 
 ```typescript
 // File: src/middleware/guards/tenant.guard.ts
@@ -538,7 +782,7 @@ const routePath = request.route?.path || "";
 const isAuthRoute = routePath.startsWith("/api/auth");
 ```
 
-### 5.5 RolesGuard - Complete Behavior
+### 7.5 RolesGuard - Complete Behavior
 
 ```typescript
 // File: src/middleware/guards/roles.guard.ts
@@ -551,7 +795,7 @@ const isAuthRoute = routePath.startsWith("/api/auth");
 // Must be used with @UseGuards(RolesGuard) on the endpoint
 ```
 
-### 5.6 Decorators
+### 7.6 Decorators
 
 ```typescript
 // @Public() - Bypass all guards
@@ -572,7 +816,7 @@ export const RequiredFeature = (feature: string) =>
   SetMetadata(REQUIRED_FEATURE_KEY, feature);
 ```
 
-### 5.7 Combined Usage
+### 7.7 Combined Usage
 
 ```typescript
 // PUBLIC - No guards
@@ -604,7 +848,7 @@ async logout(@Req() req, @Res({ passthrough: true }) res) {
 @RequiredFeature('BRAND_CREATE')
 ```
 
-### 5.8 Permission Check Rules
+### 7.8 Permission Check Rules
 
 | User Type           | Tenant Check              | Feature Check               |
 | ------------------- | ------------------------- | --------------------------- |
@@ -616,9 +860,9 @@ async logout(@Req() req, @Res({ passthrough: true }) res) {
 
 ---
 
-## 6. Interceptors
+## 8. Interceptors
 
-### 6.1 ResponseInterceptor (Success)
+### 8.1 ResponseInterceptor (Success)
 
 ```typescript
 // File: src/middleware/interceptors/response.interceptor.ts
@@ -665,7 +909,7 @@ async logout(@Req() req, @Res({ passthrough: true }) res) {
 // → Response body only contains { user, org, ... }
 ```
 
-### 6.2 ExceptionInterceptor (Error)
+### 8.2 ExceptionInterceptor (Error)
 
 ```typescript
 // File: src/middleware/interceptors/exception.interceptor.ts
@@ -691,7 +935,48 @@ async logout(@Req() req, @Res({ passthrough: true }) res) {
 
 ---
 
-## 7. Complete Request Lifecycle
+## 9. Complete Request Lifecycle
+
+### 9.1 Admin Request Lifecycle
+
+```
+GET /admin/brands?orgId=xxx-xxx-xxx
+Headers: Cookie: accessToken=xxx
+
+┌─────────────────────────────────────────────────────────────┐
+│ 1. ExceptionInterceptor wraps entire request                │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. JwtAuthGuard                                            │
+│    • Extract accessToken from cookie                        │
+│    • Verify JWT → { sub, email, role, orgId, permissions } │
+│    • Attach: req.user = { id, email, role, perms }         │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. TenantGuard                                             │
+│    • Route is /api/admin → ADMIN user                       │
+│    • Bypasses all checks (admin sees everything)            │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. Controller → @Query('orgId') is optional                 │
+│    → Calls brandsService.findAll(orgId, page, limit, ...)   │
+│    → If orgId provided → filters by that org                │
+│    → If orgId not provided → returns ALL brands             │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 5. ResponseInterceptor wraps success response               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 9.2 Company Request Lifecycle
 
 ```
 POST /a3f2b8c1/brands
@@ -734,6 +1019,7 @@ Body: { name: "Samsung", description: "Electronics" }
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 5. Controller → Service → CQRS Handler → Prisma            │
+│    • orgId = req.user.orgId (ALWAYS scoped)                 │
 │    • Handler checks duplicate slug (only active records)    │
 │    • Creates brand with orgId, createdBy, updatedBy         │
 │    • Returns BrandResponseDto.fromEntity(brand)             │
@@ -750,9 +1036,9 @@ Body: { name: "Samsung", description: "Electronics" }
 
 ---
 
-## 8. Response Patterns
+## 10. Response Patterns
 
-### 8.1 Three Allowed Return Patterns from Handlers
+### 10.1 Three Allowed Return Patterns from Handlers
 
 ```typescript
 // PATTERN 1: Return DTO directly (most common)
@@ -779,7 +1065,7 @@ return {
 };
 ```
 
-### 8.2 Token Handling
+### 10.2 Token Handling
 
 ```typescript
 // ✅ CORRECT - Return tokens in response body (interceptor extracts to cookies)
@@ -796,7 +1082,7 @@ return {
 res.cookie('accessToken', token, { httpOnly: true, ... });
 ```
 
-### 8.3 What You Return vs What Client Gets
+### 10.3 What You Return vs What Client Gets
 
 ```typescript
 // HANDLER RETURNS:
@@ -816,9 +1102,9 @@ return ProfileResponseDto.fromEntity({ id, email, fullName, ... });
 
 ---
 
-## 9. Complete File Templates
+## 11. Complete File Templates
 
-### 9.1 Create DTO
+### 11.1 Create DTO
 
 ```typescript
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -840,7 +1126,7 @@ export class Create<Feature>Dto {
 }
 ```
 
-### 9.2 Update DTO
+### 11.2 Update DTO
 
 ```typescript
 import { ApiPropertyOptional } from '@nestjs/swagger';
@@ -862,7 +1148,7 @@ export class Update<Feature>Dto {
 }
 ```
 
-### 9.3 Response DTO
+### 11.3 Response DTO
 
 ```typescript
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -908,7 +1194,7 @@ export class <Feature>ResponseDto {
 }
 ```
 
-### 9.4 Create Command
+### 11.4 Create Command
 
 ```typescript
 import { Create<Feature>Dto } from '../../dto/create-<feature>.dto';
@@ -922,7 +1208,7 @@ export class Create<Feature>Command {
 }
 ```
 
-### 9.5 Update Command
+### 11.5 Update Command
 
 ```typescript
 import { Update<Feature>Dto } from '../../dto/update-<feature>.dto';
@@ -937,7 +1223,7 @@ export class Update<Feature>Command {
 }
 ```
 
-### 9.6 Delete Command
+### 11.6 Delete Command
 
 ```typescript
 export class Delete<Feature>Command {
@@ -949,7 +1235,7 @@ export class Delete<Feature>Command {
 }
 ```
 
-### 9.7 Create Command Handler
+### 11.7 Create Command Handler
 
 ```typescript
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
@@ -1009,7 +1295,7 @@ export class Create<Feature>Handler implements ICommandHandler<Create<Feature>Co
 }
 ```
 
-### 9.8 Update Command Handler
+### 11.8 Update Command Handler
 
 ```typescript
 @CommandHandler(Update<Feature>Command)
@@ -1057,7 +1343,7 @@ export class Update<Feature>Handler implements ICommandHandler<Update<Feature>Co
 }
 ```
 
-### 9.9 Delete Command Handler
+### 11.9 Delete Command Handler
 
 ```typescript
 @CommandHandler(Delete<Feature>Command)
@@ -1102,7 +1388,7 @@ export class Delete<Feature>Handler implements ICommandHandler<Delete<Feature>Co
 }
 ```
 
-### 9.10 Commands Index
+### 11.10 Commands Index
 
 ```typescript
 import { Create<Feature>Handler } from './handlers/create-<feature>.handler';
@@ -1116,7 +1402,7 @@ export const <Feature>CommandHandlers = [
 ];
 ```
 
-### 9.11 Get Query
+### 11.11 Get Query
 
 ```typescript
 export class Get<Feature>Query {
@@ -1127,20 +1413,21 @@ export class Get<Feature>Query {
 }
 ```
 
-### 9.12 List Query
+### 11.12 List Query (with optional orgId for admin)
 
 ```typescript
 export class List<Features>Query {
   constructor(
-    public readonly orgId: string,
+    public readonly orgId?: string,    // Optional for admin, required for company/consumer
     public readonly page: number = 1,
     public readonly limit: number = 10,
     public readonly search?: string,
+    public readonly status?: string,
   ) {}
 }
 ```
 
-### 9.13 Get Query Handler
+### 11.13 Get Query Handler
 
 ```typescript
 @QueryHandler(Get<Feature>Query)
@@ -1175,7 +1462,7 @@ export class Get<Feature>Handler implements IQueryHandler<Get<Feature>Query> {
 }
 ```
 
-### 9.14 List Query Handler
+### 11.14 List Query Handler (with optional orgId)
 
 ```typescript
 @QueryHandler(List<Features>Query)
@@ -1189,12 +1476,31 @@ export class List<Features>Handler implements IQueryHandler<List<Features>Query>
   }
 
   async execute(query: List<Features>Query) {
-    const { orgId, page, limit, search } = query;
+    const { orgId, page, limit, search, status } = query;
     const skip = (page - 1) * limit;
 
     try {
-      const where: any = { orgId, deletedAt: null };
+      const where: any = {};
 
+      // Only filter by orgId if provided (admin can skip this)
+      if (orgId) {
+        where.orgId = orgId;
+      }
+
+      // Status filter
+      if (status === 'active') {
+        where.isActive = true;
+        where.deletedAt = null;
+      } else if (status === 'inactive') {
+        where.isActive = false;
+        where.deletedAt = null;
+      } else if (status === 'deleted') {
+        where.deletedAt = { not: null };
+      } else {
+        where.deletedAt = null;
+      }
+
+      // Search
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
@@ -1228,7 +1534,7 @@ export class List<Features>Handler implements IQueryHandler<List<Features>Query>
 }
 ```
 
-### 9.15 Queries Index
+### 11.15 Queries Index
 
 ```typescript
 import { Get<Feature>Handler } from './handlers/get-<feature>.handler';
@@ -1237,7 +1543,7 @@ import { List<Features>Handler } from './handlers/list-<features>.handler';
 export const <Feature>QueryHandlers = [Get<Feature>Handler, List<Features>Handler];
 ```
 
-### 9.16 Service Facade
+### 11.16 Service Facade (with optional orgId for findAll)
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -1262,6 +1568,15 @@ export class <Feature>Service {
     return this.commandBus.execute(new Create<Feature>Command(dto, orgId, userId));
   }
 
+  // orgId is OPTIONAL - admin may not pass it, company/consumer always do
+  async findAll(orgId?: string, page: number = 1, limit: number = 10, search?: string, status?: string) {
+    return this.queryBus.execute(new List<Features>Query(orgId, page, limit, search, status));
+  }
+
+  async findById(id: string, orgId: string): Promise<<Feature>ResponseDto> {
+    return this.queryBus.execute(new Get<Feature>Query(id, orgId));
+  }
+
   async update(id: string, dto: Update<Feature>Dto, orgId: string, userId: string): Promise<<Feature>ResponseDto> {
     return this.commandBus.execute(new Update<Feature>Command(id, dto, orgId, userId));
   }
@@ -1269,68 +1584,146 @@ export class <Feature>Service {
   async remove(id: string, orgId: string, userId: string): Promise<void> {
     return this.commandBus.execute(new Delete<Feature>Command(id, orgId, userId));
   }
+}
+```
 
-  async findById(id: string, orgId: string): Promise<<Feature>ResponseDto> {
-    return this.queryBus.execute(new Get<Feature>Query(id, orgId));
+### 11.17 Admin Controller Template
+
+```typescript
+import { Controller, Post, Get, Patch, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
+import { TenantGuard } from 'middleware/guards/tenant.guard';
+import { <Feature>Service } from 'modules/shared/<feature>/<feature>.service';
+import { Create<Feature>Dto } from 'modules/shared/<feature>/dto/create-<feature>.dto';
+import { Update<Feature>Dto } from 'modules/shared/<feature>/dto/update-<feature>.dto';
+import { <Feature>ResponseDto, <Feature>DetailDto } from 'modules/shared/<feature>/dto/<feature>-response.dto';
+
+@ApiTags('Admin - <Features>')
+@Controller('admin/<features>')
+@UseGuards(JwtAuthGuard, TenantGuard)
+export class Admin<Feature>Controller {
+  constructor(private readonly service: <Feature>Service) {}
+
+  @Post('organizations/:orgId')
+  @ApiOperation({ summary: 'Create a <feature>' })
+  @ApiBody({ type: Create<Feature>Dto })
+  @ApiResponse({ status: 201, description: 'Created', type: <Feature>ResponseDto })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
+  @ApiResponse({ status: 409, description: 'Already exists' })
+  async create(@Param('orgId') orgId: string, @Body() dto: Create<Feature>Dto, @Req() req: any) {
+    return this.service.create(dto, orgId, req.user.id);
   }
 
-  async findAll(orgId: string, page: number, limit: number, search?: string) {
-    return this.queryBus.execute(new List<Features>Query(orgId, page, limit, search));
+  @Get()
+  @ApiOperation({ summary: 'List <features> (all or filtered by orgId)' })
+  @ApiQuery({ name: 'orgId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: ['active', 'inactive', 'deleted'] })
+  @ApiResponse({ status: 200, description: 'List retrieved' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  async findAll(
+    @Query('orgId') orgId?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.service.findAll(orgId, page, limit, search, status);
+  }
+
+  @Get('organizations/:orgId/:id')
+  @ApiOperation({ summary: 'Get <feature> by ID' })
+  @ApiResponse({ status: 200, description: 'Retrieved', type: <Feature>DetailDto })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  async findById(@Param('orgId') orgId: string, @Param('id') id: string) {
+    return this.service.findById(id, orgId);
+  }
+
+  @Patch('organizations/:orgId/:id')
+  @ApiOperation({ summary: 'Update <feature>' })
+  @ApiBody({ type: Update<Feature>Dto })
+  @ApiResponse({ status: 200, description: 'Updated', type: <Feature>ResponseDto })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  @ApiResponse({ status: 409, description: 'Already exists' })
+  async update(@Param('orgId') orgId: string, @Param('id') id: string, @Body() dto: Update<Feature>Dto, @Req() req: any) {
+    return this.service.update(id, dto, orgId, req.user.id);
+  }
+
+  @Delete('organizations/:orgId/:id')
+  @ApiOperation({ summary: 'Delete <feature>' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  async remove(@Param('orgId') orgId: string, @Param('id') id: string, @Req() req: any) {
+    return this.service.remove(id, orgId, req.user.id);
   }
 }
 ```
 
-### 9.17 Company/Consumer Portal Controller
+### 11.18 Company Controller Template
 
 ```typescript
-import { Controller, Post, Get, Patch, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'middleware/guards/jwt-auth.guard';
 import { TenantGuard } from 'middleware/guards/tenant.guard';
 import { RolesGuard } from 'middleware/guards/roles.guard';
 import { Roles } from 'decorators/roles.decorator';
 import { RequiredFeature } from 'decorators/required-feature.decorator';
 import { UserRole } from 'generated/prisma/enums';
+import { <Feature>Service } from 'modules/shared/<feature>/<feature>.service';
+import { Create<Feature>Dto } from 'modules/shared/<feature>/dto/create-<feature>.dto';
+import { Update<Feature>Dto } from 'modules/shared/<feature>/dto/update-<feature>.dto';
+import { <Feature>ResponseDto, <Feature>DetailDto } from 'modules/shared/<feature>/dto/<feature>-response.dto';
 
-@ApiTags('<Features>')
+@ApiTags('Company - <Features>')
 @Controller(':orgHash/<features>')
 @UseGuards(JwtAuthGuard, TenantGuard)
-export class <Feature>Controller {
+export class Company<Feature>Controller {
   constructor(private readonly service: <Feature>Service) {}
-
-  @Get()
-  @ApiOperation({ summary: 'List <features>' })
-  @ApiResponse({ status: 200, description: 'List retrieved' })
-  @ApiResponse({ status: 401, description: 'Authentication required' })
-  @ApiResponse({ status: 403, description: 'Organization context required' })
-  async findAll(
-    @Req() req: any,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
-  ) {
-    return this.service.findAll(req.user.orgId, page, limit, search);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get <feature> by ID' })
-  @ApiResponse({ status: 200, description: 'Retrieved' })
-  @ApiResponse({ status: 404, description: 'Not found' })
-  async findById(@Param('id') id: string, @Req() req: any) {
-    return this.service.findById(id, req.user.orgId);
-  }
 
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.COMPANY_SUPER_ADMIN, UserRole.COMPANY_STAFF)
-  @RequiredFeature('FEATURE_CREATE')
-  @ApiOperation({ summary: 'Create <feature>' })
+  @RequiredFeature('<FEATURE>_CREATE')
+  @ApiOperation({ summary: 'Create a <feature>' })
   @ApiBody({ type: Create<Feature>Dto })
-  @ApiResponse({ status: 201, description: 'Created' })
+  @ApiResponse({ status: 201, description: 'Created', type: <Feature>ResponseDto })
   @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 409, description: 'Already exists' })
   async create(@Body() dto: Create<Feature>Dto, @Req() req: any) {
     return this.service.create(dto, req.user.orgId, req.user.id);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List <features>' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: ['active', 'inactive', 'deleted'] })
+  @ApiResponse({ status: 200, description: 'List retrieved' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 403, description: 'Organization context required' })
+  async findAll(@Req() req: any, @Query('page') page = 1, @Query('limit') limit = 10, @Query('search') search?: string, @Query('status') status?: string) {
+    return this.service.findAll(req.user.orgId, page, limit, search, status);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get <feature> by ID' })
+  @ApiResponse({ status: 200, description: 'Retrieved', type: <Feature>DetailDto })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  async findById(@Param('id') id: string, @Req() req: any) {
+    return this.service.findById(id, req.user.orgId);
   }
 
   @Patch(':id')
@@ -1338,8 +1731,11 @@ export class <Feature>Controller {
   @Roles(UserRole.COMPANY_SUPER_ADMIN)
   @ApiOperation({ summary: 'Update <feature>' })
   @ApiBody({ type: Update<Feature>Dto })
-  @ApiResponse({ status: 200, description: 'Updated' })
+  @ApiResponse({ status: 200, description: 'Updated', type: <Feature>ResponseDto })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Not found' })
+  @ApiResponse({ status: 409, description: 'Already exists' })
   async update(@Param('id') id: string, @Body() dto: Update<Feature>Dto, @Req() req: any) {
     return this.service.update(id, dto, req.user.orgId, req.user.id);
   }
@@ -1349,6 +1745,8 @@ export class <Feature>Controller {
   @Roles(UserRole.COMPANY_SUPER_ADMIN)
   @ApiOperation({ summary: 'Delete <feature>' })
   @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Not found' })
   async remove(@Param('id') id: string, @Req() req: any) {
     return this.service.remove(id, req.user.orgId, req.user.id);
@@ -1356,33 +1754,37 @@ export class <Feature>Controller {
 }
 ```
 
-### 9.18 Module
+### 11.19 Module (Portal using Shared)
 
 ```typescript
+// Admin Module
 import { Module } from '@nestjs/common';
-import { CommonModules } from 'services';
-import { <Feature>Controller } from './<feature>.controller';
-import { <Feature>Service } from './<feature>.service';
-import { <Feature>CommandHandlers } from './commands';
-import { <Feature>QueryHandlers } from './queries';
+import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
+import { Admin<Feature>Controller } from './<feature>.controller';
+
+@Module({
+  imports: [<Feature>Module],
+  controllers: [Admin<Feature>Controller],
+})
+export class Admin<Feature>Module {}
+
+// Company Module
+import { Module } from '@nestjs/common';
+import { <Feature>Module } from 'modules/shared/<feature>/<feature>.module';
+import { Company<Feature>Controller } from './<feature>.controller';
 import { RolesGuard } from 'middleware/guards/roles.guard';
 
 @Module({
-  imports: [...CommonModules],
-  controllers: [<Feature>Controller],
-  providers: [
-    <Feature>Service,
-    RolesGuard,
-    ...<Feature>CommandHandlers,
-    ...<Feature>QueryHandlers,
-  ],
+  imports: [<Feature>Module],
+  controllers: [Company<Feature>Controller],
+  providers: [RolesGuard],
 })
-export class <Feature>Module {}
+export class Company<Feature>Module {}
 ```
 
 ---
 
-## 10. Organization-Scoped Operations
+## 12. Organization-Scoped Operations
 
 ```typescript
 // ✅ CORRECT - Always filter by orgId + deletedAt
@@ -1405,7 +1807,7 @@ await this.prisma.brand.delete({ where: { id } });
 
 ---
 
-## 11. Soft Delete Operations
+## 13. Soft Delete Operations
 
 ```typescript
 // ✅ CORRECT - Soft delete pattern
@@ -1426,7 +1828,7 @@ const existing = await this.prisma.<model>.findFirst({
 
 ---
 
-## 12. Multi-Tenant Data Isolation
+## 14. Multi-Tenant Data Isolation
 
 ```typescript
 // Consumer - sees only own data
@@ -1447,7 +1849,7 @@ const data = await this.prisma.organization.findMany({
 
 ---
 
-## 13. Anti-Patterns (NEVER)
+## 15. Anti-Patterns (NEVER)
 
 | ❌ Wrong                                   | ✅ Correct                                                                                                 |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
@@ -1459,7 +1861,7 @@ const data = await this.prisma.organization.findMany({
 | DB queries in controller/service           | Only in CQRS handlers                                                                                      |
 | Missing `this.logger.setContext()`         | Always set in constructor of every class                                                                   |
 | Empty `catch (e) {}`                       | `if (error.status) throw error;` + `this.logger.error()` + `throw this.errorService.internalServerError()` |
-| Query without `orgId` filter               | Always include `orgId` in where clause                                                                     |
+| Query without `orgId` filter               | Always include `orgId` in where clause (except admin list all)                                             |
 | Query without `deletedAt: null`            | Always exclude soft-deleted records                                                                        |
 | Hard delete with `prisma.delete()`         | Use `prisma.update()` to set `deletedAt`                                                                   |
 | Injecting feature services cross-module    | Use QueryBus or CommandBus                                                                                 |
@@ -1473,11 +1875,24 @@ const data = await this.prisma.organization.findMany({
 | `req.user.userId` for profile              | `req.user.id` (UserAccess ID from JWT `sub`)                                                               |
 | `process.env.*` in handlers                | Use `ConfigService` (except in PrismaService)                                                              |
 | Missing `@ApiResponse` for errors          | Document ALL possible error responses                                                                      |
+| Duplicating shared logic per portal        | Create shared module at `modules/shared/` and import in each portal                                        |
 
 ---
 
-## 14. Quick Checklist
+## 16. Quick Checklist
 
+- [ ] **Decision**: Is feature shared? → `modules/shared/` else `modules/<portal>/`
+- [ ] Shared module has NO controller, exports service only
+- [ ] Portal module imports shared module, adds controller
+- [ ] Shared service `findAll()` accepts optional `orgId`
+- [ ] List handler only filters by `orgId` if provided
+- [ ] Admin controller: `@Controller('admin/<features>')` (NO `:orgId`)
+- [ ] Admin controller: `orgId` as `@Param('orgId')` for CUD, `@Query('orgId')` for list
+- [ ] Company/Consumer controller: `@Controller(':orgHash/...')`
+- [ ] Company/Consumer controller: `orgId` always from `req.user.orgId`
+- [ ] Company CUD endpoints: `@UseGuards(RolesGuard)` + `@Roles()` + `@RequiredFeature()`
+- [ ] Admin endpoints: NO role/feature decorators (admin bypasses all)
+- [ ] Consumer: Read-only typically, forces `status='active'` where applicable
 - [ ] Module folder: `src/modules/<portal>/<feature-name>/`
 - [ ] Sub-folders: `commands/handlers/`, `commands/impl/`, `queries/handlers/`, `queries/impl/`, `dto/`
 - [ ] `commands/index.ts` exports `CommandHandlers` array
@@ -1499,8 +1914,6 @@ const data = await this.prisma.organization.findMany({
 - [ ] Service Facade passes `orgId` to commands/queries
 - [ ] Controller only calls Service Facade methods
 - [ ] Controller extracts `orgId` and `userId` from `req.user`
-- [ ] Company/Consumer controllers: `@Controller(':orgHash/...')` + `@UseGuards(JwtAuthGuard, TenantGuard)`
-- [ ] Admin controllers: `@Controller('admin/...')` + `@UseGuards(JwtAuthGuard, TenantGuard)`
 - [ ] Auth public endpoints: `@Public()`
 - [ ] Every endpoint has `@ApiResponse` for ALL error statuses
 - [ ] Feature-protected: `@RequiredFeature('FEATURE_CODE')`
@@ -1513,13 +1926,13 @@ const data = await this.prisma.organization.findMany({
 
 ---
 
-## 15. Error Response Standards
+## 17. Error Response Standards
 
-### 15.1 Rule
+### 17.1 Rule
 
 **Every handler MUST throw errors using ErrorService. Every controller MUST document ALL possible error responses with @ApiResponse.**
 
-### 15.2 Error Response Format
+### 17.2 Error Response Format
 
 ```json
 {
@@ -1544,7 +1957,7 @@ const data = await this.prisma.organization.findMany({
 }
 ```
 
-### 15.3 Error Method → HTTP Status Mapping
+### 17.3 Error Method → HTTP Status Mapping
 
 | Error Method            | HTTP Status | When to Use                                                     |
 | ----------------------- | ----------- | --------------------------------------------------------------- |
@@ -1556,7 +1969,7 @@ const data = await this.prisma.organization.findMany({
 | `payloadTooLarge()`     | 413         | File too large                                                  |
 | `internalServerError()` | 500         | Unexpected errors, database failures, external service failures |
 
-### 15.4 Handler Error Pattern (Mandatory)
+### 17.4 Handler Error Pattern (Mandatory)
 
 ```typescript
 async execute(command: SomeCommand): Promise<SomeResponseDto> {
@@ -1572,7 +1985,7 @@ async execute(command: SomeCommand): Promise<SomeResponseDto> {
 }
 ```
 
-### 15.5 Standard Error Messages Reference
+### 17.5 Standard Error Messages Reference
 
 **Authentication (401):**
 
@@ -1621,7 +2034,7 @@ async execute(command: SomeCommand): Promise<SomeResponseDto> {
 - `'Failed to update <feature>'`
 - `'Failed to delete <feature>'`
 
-### 15.6 Controller Swagger Documentation Rule
+### 17.6 Controller Swagger Documentation Rule
 
 Every endpoint MUST document ALL possible error responses:
 
@@ -1638,9 +2051,9 @@ async getProfile(@Req() req: any): Promise<ProfileResponseDto> {
 
 ---
 
-## 16. Current Implementation Reference
+## 18. Current Implementation Reference
 
-### 16.1 Prisma Models
+### 18.1 Prisma Models
 
 ```
 User, UserAccess, Organization, Brand, Category, DealerType,
@@ -1648,7 +2061,7 @@ Feature, FeatureAccess, FormSchema, FormData, WarrantyTemplate,
 Warranty, OtpVerification
 ```
 
-### 16.2 Enums
+### 18.2 Enums
 
 ```
 UserRole: ADMIN, COMPANY_SUPER_ADMIN, COMPANY_STAFF, COMPANY_PARTNER, CONSUMER
@@ -1657,7 +2070,7 @@ OtpType: LOGIN, PASSWORD_RESET, VERIFY_EMAIL, VERIFY_PHONE
 FeatureStatus: COMING_SOON, ENABLED, DISABLED
 ```
 
-### 16.3 Database Conventions
+### 18.3 Database Conventions
 
 - All primary keys: UUID via `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`
 - All timestamps: `@db.Timestamptz`
@@ -1666,7 +2079,7 @@ FeatureStatus: COMING_SOON, ENABLED, DISABLED
 - Unique constraints with partial indexes for non-deleted records
 - Indexes on `orgId`, `deletedAt`, and frequently queried fields
 
-### 16.4 Seed Data
+### 18.4 Seed Data
 
 - System organization: `{ slug: 'system', hash: 'admin01', type: 'ROOT' }`
 - Admin user: `{ email: 'admin@warranty.com', password: 'Admin@123' }`
@@ -1674,4 +2087,4 @@ FeatureStatus: COMING_SOON, ENABLED, DISABLED
 
 ---
 
-**End of Rule Book v5.0 - AI-Ready**
+**End of Rule Book v6.0 - AI-Ready**

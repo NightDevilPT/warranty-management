@@ -26,7 +26,7 @@ export class DeleteBrandHandler implements ICommandHandler<DeleteBrandCommand> {
         throw this.errorService.notFound('Brand not found');
       }
 
-      // Soft delete - slug becomes reusable
+      // Soft delete
       await this.prisma.brand.update({
         where: { id: brandId },
         data: {
