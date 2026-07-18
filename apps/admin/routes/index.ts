@@ -24,6 +24,12 @@ export const SidebarRoutes: ISidebarRoutes[] = [
     href: "/dashboard/organizations",
   },
   {
+    id: "brands",
+    label: "Brands",
+    icon: Tag,
+    href: "/dashboard/brands",
+  },
+  {
     id: "feature",
     label: "Features",
     icon: FolderTree,
